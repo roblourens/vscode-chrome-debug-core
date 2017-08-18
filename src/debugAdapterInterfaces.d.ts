@@ -33,7 +33,7 @@ export interface ICommonRequestArgs {
     showAsyncStacks?: boolean;
 
     /** Private undocumented property to multiplex the CRDP connection into an additional channel */
-    extraCRDPChannelPort?: number;
+    extraCRDPChannelPorts?: number[];
 }
 
 export interface IRestartRequestArgs {
