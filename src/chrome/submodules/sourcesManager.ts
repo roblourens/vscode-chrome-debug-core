@@ -1,6 +1,6 @@
 import { ChromeDiagnostics } from './chromeDiagnostics';
 import { IResourceLocationOrName, newResourcePathMap } from './resourceLocation';
-import { ISourceIdentifier, IRuntimeScriptSource } from './loadedSource';
+import { ISourceIdentifier, IRuntimeScriptSource, SourceIdentifiedByPath } from './loadedSource';
 
 export class SourcesManager {
     private _sourceToText = new Map<IRuntimeScriptSource, string>();
@@ -14,10 +14,11 @@ export class SourcesManager {
         }
     }
 
-    private getSourceByPath(path: string): IRuntimeScriptSource {
+    private getSourceByPath<R>(path: string,
+        ifNotFound: (path: string) => R = path => { throw new Error(`Couldn't find the runtime script source at path ${path}`); }): R | IRuntimeScriptSource {
         const source = this._pathToSource.get(path);
         if (source === undefined) {
-            throw new Error(`Couldn't find the runtime script source at path ${path}`);
+            return ifNotFound(path);
         }
 
         return source;
@@ -46,5 +47,9 @@ export class SourcesManager {
         }
 
         return text;
+    }
+
+    public getSourceIdentifierByPath(path: IResourceLocationOrName): ISourceIdentifier {
+        return this.getSourceByPath(path.textRepresentation, () => new SourceIdentifiedByPath(path.textRepresentation));
     }
 }

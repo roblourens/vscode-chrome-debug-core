@@ -1326,6 +1326,8 @@ export class ChromeDebugLogic {
                 // Deep copy the args that we are going to modify, and keep the original values in originalArgs
                 const originalArgs = args;
                 args = JSON.parse(JSON.stringify(args));
+                // TODO DIEGO: Remove this way of cloning objects
+                args.source = originalArgs.source; // JSON.parse & JSON.stringify destroys object, so we need to copy this manually
                 args = this._lineColTransformer.setBreakpoints(args);
                 const sourceMapTransformerResponse = this._sourceMapTransformer.setBreakpoints(args, requestSeq, ids);
                 if (sourceMapTransformerResponse && sourceMapTransformerResponse.args) {
@@ -1337,12 +1339,13 @@ export class ChromeDebugLogic {
                 args = this._pathTransformer.setBreakpoints(args);
 
                 // Get the target url of the script
-                const loadedSource = this._sourcesManager.getSource(args.source);
+                const loadedSource = this._sourcesManager.getSourceIdentifierByPath(parseResourceLocationOrName(args.source.path));
                 let targetScriptUrl;
                 let runtimeScript: IRuntimeScript | undefined = undefined;
-                if (loadedSource) {
-                    runtimeScript = loadedSource.runtimeScript;
-                    targetScriptUrl = loadedSource.runtimeScript.mappedUrl;
+                if (loadedSource.isRuntimeScriptSource()) {
+                    const runtimeScriptSource = loadedSource as IRuntimeScriptSource;
+                    runtimeScript = runtimeScriptSource.runtimeScript;
+                    targetScriptUrl = runtimeScriptSource.runtimeScript.mappedUrl;
                 } else {
                     targetScriptUrl = args.source.path;
                 }

@@ -19,6 +19,11 @@ export class DelayMessagesUntilInitializedSession implements ISession {
         this._wrappedSession.sendRequest(command, args, timeout, cb);
     }
 
+    public convertClientLineToDebugger(line: number): number {
+        // LineColTransformer uses this private method from the session
+        return (this._wrappedSession as any).convertClientLineToDebugger(line);
+    }
+
     public sendEvent(event: DebugProtocol.Event): void {
         if (this._hasSentInitializedMessage) {
             this._wrappedSession.sendEvent(event);

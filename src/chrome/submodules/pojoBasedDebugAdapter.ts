@@ -130,7 +130,7 @@ export class ChromeDebugAdapter implements IDebugAdapter {
             let realPath = this.displayPathToRealPath(protocolSource.path);
 
             // Request url has chars unescaped, but they will be escaped in scriptsByUrl
-            return this._chromeDebugAdapter.getSourceByUrl(parseResourceLocationOrName(realPath));
+            return this._sourcesManager.getSourceIdentifierByPath(parseResourceLocationOrName(realPath));
         } else if (!hasSourcePath && hasSourceReference) {
             const source = this._sourceHandles.get(protocolSource.sourceReference);
 

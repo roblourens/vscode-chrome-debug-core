@@ -12,6 +12,7 @@ import * as ChromeUtils from '../chrome/chromeUtils';
 
 import * as path from 'path';
 import { INewSetBreakpointsArgs } from '../chrome/submodules/breakpoints';
+import { SourceIdentifiedByPath } from '../chrome/submodules/loadedSource';
 
 /**
  * Converts a local path from Code to a path on the target.
@@ -46,12 +47,12 @@ export class UrlPathTransformer extends BasePathTransformer {
         const path = utils.canonicalizeUrl(args.source.path);
         const url = this.getTargetPathFromClientPath(path);
         if (url) {
-            args.source.path = url;
+            args.source = new SourceIdentifiedByPath(url);
             logger.log(`Paths.setBP: Resolved ${path} to ${args.source.path}`);
             return args;
         } else {
             logger.log(`Paths.setBP: No target url cached yet for client path: ${path}.`);
-            args.source.path = path;
+            args.source = new SourceIdentifiedByPath(path);
             return args;
         }
     }
