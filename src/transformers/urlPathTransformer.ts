@@ -4,13 +4,14 @@
 
 import { BasePathTransformer } from './basePathTransformer';
 
-import { ISetBreakpointsArgs, ILaunchRequestArgs, IAttachRequestArgs, IStackTraceResponseBody, IPathMapping } from '../debugAdapterInterfaces';
+import { ILaunchRequestArgs, IAttachRequestArgs, IStackTraceResponseBody, IPathMapping } from '../debugAdapterInterfaces';
 import * as utils from '../utils';
 import { logger } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import * as ChromeUtils from '../chrome/chromeUtils';
 
 import * as path from 'path';
+import { INewSetBreakpointsArgs } from '../chrome/submodules/breakpoints';
 
 /**
  * Converts a local path from Code to a path on the target.
@@ -30,7 +31,7 @@ export class UrlPathTransformer extends BasePathTransformer {
         return super.attach(args);
     }
 
-    public setBreakpoints(args: ISetBreakpointsArgs): ISetBreakpointsArgs {
+    public setBreakpoints(args: INewSetBreakpointsArgs): INewSetBreakpointsArgs {
         if (!args.source.path) {
             // sourceReference script, nothing to do
             return args;

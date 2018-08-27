@@ -4,7 +4,8 @@
 
 import { DebugProtocol } from 'vscode-debugprotocol';
 
-import { ISetBreakpointsArgs, ILaunchRequestArgs, IAttachRequestArgs, IStackTraceResponseBody } from '../debugAdapterInterfaces';
+import { ILaunchRequestArgs, IAttachRequestArgs, IStackTraceResponseBody } from '../debugAdapterInterfaces';
+import { INewSetBreakpointsArgs } from '../chrome/submodules/breakpoints';
 
 /**
  * Converts a local path from Code to a path on the target.
@@ -18,7 +19,7 @@ export class BasePathTransformer {
         return Promise.resolve();
     }
 
-    public setBreakpoints(args: ISetBreakpointsArgs): ISetBreakpointsArgs {
+    public setBreakpoints(args: INewSetBreakpointsArgs): INewSetBreakpointsArgs {
         return args;
     }
 

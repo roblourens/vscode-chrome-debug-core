@@ -6,7 +6,6 @@ import * as os from 'os';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { LoggingDebugSession, ErrorDestination, Response, logger } from 'vscode-debugadapter';
 
-import { ChromeDebugAdapter } from './chromeDebugAdapter';
 import { ITargetFilter, ChromeConnection, IChromeError } from './chromeConnection';
 import { BasePathTransformer } from '../transformers/basePathTransformer';
 import { BaseSourceMapTransformer } from '../transformers/baseSourceMapTransformer';
@@ -16,6 +15,7 @@ import { IDebugAdapter } from '../debugAdapterInterfaces';
 import { telemetry, ExceptionType, IExecutionResultTelemetryProperties, TelemetryPropertyCollector, ITelemetryPropertyCollector } from '../telemetry';
 import * as utils from '../utils';
 import { ExecutionTimingsReporter, StepProgressEventsEmitter, IObservableEvents, IStepStartedEventsEmitter, IFinishedStartingUpEventsEmitter } from '../executionTimingsReporter';
+import { ChromeDebugAdapter } from './submodules/pojoBasedDebugAdapter';
 
 export interface IChromeDebugAdapterOpts {
     targetFilter?: ITargetFilter;
@@ -26,6 +26,18 @@ export interface IChromeDebugAdapterOpts {
     chromeConnection?: typeof ChromeConnection;
     pathTransformer?: { new(): BasePathTransformer };
     sourceMapTransformer?: { new(sourceHandles: any, enableSourcemapCaching?: boolean): BaseSourceMapTransformer };
+    lineColTransformer?: { new(session: any): LineColTransformer };
+}
+
+export interface INewChromeDebugAdapterOpts {
+    targetFilter?: ITargetFilter;
+    logFilePath?: string; // obsolete, vscode log dir should be used
+    enableSourceMapCaching?: boolean;
+
+    // Override services
+    chromeConnection?: typeof ChromeConnection;
+    pathTransformer?: BasePathTransformer;
+    sourceMapTransformer: BaseSourceMapTransformer;
     lineColTransformer?: { new(session: any): LineColTransformer };
 }
 

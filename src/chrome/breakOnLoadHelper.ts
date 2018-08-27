@@ -6,11 +6,13 @@ import { logger } from 'vscode-debugadapter';
 import { ISetBreakpointResult, BreakOnLoadStrategy } from '../debugAdapterInterfaces';
 
 import { Protocol as Crdp } from 'devtools-protocol';
-import { ChromeDebugAdapter } from './chromeDebugAdapter';
+import { ChromeDebugLogic } from './chromeDebugAdapter';
 import * as ChromeUtils from './chromeUtils';
 import * as assert from 'assert';
 import { InternalSourceBreakpoint } from './internalSourceBreakpoint';
 import { utils } from '..';
+import { IRuntimeScript } from './submodules/runtimeScript';
+import { IRuntimeScriptLocation } from './submodules/location';
 
 export interface UrlRegexAndFileSet {
     urlRegex: string;
@@ -26,10 +28,10 @@ export class BreakOnLoadHelper {
     private _stopOnEntryRequestedFileNameToBreakpointId = new Map<string, string>();
     private _stopOnEntryRegexToBreakpointId = new Map<string, string>();
 
-    private _chromeDebugAdapter: ChromeDebugAdapter;
+    private _chromeDebugAdapter: ChromeDebugLogic;
     private _breakOnLoadStrategy: BreakOnLoadStrategy;
 
-    public constructor(chromeDebugAdapter: ChromeDebugAdapter, breakOnLoadStrategy: BreakOnLoadStrategy) {
+    public constructor(chromeDebugAdapter: ChromeDebugLogic, breakOnLoadStrategy: BreakOnLoadStrategy) {
         this.validateStrategy(breakOnLoadStrategy);
         this._chromeDebugAdapter = chromeDebugAdapter;
         this._breakOnLoadStrategy = breakOnLoadStrategy;
@@ -53,21 +55,17 @@ export class BreakOnLoadHelper {
         return this._instrumentationBreakpointSet;
     }
 
-    private getScriptUrlFromId(scriptId: string): string {
-        return this._chromeDebugAdapter.scriptsById.get(scriptId).url;
-    }
-
     /**
      * Handles the onpaused event.
      * Checks if the event is caused by a stopOnEntry breakpoint of using the regex approach, or the paused event due to the Chrome's instrument approach
      * Returns whether we should continue or not on this paused event
      */
-    public async handleOnPaused(notification: Crdp.Debugger.PausedEvent): Promise<boolean> {
+    public async handleOnPaused(notification: Crdp.Debugger.PausedEvent, topFrameLocationScript: IRuntimeScript): Promise<boolean> {
         if (notification.hitBreakpoints && notification.hitBreakpoints.length) {
             // If breakOnLoadStrategy is set to regex, we may have hit a stopOnEntry breakpoint we put.
             // So we need to resolve all the pending breakpoints in this script and then decide to continue or not
             if (this._breakOnLoadStrategy === 'regex') {
-                let shouldContinue = await this.handleStopOnEntryBreakpointAndContinue(notification);
+                let shouldContinue = await this.handleStopOnEntryBreakpointAndContinue(notification, topFrameLocationScript);
                 return shouldContinue;
             }
         } else if (this.isInstrumentationPause(notification)) {
@@ -93,7 +91,7 @@ export class BreakOnLoadHelper {
      * Returns whether we should continue on hitting a stopOnEntry breakpoint
      * Only used when using regex approach for break on load
      */
-    private async shouldContinueOnStopOnEntryBreakpoint(pausedLocation: Crdp.Debugger.Location): Promise<boolean> {
+    private async shouldContinueOnStopOnEntryBreakpoint(pausedLocation: Crdp.Debugger.Location, topFrameLocationScript: IRuntimeScript): Promise<boolean> {
         // If the file has no unbound breakpoints or none of the resolved breakpoints are at (1,1), we should continue after hitting the stopOnEntry breakpoint
         let shouldContinue = true;
 
@@ -101,7 +99,7 @@ export class BreakOnLoadHelper {
         // using committedBreakpointsByUrl for our logic.
         await this._chromeDebugAdapter.getBreakpointsResolvedDefer(pausedLocation.scriptId).promise;
 
-        const pausedScriptUrl = this.getScriptUrlFromId(pausedLocation.scriptId);
+        const pausedScriptUrl = topFrameLocationScript.url;
         // Important: We need to get the committed breakpoints only after all the pending breakpoints for this file have been resolved. If not this logic won't work
         const committedBps = this._chromeDebugAdapter.committedBreakpointsByUrl.get(pausedScriptUrl) || [];
         const anyBreakpointsAtPausedLocation = committedBps.filter(bp =>
@@ -121,12 +119,11 @@ export class BreakOnLoadHelper {
      * Handles a script with a stop on entry breakpoint and returns whether we should continue or not on hitting that breakpoint
      * Only used when using regex approach for break on load
      */
-    private async handleStopOnEntryBreakpointAndContinue(notification: Crdp.Debugger.PausedEvent): Promise<boolean> {
+    private async handleStopOnEntryBreakpointAndContinue(notification: Crdp.Debugger.PausedEvent, topFrameLocationScript: IRuntimeScript): Promise<boolean> {
         const hitBreakpoints = notification.hitBreakpoints;
         let allStopOnEntryBreakpoints = true;
 
-        const pausedScriptId = notification.callFrames[0].location.scriptId;
-        const pausedScriptUrl = this._chromeDebugAdapter.scriptsById.get(pausedScriptId).url;
+        const pausedScriptUrl = topFrameLocationScript.url;
         const mappedUrl = await this._chromeDebugAdapter.pathTransformer.scriptParsed(pausedScriptUrl);
 
         // If there is a breakpoint which is not a stopOnEntry breakpoint, we appear as if we hit that one
@@ -162,7 +159,7 @@ export class BreakOnLoadHelper {
 
         if (allStopOnEntryBreakpoints) {
             const pausedLocation = notification.callFrames[0].location;
-            let shouldContinue = await this.shouldContinueOnStopOnEntryBreakpoint(pausedLocation);
+            let shouldContinue = await this.shouldContinueOnStopOnEntryBreakpoint(pausedLocation, topFrameLocationScript);
             if (shouldContinue) {
                 return true;
             }
@@ -229,7 +226,10 @@ export class BreakOnLoadHelper {
      * Handles the AddBreakpoints request when break on load is active
      * Takes the action based on the strategy
      */
-    public async handleAddBreakpoints(url: string, breakpoints: InternalSourceBreakpoint[]): Promise<ISetBreakpointResult[]> {
+    public async handleAddBreakpoints(url: string, breakpoints: InternalSourceBreakpoint[]): Promise<{
+        breakpointId?: Crdp.Debugger.BreakpointId;
+        actualLocation?: IRuntimeScriptLocation;
+    }[]> {
         // If the strategy is set to regex, we try to match the file where user put the breakpoint through a regex and tell Chrome to put a stop on entry breakpoint there
         if (this._breakOnLoadStrategy === 'regex') {
         await this.addStopOnEntryBreakpoint(url);

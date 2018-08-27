@@ -584,7 +584,7 @@ export function toVoidP(p: Promise<any>): Promise<void> {
 }
 
 export interface PromiseDefer<T> {
-    promise: Promise<void>;
+    promise: Promise<T>;
     resolve: (value?: T | PromiseLike<T>) => void;
     reject: (reason?: any) => void;
 }
@@ -592,7 +592,7 @@ export interface PromiseDefer<T> {
 export function promiseDefer<T>(): PromiseDefer<T> {
     let resolveCallback;
     let rejectCallback;
-    const promise = new Promise<void>((resolve, reject) => {
+    const promise = new Promise<T>((resolve, reject) => {
         resolveCallback = resolve;
         rejectCallback = reject;
     });
@@ -635,4 +635,8 @@ export function fillErrorDetails(properties: IExecutionResultTelemetryProperties
     if (e.id) {
         properties.exceptionId = e.id.toString();
     }
+}
+
+export function makeUnique<T>(elements: T[]): T[] {
+    return Array.from(new Set(elements));
 }

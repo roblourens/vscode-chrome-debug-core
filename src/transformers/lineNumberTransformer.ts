@@ -4,8 +4,8 @@
 
 import { DebugProtocol } from 'vscode-debugprotocol';
 
-import { ChromeDebugSession } from '../chrome/chromeDebugSession';
 import { IDebugTransformer, ISetBreakpointsResponseBody, IStackTraceResponseBody, IScopesResponseBody } from '../debugAdapterInterfaces';
+import { ISession } from '../chrome/submodules/delayMessagesUntilInitializedSession';
 
 /**
  * Converts from 1 based lines/cols on the client side to 0 based lines/cols on the target side
@@ -13,10 +13,10 @@ import { IDebugTransformer, ISetBreakpointsResponseBody, IStackTraceResponseBody
 export class LineColTransformer implements IDebugTransformer  {
     columnBreakpointsEnabled: boolean;
 
-    constructor(private _session: ChromeDebugSession) {
+    constructor(private _session: ISession) {
     }
 
-    public setBreakpoints(args: DebugProtocol.SetBreakpointsArguments): DebugProtocol.SetBreakpointsArguments {
+    public setBreakpoints?<T extends { breakpoints: { line?: number, column?: number }[] }>(args: T): T {
         args.breakpoints.forEach(bp => this.convertClientLocationToDebugger(bp));
         if (!this.columnBreakpointsEnabled) {
             args.breakpoints.forEach(bp => bp.column = undefined);

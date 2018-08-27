@@ -5,7 +5,7 @@
 import * as path from 'path';
 import { DebugProtocol } from 'vscode-debugprotocol';
 
-import { ISetBreakpointsArgs, ILaunchRequestArgs, IAttachRequestArgs,
+import { ILaunchRequestArgs, IAttachRequestArgs,
     ISetBreakpointsResponseBody, IInternalStackTraceResponseBody, IScopesResponseBody, IInternalStackFrame } from '../debugAdapterInterfaces';
 import { MappedPosition, ISourcePathDetails } from '../sourceMaps/sourceMap';
 import { SourceMaps } from '../sourceMaps/sourceMaps';
@@ -14,6 +14,7 @@ import { logger } from 'vscode-debugadapter';
 import { ISourceContainer } from '../chrome/chromeDebugAdapter';
 
 import * as nls from 'vscode-nls';
+import { INewSetBreakpointsArgs } from '../chrome/submodules/breakpoints';
 const localize = nls.loadMessageBundle();
 
 interface ISavedSetBreakpointsArgs {
@@ -88,21 +89,12 @@ export class BaseSourceMapTransformer {
      * Apply sourcemapping to the setBreakpoints request path/lines.
      * Returns true if completed successfully, and setBreakpoint should continue.
      */
-    public setBreakpoints(args: ISetBreakpointsArgs, requestSeq: number, ids?: number[]): { args: ISetBreakpointsArgs, ids: number[] } {
+    public setBreakpoints(args: INewSetBreakpointsArgs, requestSeq: number, ids?: number[]): { args: INewSetBreakpointsArgs, ids: number[] } {
         if (!this._sourceMaps) {
             return { args, ids };
         }
 
         const originalBPs = JSON.parse(JSON.stringify(args.breakpoints));
-
-        if (args.source.sourceReference) {
-            // If the source contents were inlined, then args.source has no path, but we
-            // stored it in the handle
-            const handle = this._sourceHandles.get(args.source.sourceReference);
-            if (handle && handle.mappedPath) {
-                args.source.path = handle.mappedPath;
-            }
-        }
 
         if (args.source.path) {
             const argsPath = args.source.path;

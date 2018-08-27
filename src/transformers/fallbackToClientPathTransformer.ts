@@ -4,8 +4,8 @@
 import { logger } from 'vscode-debugadapter';
 
 import { UrlPathTransformer } from './urlPathTransformer';
-import { ChromeDebugSession } from '../chrome/chromeDebugSession';
 import * as ChromeUtils from '../chrome/chromeUtils';
+import { ISession } from '../chrome/submodules/delayMessagesUntilInitializedSession';
 
 /**
  * Converts a local path from Code to a path on the target. Uses the UrlPathTransforme logic and fallbacks to asking the client if neccesary
@@ -13,7 +13,7 @@ import * as ChromeUtils from '../chrome/chromeUtils';
 export class FallbackToClientPathTransformer extends UrlPathTransformer {
     private static ASK_CLIENT_TO_MAP_URL_TO_FILE_PATH_TIMEOUT = 500;
 
-    constructor(private _session: ChromeDebugSession) {
+    constructor(private _session: ISession) {
         super();
     }
 

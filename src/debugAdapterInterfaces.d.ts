@@ -10,6 +10,8 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { Protocol as Crdp } from 'devtools-protocol';
 import { ITelemetryPropertyCollector } from './telemetry';
 import { IStringDictionary } from './utils';
+import { INewSetBreakpointsArgs } from './chrome/submodules/breakpoints';
+import { IRuntimeScriptLocation } from './chrome/submodules/location';
 
 export type ISourceMapPathOverrides = IStringDictionary<string>;
 export type IPathMapping = IStringDictionary<string>;
@@ -89,6 +91,11 @@ export type ISetBreakpointsResponseBody = DebugProtocol.SetBreakpointsResponse['
 export interface ISetBreakpointResult {
     breakpointId?: Crdp.Debugger.BreakpointId;
     actualLocation?: Crdp.Debugger.Location;
+}
+
+export interface INewSetBreakpointResult {
+    breakpointId?: Crdp.Debugger.BreakpointId;
+    actualLocation?: IRuntimeScriptLocation;
 }
 
 export type ISourceResponseBody = DebugProtocol.SourceResponse['body'];
@@ -172,7 +179,7 @@ export interface IDebugTransformer {
     initialize?(args: DebugProtocol.InitializeRequestArguments, requestSeq?: number): PromiseOrNot<void>;
     launch?(args: ILaunchRequestArgs, requestSeq?: number): PromiseOrNot<void>;
     attach?(args: IAttachRequestArgs, requestSeq?: number): PromiseOrNot<void>;
-    setBreakpoints?(args: DebugProtocol.SetBreakpointsArguments, requestSeq?: number): PromiseOrNot<DebugProtocol.SetBreakpointsArguments>;
+    setBreakpoints?<T extends { breakpoints: { line?: number, column?: number }[] }>(args: T, requestSeq?: number): PromiseOrNot<T>;
     setExceptionBreakpoints?(args: DebugProtocol.SetExceptionBreakpointsArguments, requestSeq?: number): PromiseOrNot<void>;
 
     stackTrace?(args: DebugProtocol.StackTraceArguments, requestSeq?: number): PromiseOrNot<void>;
