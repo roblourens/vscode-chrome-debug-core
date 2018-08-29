@@ -278,6 +278,15 @@ export function getURL(aUrl: string, options: https.RequestOptions = {}): Promis
 }
 
 /**
+ * Helper function to GET and parse the JSON contents of a url
+ */
+export async function getJSONFromURL<T>(aUrl: string, options: https.RequestOptions = {}): Promise<T> {
+    const response = await getURL(aUrl, options);
+    const parsedResponse = JSON.parse(response) as T;
+    return parsedResponse;
+}
+
+/**
  * Returns true if urlOrPath is like "http://localhost" and not like "c:/code/file.js" or "/code/file.js"
  */
 export function isURL(urlOrPath: string): boolean {
@@ -636,3 +645,19 @@ export function fillErrorDetails(properties: IExecutionResultTelemetryProperties
         properties.exceptionId = e.id.toString();
     }
 }
+
+export class Lazy<T> {
+    private _cache: T;
+
+    constructor(private _obtainValue: () => T) {}
+
+    public get get(): T {
+        if (this._cache === undefined) {
+            this._cache = this._obtainValue();
+        }
+
+        return this._cache;
+    }
+}
+
+export type AsyncLazy<T> = Lazy<Promise<T>>;

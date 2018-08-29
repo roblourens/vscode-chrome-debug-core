@@ -17,6 +17,7 @@ import { Protocol as Crdp } from 'devtools-protocol';
 
 import { CRDPMultiplexor } from './crdpMultiplexing/crdpMultiplexor';
 import { WebSocketToLikeSocketProxy } from './crdpMultiplexing/webSocketToLikeSocketProxy';
+import { ChromeProtocolSchema } from './chromeProtocolSchema';
 
 export interface ITarget {
     description: string;
@@ -97,6 +98,7 @@ export class ChromeConnection implements IObservableEvents<IStepStartedEventsEmi
     private _targetDiscoveryStrategy: ITargetDiscoveryStrategy & IObservableEvents<IStepStartedEventsEmitter>;
     private _attachedTarget: ITarget;
     public readonly events: StepProgressEventsEmitter;
+    private _schema: utils.AsyncLazy<ChromeProtocolSchema> = new utils.Lazy(() => Promise.reject(new Error('You cannot access the schema before connecting to a target')));
 
     constructor(targetDiscovery?: ITargetDiscoveryStrategy & IObservableEvents<IStepStartedEventsEmitter>, targetFilter?: ITargetFilter) {
         this._targetFilter = targetFilter;
@@ -145,8 +147,9 @@ export class ChromeConnection implements IObservableEvents<IStepStartedEventsEmi
         return this._targetDiscoveryStrategy.getAllTargets(address, port, targetFilter, targetUrl);
     }
 
-    private _attach(address: string, port: number, targetUrl?: string, timeout = ChromeConnection.ATTACH_TIMEOUT, extraCRDPChannelPort?: number): Promise<void> {
+    private async _attach(address: string, port: number, targetUrl?: string, timeout = ChromeConnection.ATTACH_TIMEOUT, extraCRDPChannelPort?: number): Promise<void> {
         let selectedTarget: ITarget;
+        this._schema = new utils.Lazy(() => ChromeProtocolSchema.create(address, port));
         return utils.retryAsync(() => this._targetDiscoveryStrategy.getTarget(address, port, this._targetFilter, targetUrl), timeout, /*intervalDelay=*/200)
             .catch(err => Promise.reject(errors.runtimeConnectionTimeout(timeout, err.message)))
             .then(target => {
@@ -173,5 +176,9 @@ export class ChromeConnection implements IObservableEvents<IStepStartedEventsEmi
 
     public onClose(handler: () => void): void {
         this._socket.on('close', handler);
+    }
+
+    public get schema(): Promise<ChromeProtocolSchema> {
+        return this._schema.get;
     }
 }
