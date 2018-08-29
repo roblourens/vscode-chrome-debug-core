@@ -92,7 +92,7 @@ export interface Return {
 
 export class ChromeProtocolSchema {
     public static async create(address: string, port: number): Promise<ChromeProtocolSchema> {
-        const protocol = await utils.getJSONFromURL<Protocol>(`http://${address}:${port}/json/version`);
+        const protocol = await utils.getJSONFromURL<Protocol>(`http://${address}:${port}/json/protocol`);
         return new this(protocol);
     }
 
