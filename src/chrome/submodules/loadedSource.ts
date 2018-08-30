@@ -1,14 +1,26 @@
 import { IRuntimeScript } from './runtimeScript';
 import { IResourceIdentifier, IResourceLocation, parseResourceIdentifier } from './resourceIdentifier';
+import { MapUsingProjection } from './mapUsingProjection';
 
 export interface ISourceIdentifier {
     path: string; // TODO: Try to remove this method
     identifier: IResourceIdentifier;
     isRuntimeScriptSource(): boolean;
+    isSameSource(right: ISourceIdentifier): boolean;
+}
+
+export abstract class SourceIdentifierCommonLogic implements ISourceIdentifier {
+    public abstract get path(): string;
+    public abstract get identifier(): IResourceIdentifier;
+    public abstract isRuntimeScriptSource(): boolean;
+
+    public isSameSource(right: ISourceIdentifier): boolean {
+        return this.identifier.isEquivalent(right.identifier);
+    }
 }
 
 // This represents a path where we can find the source
-export class SourceIdentifiedByPath implements ISourceIdentifier {
+export class SourceIdentifiedByPath extends SourceIdentifierCommonLogic implements ISourceIdentifier {
     public isRuntimeScriptSource(): boolean {
         return false;
     }
@@ -26,17 +38,19 @@ export class SourceIdentifiedByPath implements ISourceIdentifier {
         return new SourceIdentifiedByPath(parseResourceIdentifier(path));
     }
 
-    constructor(private _identifier: IResourceIdentifier) { }
+    constructor(private _identifier: IResourceIdentifier) {
+        super();
+    }
 }
 
 // This represents a path to a development source that was compiled to generate the runtime code of the script
-export class DevelopmentSourceOfRuntimeScript implements ISourceIdentifier {
+export class DevelopmentSourceOfRuntimeScript extends SourceIdentifierCommonLogic implements ISourceIdentifier {
     public isRuntimeScriptSource(): boolean {
         return false;
     }
 
     constructor(private _runtimeScript: IRuntimeScript, private _identifier: IResourceIdentifier) {
-
+        super();
     }
 
     public get runtimeScript(): IRuntimeScript {
@@ -67,12 +81,14 @@ export interface IRuntimeScriptSource extends ISourceIdentifier {
  *  2. Two: We assume one path is from the webserver, and the other path is in the workspace: RuntimeScriptWithSourceOnWorkspace
  */
 
-export class RuntimeScriptRunFromStorage implements IRuntimeScriptSource {
+export class RuntimeScriptRunFromStorage extends SourceIdentifierCommonLogic implements IRuntimeScriptSource {
     public isRuntimeScriptSource(): boolean {
         return true;
     }
 
-    constructor(private _runtimeScript: IRuntimeScript, private readonly _location: IResourceLocation) { }
+    constructor(private _runtimeScript: IRuntimeScript, private readonly _location: IResourceLocation) {
+        super();
+    }
 
     public get runtimeScript(): IRuntimeScript {
         return this._runtimeScript;
@@ -87,12 +103,14 @@ export class RuntimeScriptRunFromStorage implements IRuntimeScriptSource {
     }
 }
 
-export class DynamicRuntimeScript implements IRuntimeScriptSource {
+export class DynamicRuntimeScript extends SourceIdentifierCommonLogic implements IRuntimeScriptSource {
     public isRuntimeScriptSource(): boolean {
         return true;
     }
 
-    constructor(private _runtimeScript: IRuntimeScript, private readonly _location: IResourceLocation) { }
+    constructor(private _runtimeScript: IRuntimeScript, private readonly _location: IResourceLocation) {
+        super();
+    }
 
     public get runtimeScript(): IRuntimeScript {
         return this._runtimeScript;
@@ -107,13 +125,13 @@ export class DynamicRuntimeScript implements IRuntimeScriptSource {
     }
 }
 
-export class RuntimeScriptWithSourceInDevelopmentEnvironment implements IRuntimeScriptSource {
+export class RuntimeScriptWithSourceInDevelopmentEnvironment extends SourceIdentifierCommonLogic implements IRuntimeScriptSource {
     public isRuntimeScriptSource(): boolean {
         return true;
     }
 
     constructor(private _runtimeScript: IRuntimeScript, private _locationInRuntimeEnvironment: IResourceLocation, private readonly _locationInDevelopmentEnvinronment: IResourceLocation) {
-
+        super();
     }
 
     public get runtimeScript(): IRuntimeScript {
@@ -127,4 +145,8 @@ export class RuntimeScriptWithSourceInDevelopmentEnvironment implements IRuntime
     public get identifier(): IResourceLocation {
         return this._locationInRuntimeEnvironment;
     }
+}
+
+export function newSourceIdentifierMap<V>(): Map<string, V> {
+    return new MapUsingProjection<string, V, string>(path => utils.canonicalizeUrl(path));
 }

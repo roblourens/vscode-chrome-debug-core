@@ -5,13 +5,12 @@
 import { SourceMap, MappedPosition, ISourcePathDetails } from './sourceMap';
 import { SourceMapFactory } from './sourceMapFactory';
 import { ISourceMapPathOverrides, IPathMapping } from '../debugAdapterInterfaces';
-import { ISourceIdentifier } from '../chrome/submodules/loadedSource';
-import { newResourceIdentifierMap } from '../chrome/submodules/resourceIdentifier';
+import { ISourceIdentifier, newSourceIdentifierMap } from '../chrome/submodules/loadedSource';
 
 export class SourceMaps {
     // Maps absolute paths to generated/authored source files to their corresponding SourceMap object
-    private _generatedPathToSourceMap = newResourceIdentifierMap<SourceMap>();
-    private _authoredPathToSourceMap = newResourceIdentifierMap<SourceMap>();
+    private _generatedPathToSourceMap = newSourceIdentifierMap<SourceMap>();
+    private _authoredPathToSourceMap = newSourceIdentifierMap<SourceMap>();
 
     private _sourceMapFactory: SourceMapFactory;
 

@@ -13,7 +13,7 @@ import { InternalSourceBreakpoint } from './internalSourceBreakpoint';
 import { utils } from '..';
 import { IRuntimeScript } from './submodules/runtimeScript';
 import { IRuntimeScriptLocation } from './submodules/location';
-import { newResourceIdentifierMap } from './submodules/resourceIdentifier';
+import { newSourceIdentifierMap } from './submodules/loadedSource';
 
 export interface UrlRegexAndFileSet {
     urlRegex: string;
@@ -26,7 +26,7 @@ export class BreakOnLoadHelper {
 
     // Break on load: Store some mapping between the requested file names, the regex for the file, and the chrome breakpoint id to perform lookup operations efficiently
     private _stopOnEntryBreakpointIdToRequestedFileName = new Map<string, UrlRegexAndFileSet>();
-    private _stopOnEntryRequestedFileNameToBreakpointId = newResourceIdentifierMap<string>();
+    private _stopOnEntryRequestedFileNameToBreakpointId = newSourceIdentifierMap<string>();
     private _stopOnEntryRegexToBreakpointId = new Map<string, string>();
 
     private _chromeDebugAdapter: ChromeDebugLogic;

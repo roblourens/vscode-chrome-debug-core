@@ -37,12 +37,12 @@ import * as path from 'path';
 import * as nls from 'vscode-nls';
 import { ChromeDiagnostics } from './submodules/chromeDiagnostics';
 import { RuntimeScriptsManager } from './submodules/runtimeScriptsManager';
-import { IResourceIdentifier, parseResourceIdentifier, newResourceIdentifierMap } from './submodules/resourceIdentifier';
+import { IResourceIdentifier, parseResourceIdentifier } from './submodules/resourceIdentifier';
 import { SourcesManager } from './submodules/sourcesManager';
 import { ISession } from './submodules/delayMessagesUntilInitializedSession';
 import { INewSetBreakpointsArgs, INewAddBreakpointsResult } from './submodules/breakpoints';
 import { IRuntimeScript } from './submodules/runtimeScript';
-import { ISourceIdentifier, SourceIdentifiedByPath, IRuntimeScriptSource } from './submodules/loadedSource';
+import { ISourceIdentifier, SourceIdentifiedByPath, IRuntimeScriptSource, newSourceIdentifierMap } from './submodules/loadedSource';
 import { IRuntimeScriptLocation } from './submodules/location';
 
 import { ChromeDebugAdapter as ChromeDebugAdapterClass } from './submodules/pojoBasedDebugAdapter';
@@ -206,7 +206,7 @@ export class ChromeDebugLogic {
     public _domains = new Map<CrdpDomain, Crdp.Schema.Domain>();
     private _clientAttached: boolean;
     private _currentPauseNotification: Crdp.Debugger.PausedEvent;
-    private _committedBreakpointsByUrl = newResourceIdentifierMap<INewSetBreakpointResult[]>();
+    private _committedBreakpointsByUrl = newSourceIdentifierMap<INewSetBreakpointResult[]>();
     private _exception: Crdp.Runtime.RemoteObject;
     private _setBreakpointsRequestQ: Promise<any>;
     private _expectingResumedEvent: boolean;
@@ -218,8 +218,8 @@ export class ChromeDebugLogic {
     private _breakpointIdHandles: utils.ReverseHandles<Crdp.Debugger.BreakpointId>;
 
     private _scriptsById: Map<Crdp.Runtime.ScriptId, CrdpScript>;
-    private _scriptsByUrl = newResourceIdentifierMap<CrdpScript>();
-    private _pendingBreakpointsByUrl = newResourceIdentifierMap<IPendingBreakpoint>();
+    private _scriptsByUrl = newSourceIdentifierMap<CrdpScript>();
+    private _pendingBreakpointsByUrl = newSourceIdentifierMap<IPendingBreakpoint>();
     private _hitConditionBreakpointsById: Map<Crdp.Debugger.BreakpointId, IHitConditionBreakpoint>;
 
     private _lineColTransformer: LineColTransformer;
@@ -233,7 +233,7 @@ export class ChromeDebugLogic {
     public _launchAttachArgs: ICommonRequestArgs;
     public _port: number;
     private _blackboxedRegexes: RegExp[] = [];
-    private _skipFileStatuses = newResourceIdentifierMap<boolean>();
+    private _skipFileStatuses = newSourceIdentifierMap<boolean>();
 
     private _currentStep = Promise.resolve();
     private _currentLogMessage = Promise.resolve();
@@ -287,7 +287,7 @@ export class ChromeDebugLogic {
         this._frameHandles = new Handles<Crdp.Debugger.CallFrame>();
         this._variableHandles = new variables.VariableHandles();
         this._breakpointIdHandles = new utils.ReverseHandles<Crdp.Debugger.BreakpointId>();
-        this._pendingBreakpointsByUrl = newResourceIdentifierMap<IPendingBreakpoint>();
+        this._pendingBreakpointsByUrl = newSourceIdentifierMap<IPendingBreakpoint>();
         this._hitConditionBreakpointsById = new Map<Crdp.Debugger.BreakpointId, IHitConditionBreakpoint>();
 
         this._lineColTransformer = lineColTransformer;
@@ -328,9 +328,9 @@ export class ChromeDebugLogic {
         this._sourceMapTransformer.clearTargetContext();
 
         this._scriptsById = new Map<Crdp.Runtime.ScriptId, Crdp.Debugger.ScriptParsedEvent>();
-        this._scriptsByUrl = newResourceIdentifierMap<Crdp.Debugger.ScriptParsedEvent>();
+        this._scriptsByUrl = newSourceIdentifierMap<Crdp.Debugger.ScriptParsedEvent>();
 
-        this._committedBreakpointsByUrl = newResourceIdentifierMap<INewSetBreakpointResult[]>();
+        this._committedBreakpointsByUrl = newSourceIdentifierMap<INewSetBreakpointResult[]>();
         this._setBreakpointsRequestQ = Promise.resolve();
 
         this._pathTransformer.clearTargetContext();
@@ -925,7 +925,7 @@ export class ChromeDebugLogic {
 
                 if ((isSkippedFile && !inLibRange) || (!isSkippedFile && inLibRange)) {
                     const details = await this.sourceMapTransformer.allSourcePathDetails(mappedUrl);
-                    const detail = details.find(d => parseResourceIdentifier(d.inferredPath).isEquivalent(parseResourceIdentifier(s.path)));
+                    const detail = details.find(d => d.inferredPath.isSameSource(s));
                     libPositions.push({
                         lineNumber: detail.startPosition.line,
                         columnNumber: detail.startPosition.column
@@ -1051,7 +1051,7 @@ export class ChromeDebugLogic {
             return;
         }
 
-        const sources = (await this._sourceMapTransformer.allSources(generatedPath)).map(s => new SourceIdentifiedByPath(s));
+        const sources = (await this._sourceMapTransformer.allSources(generatedPath));
         if (generatedPath === aPath && sources.length) {
             // Ignore toggling skip status for generated scripts with sources
             logger.log(`Can't toggle skipFile status for ${aPath} - it's a script with a sourcemap`);
@@ -1262,7 +1262,7 @@ export class ChromeDebugLogic {
             const clientPath = this._pathTransformer.getClientPathFromTargetPath(linePath);
             const mapped = await this._sourceMapTransformer.mapToAuthored(clientPath || linePath, adjustedLineNum, columnNum);
 
-            if (mapped && mapped.source && utils.isNumber(mapped.line) && utils.isNumber(mapped.column) && utils.existsSync(mapped.source)) {
+            if (mapped && mapped.source && utils.isNumber(mapped.line) && utils.isNumber(mapped.column) && utils.existsSync(mapped.source.path)) {
                 this._lineColTransformer.mappedExceptionStack(mapped);
                 exceptionLines[i] = exceptionLines[i].replace(
                     `${linePath}:${lineNum}:${columnNum}`,

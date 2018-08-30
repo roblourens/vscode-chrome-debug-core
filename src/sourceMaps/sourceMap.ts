@@ -9,7 +9,8 @@ import * as sourceMapUtils from './sourceMapUtils';
 import * as utils from '../utils';
 import { logger } from 'vscode-debugadapter';
 import { IPathMapping } from '../debugAdapterInterfaces';
-import { ISourceIdentifier, SourceIdentifiedByPath } from '../chrome/submodules/loadedSource';
+import { ISourceIdentifier, SourceIdentifiedByPath, newSourceIdentifierMap } from '../chrome/submodules/loadedSource';
+import { newResourceIdentifierMap } from '../chrome/submodules/resourceIdentifier';
 
 export type MappedPosition = MappedPosition;
 
@@ -26,7 +27,7 @@ export class SourceMap {
     private _generatedPath: ISourceIdentifier; // the generated file for this sourcemap (absolute path)
     private _sources: ISourceIdentifier[]; // list of authored files (absolute paths)
     private _smc: SourceMapConsumer; // the source map
-    private _authoredPathCaseMap = newResourceIdentifierMap<string>(); // Maintain pathCase map because VSCode is case sensitive
+    private _authoredPathCaseMap = newSourceIdentifierMap<string>(); // Maintain pathCase map because VSCode is case sensitive
 
     private _allSourcePathDetails: ISourcePathDetails[]; // A list of all original paths from the sourcemap, and their inferred local paths
 

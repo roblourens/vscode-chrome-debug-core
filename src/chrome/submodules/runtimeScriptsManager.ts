@@ -2,6 +2,7 @@ import { Crdp } from '../..';
 import { BidirectionalMap } from './bidirectionalMap';
 import { IResourceIdentifier, parseResourceIdentifier, newResourceIdentifierMap } from './resourceIdentifier';
 import { IRuntimeScript } from './runtimeScript';
+import { newSourceIdentifierMap } from './loadedSource';
 
 export class RuntimeScriptsManager {
     private _currentExecutionContext = new ExecutionContext();
@@ -28,7 +29,7 @@ export class RuntimeScriptsManager {
 
 export class ExecutionContext {
     private _runtimeScriptByCrdpId = new BidirectionalMap<Crdp.Runtime.ScriptId, IRuntimeScript>();
-    private _runtimeScriptByNameOrLocation = newResourceIdentifierMap<IRuntimeScript[]>();
+    private _runtimeScriptByNameOrLocation = newSourceIdentifierMap<IRuntimeScript[]>();
 
     public getCrdpId(runtimeScript: IRuntimeScript): Crdp.Runtime.ScriptId {
         const crdpId = this._runtimeScriptByCrdpId.getByRight(runtimeScript);
