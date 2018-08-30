@@ -1,5 +1,6 @@
 import { utils } from '../..';
 import { MapUsingProjection } from './mapUsingProjection';
+import * as path from 'path';
 
 /** Hierarchy:
  * IResourceIdentifier: Identifies a resource
@@ -83,9 +84,28 @@ export class NonLocalFileURL extends NoCanonicalizationResourceIdentifierCommonL
 // e.g.: C:\proj\myfile.js
 export interface LocalFilePath extends IResourceLocation { }
 
+export abstract class LocalFilePathCommonLogic extends NoCanonicalizationResourceIdentifierCommonLogic {
+    private _canonicalized;
+
+    public get canonicalized(): string {
+        return this._canonicalized;
+    }
+
+    protected abstract generateCanonicalized(): string;
+
+    constructor(textRepresentation: string) {
+        super(textRepresentation);
+        this._canonicalized = this.generateCanonicalized();
+    }
+}
+
 // A unix local resource location is a *nix path
 // e.g.: /home/user/proj/myfile.js
-export class UnixLocalFilePath extends NoCanonicalizationResourceIdentifierCommonLogic implements LocalFilePath {
+export class UnixLocalFilePath extends LocalFilePathCommonLogic implements LocalFilePath {
+    protected generateCanonicalized(): string {
+        return path.normalize(this.textRepresentation); // Remove ../s
+    }
+
     public static isValid(path: string) {
         return path.startsWith('/');
     }
@@ -93,13 +113,18 @@ export class UnixLocalFilePath extends NoCanonicalizationResourceIdentifierCommo
 
 // A windows local file path
 // e.g.: C:\proj\myfile.js
-export class WindowLocalFilePath extends ResourceIdentifierWithTextRepresentationCommonLogic implements LocalFilePath {
+export class WindowLocalFilePath extends LocalFilePathCommonLogic implements LocalFilePath {
+    protected generateCanonicalized(): string {
+        const normalized = path.normalize(this.textRepresentation); // Remove ../s
+        return normalized.toLowerCase().replace(/[\\\/]+/, '\\');
+    }
+
     public static isValid(path: string) {
         return path.match(/^[A-Za-z]:/);
     }
 
     public get canonicalized(): string {
-        return this.textRepresentation.toLowerCase();
+        return this.textRepresentation.toLowerCase().replace(/[\\\/]+/, '\\');
     }
 }
 
@@ -155,6 +180,6 @@ export function parseResourceIdentifier(textRepresentation: string): IResourceId
     }
 }
 
-export function newResourceIdentifierMap<V>() {
+export function newResourceIdentifierMap<V>(): Map<string, V> {
     return new MapUsingProjection<string, V, string>(path => utils.canonicalizeUrl(path));
 }

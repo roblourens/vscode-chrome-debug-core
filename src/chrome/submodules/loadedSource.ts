@@ -1,5 +1,5 @@
 import { IRuntimeScript } from './runtimeScript';
-import { IResourceIdentifier, IResourceLocation } from './resourceIdentifier';
+import { IResourceIdentifier, IResourceLocation, parseResourceIdentifier } from './resourceIdentifier';
 
 export interface ISourceIdentifier {
     path: string; // TODO: Try to remove this method
@@ -20,6 +20,10 @@ export class SourceIdentifiedByPath implements ISourceIdentifier {
     public get path(): string {
         // TODO: Try to remove this method
         return this._identifier.textRepresentation;
+    }
+
+    public static parse(path: string): SourceIdentifiedByPath {
+        return new SourceIdentifiedByPath(parseResourceIdentifier(path));
     }
 
     constructor(private _identifier: IResourceIdentifier) { }

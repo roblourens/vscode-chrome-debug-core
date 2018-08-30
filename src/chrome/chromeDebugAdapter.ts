@@ -206,7 +206,7 @@ export class ChromeDebugLogic {
     public _domains = new Map<CrdpDomain, Crdp.Schema.Domain>();
     private _clientAttached: boolean;
     private _currentPauseNotification: Crdp.Debugger.PausedEvent;
-    private _committedBreakpointsByUrl: Map<string, INewSetBreakpointResult[]>;
+    private _committedBreakpointsByUrl = newResourceIdentifierMap<INewSetBreakpointResult[]>();
     private _exception: Crdp.Runtime.RemoteObject;
     private _setBreakpointsRequestQ: Promise<any>;
     private _expectingResumedEvent: boolean;
@@ -218,8 +218,8 @@ export class ChromeDebugLogic {
     private _breakpointIdHandles: utils.ReverseHandles<Crdp.Debugger.BreakpointId>;
 
     private _scriptsById: Map<Crdp.Runtime.ScriptId, CrdpScript>;
-    private _scriptsByUrl: Map<string, CrdpScript>;
-    private _pendingBreakpointsByUrl: Map<string, IPendingBreakpoint>;
+    private _scriptsByUrl = newResourceIdentifierMap<CrdpScript>();
+    private _pendingBreakpointsByUrl = newResourceIdentifierMap<IPendingBreakpoint>();
     private _hitConditionBreakpointsById: Map<Crdp.Debugger.BreakpointId, IHitConditionBreakpoint>;
 
     private _lineColTransformer: LineColTransformer;

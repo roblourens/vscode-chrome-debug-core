@@ -9,6 +9,7 @@ import { logger } from 'vscode-debugadapter';
 import * as chromeUtils from '../chrome/chromeUtils';
 import * as utils from '../utils';
 import { ISourceMapPathOverrides, IPathMapping } from '../debugAdapterInterfaces';
+import { SourceIdentifiedByPath, ISourceIdentifier } from '../chrome/submodules/loadedSource';
 
 /**
  * Resolves a relative path in terms of another file
@@ -155,14 +156,14 @@ export function resolveMapPath(pathToGenerated: string, mapPath: string, pathMap
     return mapPath;
 }
 
-export function getFullSourceEntry(sourceRoot: string | undefined, sourcePath: string): string {
+export function getFullSourceEntry(sourceRoot: string | undefined, sourcePath: string): ISourceIdentifier {
     if (!sourceRoot) {
-        return sourcePath;
+        return SourceIdentifiedByPath.parse(sourcePath);
     }
 
     if (!sourceRoot.endsWith('/')) {
         sourceRoot += '/';
     }
 
-    return sourceRoot + sourcePath;
+    return SourceIdentifiedByPath.parse(sourceRoot + sourcePath);
 }

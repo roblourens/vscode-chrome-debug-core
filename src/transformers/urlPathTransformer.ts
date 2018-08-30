@@ -13,14 +13,15 @@ import * as ChromeUtils from '../chrome/chromeUtils';
 import * as path from 'path';
 import { INewSetBreakpointsArgs } from '../chrome/submodules/breakpoints';
 import { SourceIdentifiedByPath } from '../chrome/submodules/loadedSource';
+import { newResourceIdentifierMap } from '../chrome/submodules/resourceIdentifier';
 
 /**
  * Converts a local path from Code to a path on the target.
  */
 export class UrlPathTransformer extends BasePathTransformer {
     private _pathMapping: IPathMapping;
-    private _clientPathToTargetUrl = new Map<string, string>();
-    private _targetUrlToClientPath = new Map<string, string>();
+    private _clientPathToTargetUrl = newResourceIdentifierMap<string>();
+    private _targetUrlToClientPath = newResourceIdentifierMap<string>();
 
     public launch(args: ILaunchRequestArgs): Promise<void> {
         this._pathMapping = args.pathMapping;

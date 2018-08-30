@@ -18,6 +18,8 @@ import { INewSetBreakpointsArgs } from '../chrome/submodules/breakpoints';
 import { ISourceIdentifier } from '../chrome/submodules/loadedSource';
 const localize = nls.loadMessageBundle();
 
+import { newResourceIdentifierMap } from '../chrome/submodules/resourceIdentifier';
+
 interface ISavedSetBreakpointsArgs {
     generatedPath: string;
     authoredPath: string;
@@ -41,8 +43,8 @@ export class BaseSourceMapTransformer {
 
     private _requestSeqToSetBreakpointsArgs: Map<number, ISavedSetBreakpointsArgs>;
     private _allRuntimeScriptPaths: Set<string>;
-    private _authoredPathsToMappedBPs: Map<string, DebugProtocol.SourceBreakpoint[]>;
-    private _authoredPathsToClientBreakpointIds: Map<string, number[]>;
+    private _authoredPathsToMappedBPs: newResourceIdentifierMap<DebugProtocol.SourceBreakpoint[]>;
+    private _authoredPathsToClientBreakpointIds: newResourceIdentifierMap<number[]>;
 
     protected _preLoad = Promise.resolve();
     private _processingNewSourceMap: Promise<any> = Promise.resolve();
@@ -77,8 +79,8 @@ export class BaseSourceMapTransformer {
             this._sourceMaps = new SourceMaps(args.pathMapping, args.sourceMapPathOverrides, this._enableSourceMapCaching);
             this._requestSeqToSetBreakpointsArgs = new Map<number, ISavedSetBreakpointsArgs>();
             this._allRuntimeScriptPaths = new Set<string>();
-            this._authoredPathsToMappedBPs = new Map<string, DebugProtocol.SourceBreakpoint[]>();
-            this._authoredPathsToClientBreakpointIds = new Map<string, number[]>();
+            this._authoredPathsToMappedBPs = newResourceIdentifierMap<DebugProtocol.SourceBreakpoint[]>();
+            this._authoredPathsToClientBreakpointIds = newResourceIdentifierMap<number[]>();
         }
     }
 

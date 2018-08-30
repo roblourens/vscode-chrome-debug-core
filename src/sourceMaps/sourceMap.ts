@@ -9,6 +9,7 @@ import * as sourceMapUtils from './sourceMapUtils';
 import * as utils from '../utils';
 import { logger } from 'vscode-debugadapter';
 import { IPathMapping } from '../debugAdapterInterfaces';
+import { ISourceIdentifier, SourceIdentifiedByPath } from '../chrome/submodules/loadedSource';
 
 export type MappedPosition = MappedPosition;
 
@@ -16,16 +17,16 @@ export type MappedPosition = MappedPosition;
  * A pair of the original path in the sourcemap, and the full absolute path as inferred
  */
 export interface ISourcePathDetails {
-    originalPath: string;
-    inferredPath: string;
+    originalPath: ISourceIdentifier;
+    inferredPath: ISourceIdentifier;
     startPosition: MappedPosition;
 }
 
 export class SourceMap {
-    private _generatedPath: string; // the generated file for this sourcemap (absolute path)
-    private _sources: string[]; // list of authored files (absolute paths)
+    private _generatedPath: ISourceIdentifier; // the generated file for this sourcemap (absolute path)
+    private _sources: ISourceIdentifier[]; // list of authored files (absolute paths)
     private _smc: SourceMapConsumer; // the source map
-    private _authoredPathCaseMap = new Map<string, string>(); // Maintain pathCase map because VSCode is case sensitive
+    private _authoredPathCaseMap = newResourceIdentifierMap<string>(); // Maintain pathCase map because VSCode is case sensitive
 
     private _allSourcePathDetails: ISourcePathDetails[]; // A list of all original paths from the sourcemap, and their inferred local paths
 
@@ -74,7 +75,7 @@ export class SourceMap {
      * generatedPath: an absolute local path or a URL
      * json: sourcemap contents as string
      */
-    public constructor(generatedPath: string, json: string, pathMapping?: IPathMapping, sourceMapPathOverrides?: utils.IStringDictionary<string>, isVSClient = false) {
+    public constructor(generatedPath: SourceIdentifiedByPath, json: string, pathMapping?: IPathMapping, sourceMapPathOverrides?: utils.IStringDictionary<string>, isVSClient = false) {
         this._generatedPath = generatedPath;
 
         const sm = JSON.parse(json);
@@ -144,14 +145,14 @@ export class SourceMap {
     /*
      * The generated file of this source map.
      */
-    public generatedPath(): string {
+    public generatedPath(): ISourceIdentifier {
         return this._generatedPath;
     }
 
     /*
      * Returns true if this source map originates from the given source.
      */
-    public doesOriginateFrom(absPath: string): boolean {
+    public doesOriginateFrom(absPath: ISourceIdentifier): boolean {
         return this.authoredSources.some(path => path === absPath);
     }
 

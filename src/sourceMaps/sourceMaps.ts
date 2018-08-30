@@ -6,11 +6,12 @@ import { SourceMap, MappedPosition, ISourcePathDetails } from './sourceMap';
 import { SourceMapFactory } from './sourceMapFactory';
 import { ISourceMapPathOverrides, IPathMapping } from '../debugAdapterInterfaces';
 import { ISourceIdentifier } from '../chrome/submodules/loadedSource';
+import { newResourceIdentifierMap } from '../chrome/submodules/resourceIdentifier';
 
 export class SourceMaps {
     // Maps absolute paths to generated/authored source files to their corresponding SourceMap object
-    private _generatedPathToSourceMap = new Map<string, SourceMap>();
-    private _authoredPathToSourceMap = new Map<string, SourceMap>();
+    private _generatedPathToSourceMap = newResourceIdentifierMap<SourceMap>();
+    private _authoredPathToSourceMap = newResourceIdentifierMap<SourceMap>();
 
     private _sourceMapFactory: SourceMapFactory;
 
@@ -22,7 +23,7 @@ export class SourceMaps {
      * Returns the generated script path for an authored source path
      * @param pathToSource - The absolute path to the authored file
      */
-    public getGeneratedPathFromAuthoredPath(authoredPath: string): string {
+    public getGeneratedPathFromAuthoredPath(authoredPath: string): ISourceIdentifier {
         authoredPath = authoredPath.toLowerCase();
         return this._authoredPathToSourceMap.has(authoredPath) ?
             this._authoredPathToSourceMap.get(authoredPath).generatedPath() :
@@ -73,8 +74,8 @@ export class SourceMaps {
     public async processNewSourceMap(pathToGenerated: string, sourceMapURL: string, isVSClient = false): Promise<void> {
         const sourceMap = await this._sourceMapFactory.getMapForGeneratedPath(pathToGenerated, sourceMapURL, isVSClient);
         if (sourceMap) {
-            this._generatedPathToSourceMap.set(pathToGenerated.toLowerCase(), sourceMap);
-            sourceMap.authoredSources.forEach(authoredSource => this._authoredPathToSourceMap.set(authoredSource.toLowerCase(), sourceMap));
+            this._generatedPathToSourceMap.set(pathToGenerated, sourceMap);
+            sourceMap.authoredSources.forEach(authoredSource => this._authoredPathToSourceMap.set(authoredSource, sourceMap));
         }
     }
 }
