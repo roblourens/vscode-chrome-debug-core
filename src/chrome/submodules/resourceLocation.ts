@@ -32,6 +32,12 @@ export class URL implements IResourceLocation {
 }
 
 export class LocalFileLocation implements IResourceLocation {
+public static fromUrl(fileUrl: string) {
+    let urlOrPath = urlOrPath.replace('file:///', '');
+    urlOrPath = decodeURIComponent(urlOrPath);
+    return new this(urlOrPath);
+}
+
     constructor(private _textRepresentation: string) {
 
     }
@@ -48,15 +54,19 @@ export function parseResourceAbsoluteLocation(pathToResource: string): IResource
         new LocalFileLocation(pathToResource);
 }
 
-export function parseResourceLocationOrName(resourceLocationOrName: string): IResourceLocationOrName {
-    // DIEGO TODO
-    return parseResourceAbsoluteLocation(resourceLocationOrName);
-}
-
 export function newResourcePathMap<V>() {
     return new MapUsingProjection<string, V, string>(path => utils.canonicalizeUrl(path));
 }
 
 export function isEquivalentPath(left: string, right: string) {
     return utils.canonicalizeUrl(left) === utils.canonicalizeUrl(right);
+}
+
+
+
+export function parseResourceLocationOrName(path: string): IResourceLocationOrName {
+    if (path.startsWith('file:///')) {
+        return LocalFileLocation.fromUrl(path);
+    }
+
 }
