@@ -1,12 +1,12 @@
 import { Crdp } from '../..';
 import { BidirectionalMap } from './bidirectionalMap';
-import { IResourceLocationOrName, parseResourceLocationOrName } from './resourceLocation';
+import { IResourceIdentifier, parseResourceIdentifier } from './resourceLocation';
 import { IRuntimeScript } from './runtimeScript';
 
 export class RuntimeScriptsManager {
     private _currentExecutionContext = new ExecutionContext();
 
-    public getRuntimeScriptsByNameOrLocation(nameOrLocation: IResourceLocationOrName): IRuntimeScript[] {
+    public getRuntimeScriptsByNameOrLocation(nameOrLocation: IResourceIdentifier): IRuntimeScript[] {
         return this._currentExecutionContext.getRuntimeScriptsByNameOrLocation(nameOrLocation);
     }
 
@@ -39,7 +39,7 @@ export class ExecutionContext {
         return crdpId;
     }
 
-    public getRuntimeScriptsByNameOrLocation(nameOrLocation: IResourceLocationOrName): IRuntimeScript[] {
+    public getRuntimeScriptsByNameOrLocation(nameOrLocation: IResourceIdentifier): IRuntimeScript[] {
         const runtimeScript = this._runtimeScriptByNameOrLocation.get(nameOrLocation.textRepresentation);
         if (!runtimeScript) {
             throw new Error(`Couldn't find a runtime script with name or location of ${nameOrLocation}`);
@@ -50,7 +50,7 @@ export class ExecutionContext {
 
     public addNewRuntimeScript(scriptId: Crdp.Runtime.ScriptId, runtimeScript: IRuntimeScript): void {
         this._runtimeScriptByCrdpId.set(scriptId, runtimeScript);
-        const nameOrLocationTextRepresentation = parseResourceLocationOrName(runtimeScript.url).textRepresentation;
+        const nameOrLocationTextRepresentation = parseResourceIdentifier(runtimeScript.url).textRepresentation;
         let runtimeScriptsWithThisNameOrLocation = this._runtimeScriptByNameOrLocation.get(nameOrLocationTextRepresentation);
         if (runtimeScriptsWithThisNameOrLocation !== undefined) {
             runtimeScriptsWithThisNameOrLocation.push(runtimeScript);

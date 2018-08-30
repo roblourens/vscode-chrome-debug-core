@@ -1,5 +1,5 @@
 import { IRuntimeScriptSource, RuntimeScriptRunFromStorage, DynamicRuntimeScript, RuntimeScriptWithSourceOnWorkspace, AuthoredSourceOfRuntimeScript } from './loadedSource';
-import { IResourceLocationOrName, isEquivalentPath, parseResourceLocationOrName } from './resourceLocation';
+import { IResourceIdentifier } from './resourceLocation';
 import * as fs from 'fs';
 
 export interface IRuntimeScript {
@@ -11,11 +11,9 @@ export interface IRuntimeScript {
 
 export class RuntimeScript implements IRuntimeScript {
     private readonly _loadedSource: IRuntimeScriptSource;
-    private readonly _nameOrLocationOnWebServer: IResourceLocationOrName;
     private readonly _authoredSources: AuthoredSourceOfRuntimeScript[];
 
-    constructor(nameOrLocationOnWebServer: string, locationInWorkspace: string, sourceNamesOrLocations: string[]) {
-        this._nameOrLocationOnWebServer = parseResourceLocationOrName(nameOrLocationOnWebServer);
+    constructor(private readonly _nameOrLocationOnWebServer: IResourceIdentifier, locationInWorkspace: IResourceIdentifier, sourceNamesOrLocations: string[]) {
         this._authoredSources = sourceNamesOrLocations.map(path => new AuthoredSourceOfRuntimeScript(this, path));
 
         /**
@@ -26,15 +24,15 @@ export class RuntimeScript implements IRuntimeScript {
          *      Single path not on storage: DynamicRuntimeScript
          *  2. Two: We assume one path is from the webserver, and the other path is in the workspace: RuntimeScriptWithSourceOnWorkspace
          */
-        if (isEquivalentPath(nameOrLocationOnWebServer, locationInWorkspace)) {
-            if (fs.existsSync(locationInWorkspace)) {
+        if (this._nameOrLocationOnWebServer.isEquivalent(locationInWorkspace)) {
+            if (fs.existsSync(locationInWorkspace.textRepresentation)) {
                 this._loadedSource = new RuntimeScriptRunFromStorage(this);
             } else {
                 this._loadedSource = new DynamicRuntimeScript(this);
             }
         } else {
             // The script is served from one location, and it's on the workspace on a different location
-            this._loadedSource = new RuntimeScriptWithSourceOnWorkspace(this, locationInWorkspace);
+            this._loadedSource = new RuntimeScriptWithSourceOnWorkspace(this, locationInWorkspace.textRepresentation);
         }
     }
 

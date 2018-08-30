@@ -1,10 +1,10 @@
 import { ChromeDiagnostics } from './chromeDiagnostics';
-import { IResourceLocationOrName, newResourcePathMap } from './resourceLocation';
+import { IResourceIdentifier, newResourceIdentifierMap } from './resourceLocation';
 import { ISourceIdentifier, IRuntimeScriptSource, SourceIdentifiedByPath } from './loadedSource';
 
 export class SourcesManager {
     private _sourceToText = new Map<IRuntimeScriptSource, string>();
-    private _pathToSource = newResourcePathMap<IRuntimeScriptSource>();
+    private _pathToSource = newResourceIdentifierMap<IRuntimeScriptSource>();
 
     public getSource(source: ISourceIdentifier): IRuntimeScriptSource {
         if (source.isRuntimeScriptSource()) {
@@ -24,7 +24,7 @@ export class SourcesManager {
         return source;
     }
 
-    public getSourceByNameOrLocation(nameOrLocation: IResourceLocationOrName): IRuntimeScriptSource {
+    public getSourceByNameOrLocation(nameOrLocation: IResourceIdentifier): IRuntimeScriptSource {
         return this.getSourceByPath(nameOrLocation.textRepresentation);
     }
 
@@ -49,7 +49,7 @@ export class SourcesManager {
         return text;
     }
 
-    public getSourceIdentifierByPath(path: IResourceLocationOrName): ISourceIdentifier {
+    public getSourceIdentifierByPath(path: IResourceIdentifier): ISourceIdentifier {
         return this.getSourceByPath(path.textRepresentation, () => new SourceIdentifiedByPath(path.textRepresentation));
     }
 }

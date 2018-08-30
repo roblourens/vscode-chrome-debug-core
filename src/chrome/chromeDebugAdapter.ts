@@ -37,7 +37,7 @@ import * as path from 'path';
 import * as nls from 'vscode-nls';
 import { ChromeDiagnostics } from './submodules/chromeDiagnostics';
 import { RuntimeScriptsManager } from './submodules/runtimeScriptsManager';
-import { IResourceLocationOrName, parseResourceLocationOrName, newResourcePathMap, isEquivalentPath } from './submodules/resourceLocation';
+import { IResourceIdentifier, parseResourceIdentifier, newResourceIdentifierMap } from './submodules/resourceLocation';
 import { SourcesManager } from './submodules/sourcesManager';
 import { ISession } from './submodules/delayMessagesUntilInitializedSession';
 import { INewSetBreakpointsArgs, INewAddBreakpointsResult } from './submodules/breakpoints';
@@ -117,7 +117,7 @@ export class ChromeDebugAdapter extends ChromeDebugAdapterClass {
         return this._chromeDebugAdapter.sendInitializedEvent();
     }
     protected async addBreakpoints(url: string, breakpoints: InternalSourceBreakpoint[]): Promise<(INewAddBreakpointsResult & ISetBreakpointResult)[] | (ISetBreakpointResult)[]> {
-        const runtimeScript = this._runtimeScriptsManager.getRuntimeScriptsByNameOrLocation(parseResourceLocationOrName(url))[0];
+        const runtimeScript = this._runtimeScriptsManager.getRuntimeScriptsByNameOrLocation(parseResourceIdentifier(url))[0];
         const scriptId = this._runtimeScriptsManager.getCrdpId(runtimeScript);
         const addBreakpointsResult = await this._chromeDebugAdapter.addBreakpoints(url, breakpoints, runtimeScript);
         const addBreakpointsResultForNode = addBreakpointsResult as (INewAddBreakpointsResult & ISetBreakpointResult)[];
@@ -233,7 +233,7 @@ export class ChromeDebugLogic {
     public _launchAttachArgs: ICommonRequestArgs;
     public _port: number;
     private _blackboxedRegexes: RegExp[] = [];
-    private _skipFileStatuses = newResourcePathMap<boolean>();
+    private _skipFileStatuses = newResourceIdentifierMap<boolean>();
 
     private _currentStep = Promise.resolve();
     private _currentLogMessage = Promise.resolve();
@@ -287,7 +287,7 @@ export class ChromeDebugLogic {
         this._frameHandles = new Handles<Crdp.Debugger.CallFrame>();
         this._variableHandles = new variables.VariableHandles();
         this._breakpointIdHandles = new utils.ReverseHandles<Crdp.Debugger.BreakpointId>();
-        this._pendingBreakpointsByUrl = newResourcePathMap<IPendingBreakpoint>();
+        this._pendingBreakpointsByUrl = newResourceIdentifierMap<IPendingBreakpoint>();
         this._hitConditionBreakpointsById = new Map<Crdp.Debugger.BreakpointId, IHitConditionBreakpoint>();
 
         this._lineColTransformer = lineColTransformer;
@@ -328,9 +328,9 @@ export class ChromeDebugLogic {
         this._sourceMapTransformer.clearTargetContext();
 
         this._scriptsById = new Map<Crdp.Runtime.ScriptId, Crdp.Debugger.ScriptParsedEvent>();
-        this._scriptsByUrl = newResourcePathMap<Crdp.Debugger.ScriptParsedEvent>();
+        this._scriptsByUrl = newResourceIdentifierMap<Crdp.Debugger.ScriptParsedEvent>();
 
-        this._committedBreakpointsByUrl = newResourcePathMap<INewSetBreakpointResult[]>();
+        this._committedBreakpointsByUrl = newResourceIdentifierMap<INewSetBreakpointResult[]>();
         this._setBreakpointsRequestQ = Promise.resolve();
 
         this._pathTransformer.clearTargetContext();
@@ -925,7 +925,7 @@ export class ChromeDebugLogic {
 
                 if ((isSkippedFile && !inLibRange) || (!isSkippedFile && inLibRange)) {
                     const details = await this.sourceMapTransformer.allSourcePathDetails(mappedUrl);
-                    const detail = details.find(d => isEquivalentPath(d.inferredPath, s.path));
+                    const detail = details.find(d => parseResourceIdentifier(d.inferredPath).isEquivalent(parseResourceIdentifier(s.path)));
                     libPositions.push({
                         lineNumber: detail.startPosition.line,
                         columnNumber: detail.startPosition.column
@@ -1339,7 +1339,7 @@ export class ChromeDebugLogic {
                 args = this._pathTransformer.setBreakpoints(args);
 
                 // Get the target url of the script
-                const loadedSource = this._sourcesManager.getSourceIdentifierByPath(parseResourceLocationOrName(args.source.path));
+                const loadedSource = this._sourcesManager.getSourceIdentifierByPath(parseResourceIdentifier(args.source.path));
                 let targetScriptUrl;
                 let runtimeScript: IRuntimeScript | undefined = undefined;
                 if (loadedSource.isRuntimeScriptSource()) {
@@ -2909,10 +2909,10 @@ export class ChromeDebugLogic {
     }
 
     private getScriptByUrl(url: string): IRuntimeScript[] {
-        return this._runtimeScriptsManager.getRuntimeScriptsByNameOrLocation(parseResourceLocationOrName(url));
+        return this._runtimeScriptsManager.getRuntimeScriptsByNameOrLocation(parseResourceIdentifier(url));
     }
 
-    public getSourceByUrl(nameOrLocation: IResourceLocationOrName): IRuntimeScriptSource {
+    public getSourceByUrl(nameOrLocation: IResourceIdentifier): IRuntimeScriptSource {
         return this._sourcesManager.getSourceByNameOrLocation(nameOrLocation);
     }
 }

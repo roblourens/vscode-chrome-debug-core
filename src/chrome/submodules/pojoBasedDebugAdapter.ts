@@ -12,7 +12,7 @@ import { ChromeConnection } from '../chromeConnection';
 import { RuntimeScriptsManager } from './runtimeScriptsManager';
 import { ChromeDiagnostics } from './chromeDiagnostics';
 import { DelayMessagesUntilInitializedSession } from './delayMessagesUntilInitializedSession';
-import { parseResourceLocationOrName } from './resourceLocation';
+import { parseResourceIdentifier } from './resourceLocation';
 import { RemotePathTransformer } from '../../transformers/remotePathTransformer';
 import { EagerSourceMapTransformer } from '../../transformers/eagerSourceMapTransformer';
 import { IRuntimeScriptSource, ISourceIdentifier } from './loadedSource';
@@ -130,7 +130,7 @@ export class ChromeDebugAdapter implements IDebugAdapter {
             let realPath = this.displayPathToRealPath(protocolSource.path);
 
             // Request url has chars unescaped, but they will be escaped in scriptsByUrl
-            return this._sourcesManager.getSourceIdentifierByPath(parseResourceLocationOrName(realPath));
+            return this._sourcesManager.getSourceIdentifierByPath(parseResourceIdentifier(realPath));
         } else if (!hasSourcePath && hasSourceReference) {
             const source = this._sourceHandles.get(protocolSource.sourceReference);
 

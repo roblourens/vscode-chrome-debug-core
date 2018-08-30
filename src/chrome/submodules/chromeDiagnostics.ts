@@ -4,6 +4,7 @@ import Protocol from 'devtools-protocol';
 import * as ChromeUtils from '../chromeUtils';
 import { IRuntimeScript, RuntimeScript } from './runtimeScript';
 import { IRuntimeScriptLocation } from './location';
+import { parseResourceIdentifier } from './resourceLocation';
 
 export class ChromeDiagnostics {
     public Debugger: ChromeDebugger;
@@ -188,7 +189,10 @@ export class ChromeDebugger extends ChromeModule<Crdp.DebuggerApi> {
             // TODO DIEGO: Convert to actual sources objects
             const sourceNamesOrLocations = await this._sourceMapTransformer.scriptParsed(mappedUrl, params.sourceMapURL) || [];
 
-            const runtimeScript = new RuntimeScript(params.url, mappedUrl, sourceNamesOrLocations);
+            const scriptUrl = parseResourceIdentifier(params.url);
+            const mappedUrlIdentifier = parseResourceIdentifier(mappedUrl);
+
+            const runtimeScript = new RuntimeScript(scriptUrl, mappedUrlIdentifier, sourceNamesOrLocations);
 
             this._runtimeScriptsManager.addNewRuntimeScript(params.scriptId, runtimeScript);
             this._onScriptParsedListeners.forEach(listener => listener(params, runtimeScript));
