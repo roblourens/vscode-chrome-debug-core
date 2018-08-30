@@ -1,6 +1,6 @@
 import { Crdp } from '../..';
 import { BidirectionalMap } from './bidirectionalMap';
-import { IResourceIdentifier, parseResourceIdentifier } from './resourceLocation';
+import { IResourceIdentifier, parseResourceIdentifier } from './resourceIdentifier';
 import { IRuntimeScript } from './runtimeScript';
 
 export class RuntimeScriptsManager {

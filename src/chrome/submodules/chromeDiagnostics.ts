@@ -4,7 +4,7 @@ import Protocol from 'devtools-protocol';
 import * as ChromeUtils from '../chromeUtils';
 import { IRuntimeScript, RuntimeScript } from './runtimeScript';
 import { IRuntimeScriptLocation } from './location';
-import { parseResourceIdentifier } from './resourceLocation';
+import { parseResourceIdentifier } from './resourceIdentifier';
 
 export class ChromeDiagnostics {
     public Debugger: ChromeDebugger;

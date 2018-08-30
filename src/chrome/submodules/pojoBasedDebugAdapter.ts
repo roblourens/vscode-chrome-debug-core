@@ -12,7 +12,7 @@ import { ChromeConnection } from '../chromeConnection';
 import { RuntimeScriptsManager } from './runtimeScriptsManager';
 import { ChromeDiagnostics } from './chromeDiagnostics';
 import { DelayMessagesUntilInitializedSession } from './delayMessagesUntilInitializedSession';
-import { parseResourceIdentifier } from './resourceLocation';
+import { parseResourceIdentifier } from './resourceIdentifier';
 import { RemotePathTransformer } from '../../transformers/remotePathTransformer';
 import { EagerSourceMapTransformer } from '../../transformers/eagerSourceMapTransformer';
 import { IRuntimeScriptSource, ISourceIdentifier } from './loadedSource';

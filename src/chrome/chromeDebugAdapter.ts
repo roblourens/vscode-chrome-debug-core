@@ -37,7 +37,7 @@ import * as path from 'path';
 import * as nls from 'vscode-nls';
 import { ChromeDiagnostics } from './submodules/chromeDiagnostics';
 import { RuntimeScriptsManager } from './submodules/runtimeScriptsManager';
-import { IResourceIdentifier, parseResourceIdentifier, newResourceIdentifierMap } from './submodules/resourceLocation';
+import { IResourceIdentifier, parseResourceIdentifier, newResourceIdentifierMap } from './submodules/resourceIdentifier';
 import { SourcesManager } from './submodules/sourcesManager';
 import { ISession } from './submodules/delayMessagesUntilInitializedSession';
 import { INewSetBreakpointsArgs, INewAddBreakpointsResult } from './submodules/breakpoints';

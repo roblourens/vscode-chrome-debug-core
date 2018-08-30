@@ -1,5 +1,5 @@
 import { IRuntimeScriptSource, RuntimeScriptRunFromStorage, DynamicRuntimeScript, RuntimeScriptWithSourceOnWorkspace, AuthoredSourceOfRuntimeScript } from './loadedSource';
-import { IResourceIdentifier } from './resourceLocation';
+import { IResourceIdentifier } from './resourceIdentifier';
 import * as fs from 'fs';
 
 export interface IRuntimeScript {

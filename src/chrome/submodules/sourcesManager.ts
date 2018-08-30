@@ -1,5 +1,5 @@
 import { ChromeDiagnostics } from './chromeDiagnostics';
-import { IResourceIdentifier, newResourceIdentifierMap } from './resourceLocation';
+import { IResourceIdentifier, newResourceIdentifierMap } from './resourceIdentifier';
 import { ISourceIdentifier, IRuntimeScriptSource, SourceIdentifiedByPath } from './loadedSource';
 
 export class SourcesManager {
