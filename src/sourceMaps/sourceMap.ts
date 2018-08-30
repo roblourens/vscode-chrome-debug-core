@@ -137,7 +137,7 @@ export class SourceMap {
     /*
      * Return all mapped sources as absolute paths
      */
-    public get authoredSources(): string[] {
+    public get authoredSources(): ISourceIdentifier[] {
         return this._sources;
     }
 

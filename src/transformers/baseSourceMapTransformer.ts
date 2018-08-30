@@ -15,6 +15,7 @@ import { ISourceContainer } from '../chrome/chromeDebugAdapter';
 
 import * as nls from 'vscode-nls';
 import { INewSetBreakpointsArgs } from '../chrome/submodules/breakpoints';
+import { ISourceIdentifier } from '../chrome/submodules/loadedSource';
 const localize = nls.loadMessageBundle();
 
 interface ISavedSetBreakpointsArgs {
@@ -252,7 +253,7 @@ export class BaseSourceMapTransformer {
             this._sourceHandles.create({ contents, mappedPath });
     }
 
-    public async scriptParsed(pathToGenerated: string, sourceMapURL: string): Promise<string[]> {
+    public async scriptParsed(pathToGenerated: string, sourceMapURL: string): Promise<ISourceIdentifier[]> {
         if (this._sourceMaps) {
             this._allRuntimeScriptPaths.add(this.fixPathCasing(pathToGenerated));
 
@@ -347,7 +348,7 @@ export class BaseSourceMapTransformer {
             (this.isRuntimeScript(authoredPath) ? authoredPath : null);
     }
 
-    public async allSources(pathToGenerated: string): Promise<string[]> {
+    public async allSources(pathToGenerated: string): Promise<ISourceIdentifier[]> {
         if (!this._sourceMaps) return [];
 
         await this.wait();

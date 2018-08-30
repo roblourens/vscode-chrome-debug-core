@@ -1,30 +1,37 @@
 import { IRuntimeScript } from './runtimeScript';
+import { IResourceIdentifier, IResourceLocation } from './resourceIdentifier';
 
 export interface ISourceIdentifier {
-    path: string;
+    path: string; // TODO: Try to remove this method
+    identifier: IResourceIdentifier;
     isRuntimeScriptSource(): boolean;
 }
 
+// This represents a path where we can find the source
 export class SourceIdentifiedByPath implements ISourceIdentifier {
     public isRuntimeScriptSource(): boolean {
         return false;
     }
 
-    constructor(private _path: string) {
-
+    public get identifier(): IResourceIdentifier {
+        return this._identifier;
     }
 
     public get path(): string {
-        return this._path;
+        // TODO: Try to remove this method
+        return this._identifier.textRepresentation;
     }
+
+    constructor(private _identifier: IResourceIdentifier) { }
 }
 
-export class AuthoredSourceOfRuntimeScript implements ISourceIdentifier {
+// This represents a path to a development source that was compiled to generate the runtime code of the script
+export class DevelopmentSourceOfRuntimeScript implements ISourceIdentifier {
     public isRuntimeScriptSource(): boolean {
         return false;
     }
 
-    constructor(private _runtimeScript: IRuntimeScript, private _authoredPath: string) {
+    constructor(private _runtimeScript: IRuntimeScript, private _identifier: IResourceIdentifier) {
 
     }
 
@@ -32,8 +39,12 @@ export class AuthoredSourceOfRuntimeScript implements ISourceIdentifier {
         return this._runtimeScript;
     }
 
+    public get identifier(): IResourceIdentifier {
+        return this._identifier;
+    }
+
     public get path(): string {
-        return this._authoredPath;
+        return this._identifier.textRepresentation;
     }
 }
 
@@ -57,14 +68,18 @@ export class RuntimeScriptRunFromStorage implements IRuntimeScriptSource {
         return true;
     }
 
-    constructor(private _runtimeScript: IRuntimeScript) { }
+    constructor(private _runtimeScript: IRuntimeScript, private readonly _location: IResourceLocation) { }
 
     public get runtimeScript(): IRuntimeScript {
         return this._runtimeScript;
     }
 
     public get path(): string {
-        return this._runtimeScript.url;
+        return this._location.textRepresentation;
+    }
+
+    public get identifier(): IResourceIdentifier {
+        return this._location;
     }
 }
 
@@ -73,23 +88,27 @@ export class DynamicRuntimeScript implements IRuntimeScriptSource {
         return true;
     }
 
-    constructor(private _runtimeScript: IRuntimeScript) { }
+    constructor(private _runtimeScript: IRuntimeScript, private readonly _location: IResourceLocation) { }
 
     public get runtimeScript(): IRuntimeScript {
         return this._runtimeScript;
     }
 
     public get path(): string {
-        return this._runtimeScript.url;
+        return this._location.textRepresentation;
+    }
+
+    public get identifier(): IResourceIdentifier {
+        return this._location;
     }
 }
 
-export class RuntimeScriptWithSourceOnWorkspace implements IRuntimeScriptSource {
+export class RuntimeScriptWithSourceInDevelopmentEnvironment implements IRuntimeScriptSource {
     public isRuntimeScriptSource(): boolean {
         return true;
     }
 
-    constructor(private _runtimeScript: IRuntimeScript, private _locationInWorkspace: string) {
+    constructor(private _runtimeScript: IRuntimeScript, private _locationInRuntimeEnvironment: IResourceLocation, private readonly _locationInDevelopmentEnvinronment: IResourceLocation) {
 
     }
 
@@ -98,6 +117,10 @@ export class RuntimeScriptWithSourceOnWorkspace implements IRuntimeScriptSource 
     }
 
     public get path(): string {
-        return this._locationInWorkspace;
+        return this._locationInDevelopmentEnvinronment.textRepresentation;
+    }
+
+    public get identifier(): IResourceLocation {
+        return this._locationInRuntimeEnvironment;
     }
 }

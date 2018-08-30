@@ -5,6 +5,7 @@
 import { SourceMap, MappedPosition, ISourcePathDetails } from './sourceMap';
 import { SourceMapFactory } from './sourceMapFactory';
 import { ISourceMapPathOverrides, IPathMapping } from '../debugAdapterInterfaces';
+import { ISourceIdentifier } from '../chrome/submodules/loadedSource';
 
 export class SourceMaps {
     // Maps absolute paths to generated/authored source files to their corresponding SourceMap object
@@ -44,7 +45,7 @@ export class SourceMaps {
             null;
     }
 
-    public allMappedSources(pathToGenerated: string): string[] {
+    public allMappedSources(pathToGenerated: string): ISourceIdentifier[] {
         pathToGenerated = pathToGenerated.toLowerCase();
         return this._generatedPathToSourceMap.has(pathToGenerated) ?
             this._generatedPathToSourceMap.get(pathToGenerated).authoredSources :
