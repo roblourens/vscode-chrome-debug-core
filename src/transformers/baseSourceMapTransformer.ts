@@ -2,19 +2,16 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as path from 'path';
 import { DebugProtocol } from 'vscode-debugprotocol';
 
-import { ISetBreakpointsArgs, ILaunchRequestArgs, IAttachRequestArgs,
-    ISetBreakpointsResponseBody, IInternalStackTraceResponseBody, IScopesResponseBody, IInternalStackFrame } from '../debugAdapterInterfaces';
-import { MappedPosition, ISourcePathDetails } from '../sourceMaps/sourceMap';
+import { ILaunchRequestArgs, IAttachRequestArgs,
+    ISetBreakpointsResponseBody, IScopesResponseBody } from '../debugAdapterInterfaces';
+import { MappedPosition, ISourcePathDetails, SourceMap } from '../sourceMaps/sourceMap';
 import { SourceMaps } from '../sourceMaps/sourceMaps';
-import * as utils from '../utils';
 import { logger } from 'vscode-debugadapter';
-import { ISourceContainer } from '../chrome/chromeDebugAdapter';
 
-import * as nls from 'vscode-nls';
-const localize = nls.loadMessageBundle();
+import { ILoadedSource } from '../chrome/internal/loadedSource';
+import { INewSetBreakpointsArgs } from '../chrome/internal/breakpoints';
 
 interface ISavedSetBreakpointsArgs {
     generatedPath: string;
@@ -23,7 +20,7 @@ interface ISavedSetBreakpointsArgs {
 }
 
 export interface ISourceLocation {
-    source: DebugProtocol.Source;
+    source: ILoadedSource;
     line: number;
     column: number;
     isSourceMapped?: boolean; // compat with stack frame
@@ -34,7 +31,6 @@ export interface ISourceLocation {
  */
 export class BaseSourceMapTransformer {
     protected _sourceMaps: SourceMaps;
-    protected _sourceHandles: utils.ReverseHandles<ISourceContainer>;
     private _enableSourceMapCaching: boolean;
 
     private _requestSeqToSetBreakpointsArgs: Map<number, ISavedSetBreakpointsArgs>;
@@ -49,8 +45,7 @@ export class BaseSourceMapTransformer {
 
     protected _isVSClient = false;
 
-    constructor(sourceHandles: utils.ReverseHandles<ISourceContainer>, enableSourceMapCaching?: boolean) {
-        this._sourceHandles = sourceHandles;
+    constructor(enableSourceMapCaching?: boolean) {
         this._enableSourceMapCaching = enableSourceMapCaching;
     }
 
@@ -88,29 +83,19 @@ export class BaseSourceMapTransformer {
      * Apply sourcemapping to the setBreakpoints request path/lines.
      * Returns true if completed successfully, and setBreakpoint should continue.
      */
-    public setBreakpoints(args: ISetBreakpointsArgs, requestSeq: number, ids?: number[]): { args: ISetBreakpointsArgs, ids: number[] } {
+    public setBreakpoints(args: INewSetBreakpointsArgs, requestSeq: number, ids?: number[]): { args: INewSetBreakpointsArgs, ids: number[] } {
         if (!this._sourceMaps) {
             return { args, ids };
         }
 
         const originalBPs = JSON.parse(JSON.stringify(args.breakpoints));
 
-        if (args.source.sourceReference) {
-            // If the source contents were inlined, then args.source has no path, but we
-            // stored it in the handle
-            const handle = this._sourceHandles.get(args.source.sourceReference);
-            if (handle && handle.mappedPath) {
-                args.source.path = handle.mappedPath;
-            }
-        }
-
-        if (args.source.path) {
-            const argsPath = args.source.path;
-            const mappedPath = this._sourceMaps.getGeneratedPathFromAuthoredPath(argsPath);
-            if (mappedPath) {
+        if (args.source.identifier.textRepresentation) {
+            const argsPath = args.source.identifier.textRepresentation;
+            args.source.tryGettingLoadedSource(loadedSource => {
+                const mappedPath = loadedSource.script.runtimeSource.identifier.textRepresentation;
                 logger.log(`SourceMaps.setBP: Mapped ${argsPath} to ${mappedPath}`);
                 args.authoredPath = argsPath;
-                args.source.path = mappedPath;
 
                 // DebugProtocol doesn't send cols yet, but they need to be added from sourcemaps
                 args.breakpoints.forEach(bp => {
@@ -152,13 +137,15 @@ export class BaseSourceMapTransformer {
                         }
                     }
                 });
-            } else if (this.isRuntimeScript(argsPath)) {
-                // It's a generated file which is loaded
-                logger.log(`SourceMaps.setBP: SourceMaps are enabled but ${argsPath} is a runtime script`);
-            } else {
-                // Source (or generated) file which is not loaded.
-                logger.log(`SourceMaps.setBP: ${argsPath} can't be resolved to a loaded script. It may just not be loaded yet.`);
-            }
+            }, _identifier => {
+                if (this.isRuntimeScript(argsPath)) {
+                    // It's a generated file which is loaded
+                    logger.log(`SourceMaps.setBP: SourceMaps are enabled but ${argsPath} is a runtime script`);
+                } else {
+                    // Source (or generated) file which is not loaded.
+                    logger.log(`SourceMaps.setBP: ${argsPath} can't be resolved to a loaded script. It may just not be loaded yet.`);
+                }
+                });
         } else {
             // No source.path
         }
@@ -166,7 +153,7 @@ export class BaseSourceMapTransformer {
         this._requestSeqToSetBreakpointsArgs.set(requestSeq, {
             originalBPs,
             authoredPath: args.authoredPath,
-            generatedPath: args.source.path
+            generatedPath: args.source.identifier.textRepresentation
         });
 
         return { args, ids };
@@ -200,67 +187,7 @@ export class BaseSourceMapTransformer {
         }
     }
 
-    /**
-     * Apply sourcemapping to the stacktrace response
-     */
-    public async stackTraceResponse(response: IInternalStackTraceResponseBody): Promise<void> {
-        if (this._sourceMaps) {
-            await this._processingNewSourceMap;
-            for (let stackFrame of response.stackFrames) {
-                await this.fixSourceLocation(stackFrame);
-            }
-        }
-    }
-
-    public async fixSourceLocation(sourceLocation: ISourceLocation|IInternalStackFrame): Promise<void> {
-        if (!this._sourceMaps) {
-            return;
-        }
-
-        if (!sourceLocation.source) {
-            return;
-        }
-
-        await this._processingNewSourceMap;
-
-        const mapped = this._sourceMaps.mapToAuthored(sourceLocation.source.path, sourceLocation.line, sourceLocation.column);
-        if (mapped && utils.existsSync(mapped.source)) {
-            // Script was mapped to a valid path
-            sourceLocation.source.path = mapped.source;
-            sourceLocation.source.sourceReference = undefined;
-            sourceLocation.source.name = path.basename(mapped.source);
-            sourceLocation.line = mapped.line;
-            sourceLocation.column = mapped.column;
-            sourceLocation.isSourceMapped = true;
-        } else {
-            const inlinedSource = mapped && this._sourceMaps.sourceContentFor(mapped.source);
-            if (mapped && inlinedSource) {
-                // Clear the path and set the sourceReference - the client will ask for
-                // the source later and it will be returned from the sourcemap
-                sourceLocation.source.name = path.basename(mapped.source);
-                sourceLocation.source.path = mapped.source;
-                sourceLocation.source.sourceReference = this.getSourceReferenceForScriptPath(mapped.source, inlinedSource);
-                sourceLocation.source.origin = localize('origin.inlined.source.map', 'read-only inlined content from source map');
-                sourceLocation.line = mapped.line;
-                sourceLocation.column = mapped.column;
-                sourceLocation.isSourceMapped = true;
-            } else if (utils.existsSync(sourceLocation.source.path)) {
-                // Script could not be mapped, but does exist on disk. Keep it and clear the sourceReference.
-                sourceLocation.source.sourceReference = undefined;
-                sourceLocation.source.origin = undefined;
-            }
-        }
-    }
-
-    /**
-     * Get the existing handle for this script, identified by runtime scriptId, or create a new one
-     */
-    private getSourceReferenceForScriptPath(mappedPath: string, contents: string): number {
-        return this._sourceHandles.lookupF(container => container.mappedPath === mappedPath) ||
-            this._sourceHandles.create({ contents, mappedPath });
-    }
-
-    public async scriptParsed(pathToGenerated: string, sourceMapURL: string): Promise<string[]> {
+    public async scriptParsed(pathToGenerated: string, sourceMapURL: string | undefined): Promise<SourceMap> {
         if (this._sourceMaps) {
             this._allRuntimeScriptPaths.add(this.fixPathCasing(pathToGenerated));
 
@@ -276,7 +203,7 @@ export class BaseSourceMapTransformer {
                 logger.log(`SourceMaps.scriptParsed: ${pathToGenerated} was just loaded and has mapped sources: ${JSON.stringify(sources) }`);
             }
 
-            return sources;
+            return processNewSourceMapP;
         } else {
             return null;
         }
