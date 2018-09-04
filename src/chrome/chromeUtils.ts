@@ -10,6 +10,7 @@ import { logger } from 'vscode-debugadapter';
 import * as utils from '../utils';
 import { ITarget } from './chromeConnection';
 import { IPathMapping } from '../debugAdapterInterfaces';
+import { IResourceIdentifier } from './internal/resourceIdentifier';
 
 /**
  * Takes the path component of a target url (starting with '/') and applies pathMapping
@@ -276,7 +277,7 @@ export function getEvaluateName(parentEvaluateName: string, name: string): strin
     return parentEvaluateName + nameAccessor;
 }
 
-export function selectBreakpointLocation(lineNumber: number, columnNumber: number, locations: Crdp.Debugger.BreakLocation[]): Crdp.Debugger.BreakLocation {
+export function selectBreakpointLocation(_lineNumber: number, columnNumber: number, locations: Crdp.Debugger.BreakLocation[]): Crdp.Debugger.BreakLocation {
     for (let i = locations.length - 1; i >= 0; i--) {
         if (locations[i].columnNumber <= columnNumber) {
             return locations[i];
@@ -288,15 +289,15 @@ export function selectBreakpointLocation(lineNumber: number, columnNumber: numbe
 
 export const EVAL_NAME_PREFIX = 'VM';
 
-export function isEvalScript(scriptPath: string): boolean {
-    return scriptPath.startsWith(EVAL_NAME_PREFIX);
+export function isEvalScript(scriptPath: IResourceIdentifier): boolean {
+    return scriptPath.canonicalized.startsWith(EVAL_NAME_PREFIX);
 }
 
 /* Constructs the regex for files to enable break on load
 For example, for a file index.js the regex will match urls containing index.js, index.ts, abc/index.ts, index.bin.js etc
 It won't match index100.js, indexabc.ts etc */
-export function getUrlRegexForBreakOnLoad(url: string): string {
-    const fileNameWithoutFullPath = path.parse(url).base;
+export function getUrlRegexForBreakOnLoad(url: IResourceIdentifier): string {
+    const fileNameWithoutFullPath = path.parse(url.canonicalized).base;
     const fileNameWithoutExtension = path.parse(fileNameWithoutFullPath).name;
     const escapedFileName = fileNameWithoutExtension.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
 
