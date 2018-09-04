@@ -4,8 +4,8 @@
 
 import { DebugProtocol } from 'vscode-debugprotocol';
 
-import { ChromeDebugSession } from '../chrome/chromeDebugSession';
-import { IDebugTransformer, ISetBreakpointsResponseBody, IStackTraceResponseBody, IScopesResponseBody } from '../debugAdapterInterfaces';
+import { IDebugTransformer, ISetBreakpointsResponseBody, IScopesResponseBody, IStackTraceResponseBody } from '../debugAdapterInterfaces';
+import { ISession } from '../chrome/client/session';
 
 /**
  * Converts from 1 based lines/cols on the client side to 0 based lines/cols on the target side
@@ -13,16 +13,7 @@ import { IDebugTransformer, ISetBreakpointsResponseBody, IStackTraceResponseBody
 export class LineColTransformer implements IDebugTransformer  {
     columnBreakpointsEnabled: boolean;
 
-    constructor(private _session: ChromeDebugSession) {
-    }
-
-    public setBreakpoints(args: DebugProtocol.SetBreakpointsArguments): DebugProtocol.SetBreakpointsArguments {
-        args.breakpoints.forEach(bp => this.convertClientLocationToDebugger(bp));
-        if (!this.columnBreakpointsEnabled) {
-            args.breakpoints.forEach(bp => bp.column = undefined);
-        }
-
-        return args;
+    constructor(private readonly _session: NonNullable<ISession>) {
     }
 
     public setBreakpointsResponse(response: ISetBreakpointsResponseBody): void {
@@ -45,10 +36,6 @@ export class LineColTransformer implements IDebugTransformer  {
 
     public scopeResponse(scopeResponse: IScopesResponseBody): void {
         scopeResponse.scopes.forEach(scope => this.mapScopeLocations(scope));
-    }
-
-    public mappedExceptionStack(location: { line: number; column: number }): void {
-        this.convertDebuggerLocationToClient(location);
     }
 
     private mapScopeLocations(scope: DebugProtocol.Scope): void {
