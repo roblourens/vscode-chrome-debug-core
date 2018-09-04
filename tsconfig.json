@@ -2,24 +2,33 @@
     "compilerOptions": {
         "module": "commonjs",
         "moduleResolution": "node",
-        "target": "es2015",
+        "target": "ES6",
         "sourceMap": true,
         "outDir": "out",
         "declaration": true,
-
+        "types": [
+            "reflect-metadata"
+        ],
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
         "noUnusedLocals": true,
         "noImplicitThis": true,
         "noFallthroughCasesInSwitch": true,
         "noImplicitReturns": true,
+        "noUnusedParameters": true,
+        "strictFunctionTypes": true,
+        "noImplicitAny": true,
+        "strictNullChecks": false,
+        "strictPropertyInitialization": false,
         "lib": [
-            "es2015"
-        ],
-
-        "experimentalDecorators": true
+            "es6",
+            "dom"
+        ]
     },
     "include": [
         "src/**/*.ts",
-        "test/**/*.ts",
+        "test/testDebug/**/*.ts",
+        "test-DoNot-/**/*.ts",
         "node_modules/@types/**/*.ts"
     ]
 }

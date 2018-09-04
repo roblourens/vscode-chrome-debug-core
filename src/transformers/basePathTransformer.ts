@@ -4,46 +4,41 @@
 
 import { DebugProtocol } from 'vscode-debugprotocol';
 
-import { ISetBreakpointsArgs, ILaunchRequestArgs, IAttachRequestArgs, IStackTraceResponseBody } from '../debugAdapterInterfaces';
+import { IResourceIdentifier } from '../chrome/internal/sources/resourceIdentifier';
+import { StackTracePresentation } from '../chrome/internal/stackTraces/stackTracePresentation';
+import { IComponent } from '../chrome/internal/features/feature';
+import { injectable } from 'inversify';
 
 /**
  * Converts a local path from Code to a path on the target.
  */
-export class BasePathTransformer {
-    public launch(args: ILaunchRequestArgs): Promise<void> {
-        return Promise.resolve();
-    }
-
-    public attach(args: IAttachRequestArgs): Promise<void> {
-        return Promise.resolve();
-    }
-
-    public setBreakpoints(args: ISetBreakpointsArgs): ISetBreakpointsArgs {
-        return args;
+@injectable()
+export class BasePathTransformer implements IComponent {
+    public async install(): Promise<void> {
     }
 
     public clearTargetContext(): void {
     }
 
-    public scriptParsed(scriptPath: string): Promise<string> {
+    public scriptParsed(scriptPath: IResourceIdentifier): Promise<IResourceIdentifier> {
         return Promise.resolve(scriptPath);
     }
 
-    public breakpointResolved(bp: DebugProtocol.Breakpoint, targetPath: string): string {
+    public breakpointResolved(_bp: DebugProtocol.Breakpoint, targetPath: IResourceIdentifier): IResourceIdentifier {
         return this.getClientPathFromTargetPath(targetPath) || targetPath;
     }
 
-    public stackTraceResponse(response: IStackTraceResponseBody): void {
+    public stackTraceResponse(_response: StackTracePresentation): void {
     }
 
-    public async fixSource(source: DebugProtocol.Source): Promise<void> {
+    public async fixSource(_source: DebugProtocol.Source): Promise<void> {
     }
 
-    public getTargetPathFromClientPath(clientPath: string): string {
+    public getTargetPathFromClientPath(clientPath: IResourceIdentifier): IResourceIdentifier {
         return clientPath;
     }
 
-    public getClientPathFromTargetPath(targetPath: string): string {
+    public getClientPathFromTargetPath(targetPath: IResourceIdentifier): IResourceIdentifier {
         return targetPath;
     }
 }
