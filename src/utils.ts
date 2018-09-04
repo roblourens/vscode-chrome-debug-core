@@ -45,7 +45,7 @@ export function existsSync(path: string): boolean {
  * Checks asynchronously if a path exists on the disk.
  */
 export function existsAsync(path: string): Promise<boolean> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         try {
             fs.access(path, (err) => {
                 resolve(err ? false : true);
@@ -93,7 +93,7 @@ export function retryAsync(fn: () => Promise<any>, timeoutMs: number, intervalDe
         return fn().catch(
             e => {
                 if (Date.now() - startTime < (timeoutMs - intervalDelay)) {
-                    return promiseTimeout(null, intervalDelay).then(tryUntilTimeout);
+                    return promiseTimeout(undefined, intervalDelay).then(tryUntilTimeout);
                 } else {
                     return errP(e);
                 }
@@ -435,7 +435,7 @@ export function multiGlob(patterns: string[], opts?: any): Promise<string[]> {
             }
         }
 
-        let array = [];
+        let array: string[] = [];
         set.forEach(v => array.push(fixDriveLetterAndSlashes(v)));
         return array;
     });
@@ -571,7 +571,7 @@ export function getLine(msg: string, n = 0): string {
     return msg.split('\n')[n];
 }
 
-export function firstLine(msg: string): string {
+export function firstLine(msg: string | undefined): string {
     return getLine(msg || '');
 }
 
@@ -584,7 +584,7 @@ export function toVoidP(p: Promise<any>): Promise<void> {
 }
 
 export interface PromiseDefer<T> {
-    promise: Promise<void>;
+    promise: Promise<T>;
     resolve: (value?: T | PromiseLike<T>) => void;
     reject: (reason?: any) => void;
 }
@@ -592,7 +592,7 @@ export interface PromiseDefer<T> {
 export function promiseDefer<T>(): PromiseDefer<T> {
     let resolveCallback;
     let rejectCallback;
-    const promise = new Promise<void>((resolve, reject) => {
+    const promise = new Promise<T>((resolve, reject) => {
         resolveCallback = resolve;
         rejectCallback = reject;
     });
@@ -635,4 +635,16 @@ export function fillErrorDetails(properties: IExecutionResultTelemetryProperties
     if (e.id) {
         properties.exceptionId = e.id.toString();
     }
+}
+
+export function makeUnique<T>(elements: T[]): T[] {
+    return Array.from(new Set(elements));
+}
+
+export function adaptToSinglIntoToMulti<T, R>(thisObject: object, toSingle: (single: T) => R): (multi: T[]) => R[] {
+    return (multi: T[]) => multi.map(single => toSingle.call(thisObject, single));
+}
+
+export function asyncAdaptToSinglIntoToMulti<T, R>(thisObject: object, toSingle: (single: T) => Promise<R>): (multi: T[]) => Promise<R[]> {
+    return (multi: T[]) => Promise.all(multi.map(single => toSingle.call(thisObject, single)));
 }
