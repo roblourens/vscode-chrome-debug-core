@@ -1,0 +1,185 @@
+import {
+    IDebugAdapter, ITelemetryPropertyCollector, PromiseOrNot, ILaunchRequestArgs, IAttachRequestArgs, IThreadsResponseBody,
+    ISetBreakpointsResponseBody, IStackTraceResponseBody, IScopesResponseBody, IVariablesResponseBody, ISourceResponseBody,
+    IEvaluateResponseBody, LineColTransformer
+} from '../..';
+import { DebugProtocol } from 'vscode-debugprotocol';
+import { ChromeDebugLogic } from '../chromeDebugAdapter';
+import { IChromeDebugAdapterOpts, ChromeDebugSession } from '../chromeDebugSession';
+import { ChromeConnection } from '../chromeConnection';
+import { RuntimeScriptsManager } from '../target/runtimeScriptsManager';
+import { CDTPDiagnostics } from '../target/cdtpDiagnostics';
+import { DelayMessagesUntilInitializedSession } from './delayMessagesUntilInitializedSession';
+import { RemotePathTransformer } from '../../transformers/remotePathTransformer';
+import { EagerSourceMapTransformer } from '../../transformers/eagerSourceMapTransformer';
+import { StepProgressEventsEmitter } from '../../executionTimingsReporter';
+import { ClientToInternal } from './clientToInternal';
+import { InternalToClient } from './internalToClient';
+import { IGetLoadedSourcesResponseBody } from '../../debugAdapterInterfaces';
+import { StackTracesLogic } from '../internal/stackTracesLogic';
+import { SkipFilesLogic } from '../internal/features/skipFiles';
+import { SmartStepLogic } from '../internal/features/smartStep';
+import { EventSender } from './eventSender';
+import { SourcesLogic } from '../internal/sources/sourcesLogic';
+import { Handles } from 'vscode-debugadapter';
+import { ILoadedSource } from '../internal/loadedSource';
+import { BreakpointsLogic } from '../internal/breakpoints/breakpointsLogic';
+
+// TODO DIEGO: Remember to call here and only here         this._lineColTransformer.convertDebuggerLocationToClient(stackFrame); for all responses
+export class ChromeDebugAdapter implements IDebugAdapter {
+    protected readonly _chromeDebugAdapter: ChromeDebugLogic;
+    private readonly _lineColTransformer: LineColTransformer;
+    private readonly _sourcesLogic: SourcesLogic;
+    protected _scriptsLogic: RuntimeScriptsManager;
+    protected readonly _clientToInternal: ClientToInternal;
+    private readonly _internalToVsCode: InternalToClient;
+    private readonly _stackTraceLogic: StackTracesLogic;
+    private readonly _skipFilesLogic: SkipFilesLogic;
+    protected readonly _breakpointsLogic: BreakpointsLogic;
+
+    constructor(args: IChromeDebugAdapterOpts, originalSession: ChromeDebugSession) {
+        const sourcesHandle = new Handles<ILoadedSource>();
+        this._scriptsLogic = new RuntimeScriptsManager();
+        const session = new DelayMessagesUntilInitializedSession(originalSession);
+        const sourceMapTransformer = new (args.sourceMapTransformer || EagerSourceMapTransformer)(args.enableSourceMapCaching);
+        const pathTransformer = new (args.pathTransformer || RemotePathTransformer)();
+
+        const chromeDiagnostics = new CDTPDiagnostics(() => chromeConnection.api, this._scriptsLogic, pathTransformer, sourceMapTransformer);
+
+        this._breakpointsLogic = new BreakpointsLogic(chromeDiagnostics, this._lineColTransformer);
+
+        this._sourcesLogic = new SourcesLogic(chromeDiagnostics, this._scriptsLogic);
+        this._lineColTransformer = new (args.lineColTransformer || LineColTransformer)(session);
+        this._clientToInternal = new ClientToInternal(this._sourcesLogic, sourcesHandle, this._lineColTransformer);
+
+        const chromeConnection = new (args.chromeConnection || ChromeConnection)(undefined, args.targetFilter);
+
+        this._internalToVsCode = new InternalToClient(this._lineColTransformer, pathTransformer, sourcesHandle);
+
+        const eventSender = new EventSender(session, this._internalToVsCode);
+
+        this._skipFilesLogic = new SkipFilesLogic(this._scriptsLogic, chromeDiagnostics,
+            this._stackTraceLogic, sourceMapTransformer, pathTransformer);
+        const smartStepLogic = new SmartStepLogic(pathTransformer, sourceMapTransformer, false);
+        this._stackTraceLogic = new StackTracesLogic(chromeDiagnostics, this._skipFilesLogic, smartStepLogic);
+
+        this._chromeDebugAdapter = new ChromeDebugLogic(this._lineColTransformer, sourceMapTransformer, pathTransformer, session,
+            this._scriptsLogic, this._sourcesLogic, chromeConnection, chromeDiagnostics,
+            this._skipFilesLogic, smartStepLogic, eventSender, this._breakpointsLogic);
+    }
+
+    public get events(): StepProgressEventsEmitter {
+        return this._chromeDebugAdapter.events;
+    }
+
+    public get chrome(): CDTPDiagnostics {
+        return this._chromeDebugAdapter.chrome;
+    }
+
+    public shutdown(): void {
+        return this._chromeDebugAdapter.shutdown();
+    }
+
+    public initialize(args: DebugProtocol.InitializeRequestArguments, _?: ITelemetryPropertyCollector, _2?: number): DebugProtocol.Capabilities {
+        return this._chromeDebugAdapter.initialize(args);
+    }
+
+    public launch(args: ILaunchRequestArgs, _?: ITelemetryPropertyCollector, _2?: number): Promise<void> {
+        return this._chromeDebugAdapter.launch(args);
+    }
+
+    public attach(args: IAttachRequestArgs, _?: ITelemetryPropertyCollector, _2?: number): Promise<void> {
+        return this._chromeDebugAdapter.attach(args);
+    }
+
+    public disconnect(_: DebugProtocol.DisconnectArguments): PromiseOrNot<void> {
+        return this._chromeDebugAdapter.disconnect();
+    }
+
+    public setBreakpoints(args: DebugProtocol.SetBreakpointsArguments, telemetryPropertyCollector?: ITelemetryPropertyCollector, requestSeq?: number): PromiseOrNot<ISetBreakpointsResponseBody> {
+        if (args.breakpoints) {
+            const breakpoints = this._clientToInternal.toBreakpoints(args);
+            return this._breakpointsLogic.setBreakpoints(breakpoints, telemetryPropertyCollector, requestSeq);
+        } else {
+            throw new Error(`Expected the set breakpoints arguments to have a list of breakpoints yet it was ${args.breakpoints}`);
+        }
+    }
+
+    public setExceptionBreakpoints(args: DebugProtocol.SetExceptionBreakpointsArguments, _?: ITelemetryPropertyCollector, _2?: number): PromiseOrNot<void> {
+        return this._chromeDebugAdapter.setExceptionBreakpoints(args);
+    }
+
+    public configurationDone(): PromiseOrNot<void> {
+        return this._chromeDebugAdapter.configurationDone();
+    }
+
+    public continue(internal?: boolean): PromiseOrNot<void> {
+        return this._chromeDebugAdapter.continue(internal);
+    }
+
+    public next(): PromiseOrNot<void> {
+        return this._chromeDebugAdapter.next();
+    }
+
+    public stepIn(): PromiseOrNot<void> {
+        return this._chromeDebugAdapter.stepIn();
+    }
+
+    public stepOut(): PromiseOrNot<void> {
+        return this._chromeDebugAdapter.stepOut();
+    }
+
+    public pause(): PromiseOrNot<void> {
+        return this._chromeDebugAdapter.pause();
+    }
+
+    public async stackTrace(args: DebugProtocol.StackTraceArguments, _?: ITelemetryPropertyCollector, _2?: number): Promise<IStackTraceResponseBody> {
+        const stackTracePresentation = await this._stackTraceLogic.stackTrace(args);
+        const clientStackTracePresentation = {
+            stackFrames: await this._internalToVsCode.toStackFrames(stackTracePresentation.stackFrames),
+            totalFrames: stackTracePresentation.totalFrames
+        };
+        return clientStackTracePresentation;
+    }
+
+    public scopes(args: DebugProtocol.ScopesArguments, _?: ITelemetryPropertyCollector, _2?: number): PromiseOrNot<IScopesResponseBody> {
+        return this._chromeDebugAdapter.scopes(this._clientToInternal.getCallFrameById(args.frameId));
+    }
+
+    public variables(args: DebugProtocol.VariablesArguments, _?: ITelemetryPropertyCollector, _2?: number): PromiseOrNot<IVariablesResponseBody> {
+        return this._chromeDebugAdapter.variables(args);
+    }
+
+    public async source(args: DebugProtocol.SourceArguments, _telemetryPropertyCollector?: ITelemetryPropertyCollector, _requestSeq?: number): Promise<ISourceResponseBody> {
+        if (args.source) {
+            const source = this._clientToInternal.toSource(args.source);
+            const sourceText = await this._sourcesLogic.getText(source);
+            return {
+                content: sourceText,
+                mimeType: 'text/javascript'
+            };
+        } else {
+            throw new Error(`Expected the source request to have a source argument yet it was ${args.source}`);
+        }
+    }
+
+    public threads(): PromiseOrNot<IThreadsResponseBody> {
+        return this._chromeDebugAdapter.threads();
+    }
+
+    public evaluate(args: DebugProtocol.EvaluateArguments, _telemetryPropertyCollector?: ITelemetryPropertyCollector, _requestSeq?: number): PromiseOrNot<IEvaluateResponseBody> {
+        return this._chromeDebugAdapter.evaluate(args);
+    }
+
+    public async loadedSources(): Promise<IGetLoadedSourcesResponseBody> {
+        return { sources: await this._internalToVsCode.toSourceTrees(await this._sourcesLogic.getLoadedSourcesTrees()) };
+    }
+
+    public setFunctionBreakpoints(_args: DebugProtocol.SetFunctionBreakpointsArguments, _telemetryPropertyCollector?: ITelemetryPropertyCollector, _requestSeq?: number): PromiseOrNot<DebugProtocol.SetFunctionBreakpointsResponse> {
+        throw new Error('Method not implemented.');
+    }
+
+    public setVariable(_args: DebugProtocol.SetVariableArguments, _telemetryPropertyCollector?: ITelemetryPropertyCollector, _requestSeq?: number): PromiseOrNot<DebugProtocol.SetVariableResponse> {
+        throw new Error('Method not implemented.');
+    }
+}
