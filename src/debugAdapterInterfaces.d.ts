@@ -11,6 +11,10 @@ import { Protocol as Crdp } from 'devtools-protocol';
 import { ITelemetryPropertyCollector } from './telemetry';
 import { IStringDictionary } from './utils';
 import { ITargetFilter } from './chrome/chromeConnection';
+import { LocationInScript } from './chrome/internal/locationInResource';
+import { IScript } from './chrome/internal/script';
+import { IResourceIdentifier } from './chrome/internal/resourceIdentifier';
+import { ILoadedSource } from './chrome/internal/loadedSource';
 
 export type ISourceMapPathOverrides = IStringDictionary<string>;
 export type IPathMapping = IStringDictionary<string>;
@@ -71,9 +75,10 @@ export interface IAttachRequestArgs extends DebugProtocol.AttachRequestArguments
     websocketUrl?: string;
 }
 
+export interface ISetBreakpointsRequestArgs extends DebugProtocol.SetBreakpointsArguments {}
+
 export interface IToggleSkipFileStatusArgs {
-    path?: string;
-    sourceReference?: number;
+    source: IResourceIdentifier;
 }
 
 export interface ISetBreakpointsArgs extends DebugProtocol.SetBreakpointsArguments {
@@ -98,14 +103,6 @@ export type ISourceResponseBody = DebugProtocol.SourceResponse['body'];
 export type IThreadsResponseBody = DebugProtocol.ThreadsResponse['body'];
 
 export type IStackTraceResponseBody = DebugProtocol.StackTraceResponse['body'];
-
-export interface IInternalStackTraceResponseBody extends IStackTraceResponseBody {
-    stackFrames: IInternalStackFrame[];
-}
-
-export interface IInternalStackFrame extends DebugProtocol.StackFrame {
-    isSourceMapped?: boolean;
-}
 
 export type IScopesResponseBody = DebugProtocol.ScopesResponse['body'];
 
@@ -168,13 +165,18 @@ export interface IDebugAdapter {
     source(args: DebugProtocol.SourceArguments, telemetryPropertyCollector?: ITelemetryPropertyCollector, requestSeq?: number): PromiseOrNot<ISourceResponseBody>;
     threads(): PromiseOrNot<IThreadsResponseBody>;
     evaluate(args: DebugProtocol.EvaluateArguments, telemetryPropertyCollector?: ITelemetryPropertyCollector, requestSeq?: number): PromiseOrNot<IEvaluateResponseBody>;
+
+    loadedSources(args: DebugProtocol.LoadedSourcesArguments, telemetryPropertyCollector?: ITelemetryPropertyCollector, requestSeq?: number): PromiseOrNot<IGetLoadedSourcesResponseBody>;
+
+    setFunctionBreakpoints(args: DebugProtocol.SetFunctionBreakpointsArguments, telemetryPropertyCollector?: ITelemetryPropertyCollector, requestSeq?: number): PromiseOrNot<DebugProtocol.SetFunctionBreakpointsResponse>;
+    setVariable(args: DebugProtocol.SetVariableArguments, telemetryPropertyCollector?: ITelemetryPropertyCollector, requestSeq?: number): PromiseOrNot<DebugProtocol.SetVariableResponse>;
 }
 
 export interface IDebugTransformer {
     initialize?(args: DebugProtocol.InitializeRequestArguments, requestSeq?: number): PromiseOrNot<void>;
     launch?(args: ILaunchRequestArgs, requestSeq?: number): PromiseOrNot<void>;
     attach?(args: IAttachRequestArgs, requestSeq?: number): PromiseOrNot<void>;
-    setBreakpoints?(args: DebugProtocol.SetBreakpointsArguments, requestSeq?: number): PromiseOrNot<DebugProtocol.SetBreakpointsArguments>;
+    setBreakpoints?(args: ISetBreakpointsRequestArgs, requestSeq?: number): PromiseOrNot<ISetBreakpointsRequestArgs>;
     setExceptionBreakpoints?(args: DebugProtocol.SetExceptionBreakpointsArguments, requestSeq?: number): PromiseOrNot<void>;
 
     stackTrace?(args: DebugProtocol.StackTraceArguments, requestSeq?: number): PromiseOrNot<void>;
