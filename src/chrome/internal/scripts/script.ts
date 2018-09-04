@@ -18,7 +18,7 @@ export interface IScript {
     readonly runtimeSource: ILoadedSource<CDTPScriptUrl>; // Source in Webserver
     readonly developmentSource: ILoadedSource; // Source in Workspace
     readonly mappedSources: MappedSource[]; // Sources before compilation
-    readonly allSources: ILoadedSource[]; // runtimeSource + developmentSource + sourcesOfCompiled
+    readonly allSources: ILoadedSource[]; // runtimeSource + developmentSource + mappedSources
     readonly url: CDTPScriptUrl;
 
     readonly sourcesMapper: ISourcesMapper; // TODO DIEGO: See if we can delete this property
@@ -35,7 +35,7 @@ export class Script implements IScript {
 
     public static create(executionContext: IExecutionContext, locationInRuntimeEnvironment: IResourceLocation<CDTPScriptUrl>, locationInDevelopmentEnvinronment: IResourceLocation,
         sourcesMapper: ISourcesMapper): Script {
-        const sourcesOfCompiled = (script: IScript) => newResourceIdentifierMap<MappedSource>(sourcesMapper.sources.map(path => {
+        const mappedSources = (script: IScript) => newResourceIdentifierMap<MappedSource>(sourcesMapper.sources.map(path => {
             const identifier = parseResourceIdentifier(path);
             return [identifier, new MappedSource(script, identifier, 'TODO DIEGO')] as [IResourceIdentifier, MappedSource];
         }));
@@ -61,7 +61,7 @@ export class Script implements IScript {
             runtimeSource = script => new ScriptRuntimeSource(script, locationInRuntimeEnvironment, 'TODO DIEGO');
             developmentSource = script => new ScriptDevelopmentSource(script, locationInDevelopmentEnvinronment, 'TODO DIEGO');
         }
-        return new Script(executionContext, runtimeSource, developmentSource, sourcesOfCompiled, sourcesMapper);
+        return new Script(executionContext, runtimeSource, developmentSource, mappedSources, sourcesMapper);
     }
 
     public static createEval(executionContext: IExecutionContext, name: ResourceName<CDTPScriptUrl>, sourcesMapper: ISourcesMapper): Script {
