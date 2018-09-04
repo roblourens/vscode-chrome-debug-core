@@ -6,7 +6,7 @@
 import { logger } from 'vscode-debugadapter';
 
 import * as chromeConnection from './chrome/chromeConnection';
-import { ChromeDebugAdapter, LoadedSourceEventReason, IOnPausedResult } from './chrome/chromeDebugAdapter';
+import { ChromeDebugAdapter, ChromeDebugLogic, LoadedSourceEventReason } from './chrome/chromeDebugAdapter';
 import { ChromeDebugSession, IChromeDebugSessionOpts } from './chrome/chromeDebugSession';
 import * as chromeTargetDiscoveryStrategy from './chrome/chromeTargetDiscoveryStrategy';
 import * as chromeUtils from './chrome/chromeUtils';
@@ -29,10 +29,13 @@ import * as executionTimingsReporter from './executionTimingsReporter';
 
 import { Protocol as Crdp } from 'devtools-protocol';
 import { Version } from './chrome/chromeTargetDiscoveryStrategy';
+import { IOnPausedResult } from './chrome/internal/breakpoints/breakpointsLogic';
+import { parseResourceIdentifier } from './chrome/internal/sources/resourceIdentifier';
 
 export {
     chromeConnection,
     ChromeDebugAdapter,
+    ChromeDebugLogic,
     ChromeDebugSession,
     IOnPausedResult,
     IChromeDebugSessionOpts,
@@ -56,6 +59,8 @@ export {
     executionTimingsReporter,
 
     Version,
+
+    parseResourceIdentifier,
 
     Crdp
 };
