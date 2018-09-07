@@ -2,7 +2,7 @@ import { Handles } from 'vscode-debugadapter';
 import { CallFrame } from '../internal/stackTraces';
 import { ILoadedSource } from '../internal/loadedSource';
 import * as errors from '../../errors';
-import { BehaviorRecipie, BreakpointRecipieInUnbindedSource, MultiBreakpointRecipiesInUnbindedSource } from '../internal/breakpoints';
+import { BehaviorRecipie, BreakpointRecipieInUnbindedSource, BreakpointRecipiesInUnbindedSource } from '../internal/breakpoints';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { ISourceIdentifier, SourceIdentifiedByLoadedSource } from '../internal/sourceIdentifier';
 import { parseResourceIdentifier } from '../internal/resourceIdentifier';
@@ -41,10 +41,10 @@ export class ClientToInternal {
         }
     }
 
-    public toBreakpoints(args: DebugProtocol.SetBreakpointsArguments): MultiBreakpointRecipiesInUnbindedSource {
+    public toBreakpoints(args: DebugProtocol.SetBreakpointsArguments): BreakpointRecipiesInUnbindedSource {
         const source = this.toSource(args.source);
         const breakpoints = args.breakpoints.map(breakpoint => this.toBreakpoint(source, breakpoint));
-        return new MultiBreakpointRecipiesInUnbindedSource(source, breakpoints);
+        return new BreakpointRecipiesInUnbindedSource(source, breakpoints);
     }
 
     public toBreakpoint(source: ISourceIdentifier, clientBreakpoint: DebugProtocol.SourceBreakpoint): BreakpointRecipieInUnbindedSource {

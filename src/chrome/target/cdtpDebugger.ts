@@ -1,6 +1,6 @@
 import { CDTPDiagnosticsModule } from './cdtpDiagnosticsModule';
 import { Crdp, utils } from '../..';
-import { LocationInScript } from '../internal/locationInResource';
+import { LocationInScript, ZeroBasedLocation } from '../internal/locationInResource';
 import { PausedEvent, SetVariableValueRequest, ScriptParsedEvent } from './events';
 import { IScript } from '../internal/script';
 import { EvaluateOnCallFrameRequest, INewSetBreakpointResult } from './requests';
@@ -84,8 +84,8 @@ export class CDTPDebugger extends CDTPDiagnosticsModule<Crdp.DebuggerApi> {
         return { breakpointId: response.breakpointId, actualLocation: await this._crdpToInternal.toLocationInScript(response.actualLocation) };
     }
 
-    public setBreakpointByUrl(params: Crdp.Debugger.SetBreakpointByUrlRequest): Promise<Crdp.Debugger.SetBreakpointByUrlResponse> {
-        return this.api.setBreakpointByUrl(params);
+    public setBreakpointByUrl(urlRegex: string, location: ZeroBasedLocation, condition?: string): Promise<Crdp.Debugger.SetBreakpointByUrlResponse> {
+        return this.api.setBreakpointByUrl({ urlRegex, lineNumber: location.lineNumber, columnNumber: location.columnNumber, condition });
     }
 
     public setPauseOnExceptions(params: Crdp.Debugger.SetPauseOnExceptionsRequest): Promise<void> {

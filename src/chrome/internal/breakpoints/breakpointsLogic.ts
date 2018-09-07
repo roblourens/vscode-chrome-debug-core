@@ -1,4 +1,4 @@
-import { INewSetBreakpointsArgs, MultiBreakpointRecipiesInUnbindedSource, BreakpointRecipieInLoadedSource } from '../breakpoints';
+import { INewSetBreakpointsArgs, BreakpointRecipiesInUnbindedSource, BreakpointRecipieInLoadedSource } from '../breakpoints';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { newResourceIdentifierMap, IResourceIdentifier, parseResourceIdentifier } from '../resourceIdentifier';
 import { INewSetBreakpointResult } from '../../target/requests';
@@ -8,7 +8,7 @@ import { PromiseDefer, promiseDefer } from '../../../utils';
 import { PausedEvent } from '../../target/events';
 import { logger } from 'vscode-debugadapter/lib/logger';
 import { BreakpointEvent } from 'vscode-debugadapter';
-import { LocationInScript } from '../locationInResource';
+import { LocationInScript, ZeroBasedLocation } from '../locationInResource';
 import { CDTPDiagnostics } from '../../target/cdtpDiagnostics';
 import { BreakOnLoadHelper } from '../../breakOnLoadHelper';
 import { ISession } from '../../client/delayMessagesUntilInitializedSession';
@@ -174,13 +174,38 @@ export class BreakpointsLogic {
         this._session.sendEvent(new BreakpointEvent('changed', bp));
     }
 
-    public addBreakpoint(breakpoint: BreakpointRecipieInLoadedSource) {
+    public async addBreakpoint(breakpoint: BreakpointRecipieInLoadedSource) {
         const locationInScript = breakpoint.locationInResource.asLocationInScript();
         if (locationInScript.script.runtimeSource.doesScriptHasUrl()) {
             this.chrome.Debugger.setBreakpoint(locationInScript, breakpoint.behavior.condition);
         } else {
+            const url = locationInScript.script.runtimeSource.identifier.textRepresentation;
+            const urlRegexp = utils.pathToRegex(url);
 
+            // TODO DIEGO: Understand why are we calling getBestActualLocationForBreakpoint
+            const bestActualLocation = await this.getBestActualLocationForBreakpoint(locationInScript);
+            this.chrome.Debugger.setBreakpointByUrl(urlRegexp, bestActualLocation, breakpoint.behavior.condition);
         }
+    }
+
+    private async getBestActualLocationForBreakpoint(location: LocationInScript): Promise<LocationInScript> {
+        if (this._columnBreakpointsEnabled) {
+            try {
+                const possibleBPLocations = await this.chrome.Debugger.getPossibleBreakpoints({
+                    start: LocationInScript.fromParameters(location.script, location.lineNumber, 0),
+                    end: LocationInScript.fromParameters(location.script, location.lineNumber + 1, 0),
+                    restrictToFunction: false
+                });
+                if (possibleBPLocations.locations.length > 0) {
+                    const bestLocation = chromeUtils.selectBreakpointLocation(location.lineNumber, location.lineNumber, possibleBPLocations.locations);
+                    return LocationInScript.fromParameters(location.script, bestLocation.lineNumber, bestLocation.columnNumber);
+                }
+            } catch (e) {
+                // getPossibleBPs not supported
+                // TODO DIEGO: Report telemetry
+            }
+        }
+        return location;
     }
 
     public removeBreakpoint(breakpoint: BreakpointRecipieInLoadedSource) {
@@ -200,7 +225,7 @@ export class BreakpointsLogic {
             ]
         }
     */
-    public async setBreakpoints(desiredBPs: MultiBreakpointRecipiesInUnbindedSource, _?: ITelemetryPropertyCollector, _requestSeq?: number, _ids?: number[]): Promise<ISetBreakpointsResponseBody> {
+    public async setBreakpoints(desiredBPs: BreakpointRecipiesInUnbindedSource, _?: ITelemetryPropertyCollector, _requestSeq?: number, _ids?: number[]): Promise<ISetBreakpointsResponseBody> {
         await desiredBPs.tryGettingBPsInLoadedSource(
             desiredBPsInLoadedSource => {
                 // Match desired breakpoints to existing breakpoints
@@ -284,21 +309,6 @@ export class BreakpointsLogic {
     private async addOneBreakpointByUrl(script: IScript | undefined, urlRegex: string, lineNumber: number, columnNumber: number,
         condition: string): Promise<{ breakpointId?: Crdp.Debugger.BreakpointId, actualLocation?: LocationInScript }> {
         let bpLocation = { lineNumber, columnNumber };
-        if (this._columnBreakpointsEnabled && script) { // scriptId undefined when script not yet loaded, can't fix up column BP :(
-            try {
-                const possibleBpResponse = await this.chrome.Debugger.getPossibleBreakpoints({
-                    start: LocationInScript.fromParameters(script, lineNumber, 0),
-                    end: LocationInScript.fromParameters(script, lineNumber + 1, 0),
-                    restrictToFunction: false
-                });
-                if (possibleBpResponse.locations.length) {
-                    const selectedLocation = chromeUtils.selectBreakpointLocation(lineNumber, columnNumber, possibleBpResponse.locations);
-                    bpLocation = { lineNumber: selectedLocation.lineNumber, columnNumber: selectedLocation.columnNumber || 0 };
-                }
-            } catch (e) {
-                // getPossibleBPs not supported
-            }
-        }
 
         let result;
         try {

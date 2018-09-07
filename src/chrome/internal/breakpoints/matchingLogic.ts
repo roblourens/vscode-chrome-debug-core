@@ -1,9 +1,9 @@
-import { BreakpointRecipieInLoadedSource, MultiBreakpointRecipiesInLoadedSource } from '../breakpoints';
+import { BreakpointRecipieInLoadedSource, BreakpointRecipiesInLoadedSource } from '../breakpoints';
 import { ClientBPsInLoadedSourceRegistry, canonicalizeEverythingButSource } from './breakpointsRegistry';
 
 export class DesiredBPsWithExistingBPsMatcher {
     constructor(
-        private readonly _desiredBreakpoints: MultiBreakpointRecipiesInLoadedSource,
+        private readonly _desiredBreakpoints: BreakpointRecipiesInLoadedSource,
         private readonly _existingBreakpoints: ClientBPsInLoadedSourceRegistry) { }
 
     public match(): DesiredBPsWithExistingBPsMatch {

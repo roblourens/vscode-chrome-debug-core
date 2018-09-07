@@ -77,7 +77,7 @@ type BreakpointRecipie<TResource extends ScriptOrSourceOrIdentifier> =
     TResource extends IScript ? IBreakpointRecipie<IScript> :
     never;
 
-export class MultiBreakpointRecipiesCommonLogic<TResource extends ScriptOrSourceOrIdentifier> {
+export class BreakpointRecipiesCommonLogic<TResource extends ScriptOrSourceOrIdentifier> {
     constructor(public readonly resource: TResource, public readonly breakpoints: BreakpointRecipie<TResource>[]) {
         this.breakpoints.forEach(breakpoint => {
             const bpResource = breakpoint.locationInResource.resource;
@@ -88,18 +88,18 @@ export class MultiBreakpointRecipiesCommonLogic<TResource extends ScriptOrSource
     }
 }
 
-export class MultiBreakpointRecipiesInLoadedSource extends MultiBreakpointRecipiesCommonLogic<ILoadedSource> {
+export class BreakpointRecipiesInLoadedSource extends BreakpointRecipiesCommonLogic<ILoadedSource> {
     public get source(): ILoadedSource {
         return this.resource;
     }
 }
 
-export class MultiBreakpointRecipiesInUnbindedSource extends MultiBreakpointRecipiesCommonLogic<ISourceIdentifier> {
-    public tryGettingBPsInLoadedSource<R>(ifSuccesfulDo: (desiredBPsInLoadedSource: MultiBreakpointRecipiesInLoadedSource) => R, ifFaileDo: () => R): R {
+export class BreakpointRecipiesInUnbindedSource extends BreakpointRecipiesCommonLogic<ISourceIdentifier> {
+    public tryGettingBPsInLoadedSource<R>(ifSuccesfulDo: (desiredBPsInLoadedSource: BreakpointRecipiesInLoadedSource) => R, ifFaileDo: () => R): R {
         return this.resource.tryGettingLoadedSource(
             loadedSource => {
                 const loadedSourceBPs = this.breakpoints.map(breakpoint => breakpoint.asBreakpointInLoadedSource());
-                return ifSuccesfulDo(new MultiBreakpointRecipiesInLoadedSource(loadedSource, loadedSourceBPs));
+                return ifSuccesfulDo(new BreakpointRecipiesInLoadedSource(loadedSource, loadedSourceBPs));
             },
             ifFaileDo);
     }

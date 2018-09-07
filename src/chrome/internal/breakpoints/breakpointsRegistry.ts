@@ -1,4 +1,4 @@
-import { BreakpointRecipieInLoadedSource, MultiBreakpointRecipiesInLoadedSource } from '../breakpoints';
+import { BreakpointRecipieInLoadedSource, BreakpointRecipiesInLoadedSource } from '../breakpoints';
 import { SetUsingProjection } from '../../collections/setUsingProjection';
 import { DesiredBPsWithExistingBPsMatcher, DesiredBPsWithExistingBPsMatch } from './matchingLogic';
 import { ILoadedSource } from '../loadedSource';
@@ -7,7 +7,7 @@ import { ValidatedMap } from '../../collections/validatedMap';
 export class ClientBPsRegistry {
     private readonly _loadedSourceToBreakpoints = new ValidatedMap<ILoadedSource, ClientBPsInLoadedSourceRegistry>();
 
-    public matchDesiredBPsWithExistingBPs(desiredBPsInLoadedSource: MultiBreakpointRecipiesInLoadedSource): DesiredBPsWithExistingBPsMatch {
+    public matchDesiredBPsWithExistingBPs(desiredBPsInLoadedSource: BreakpointRecipiesInLoadedSource): DesiredBPsWithExistingBPsMatch {
         const registry = this._loadedSourceToBreakpoints.get(desiredBPsInLoadedSource.source);
         return registry.matchDesiredBPsWithExistingBPs(desiredBPsInLoadedSource);
     }
@@ -19,7 +19,7 @@ export class ClientBPsInLoadedSourceRegistry {
     /**
      * Precondition: All the breakpoints are in the same loaded source
      */
-    public matchDesiredBPsWithExistingBPs(desiredBPs: MultiBreakpointRecipiesInLoadedSource): DesiredBPsWithExistingBPsMatch {
+    public matchDesiredBPsWithExistingBPs(desiredBPs: BreakpointRecipiesInLoadedSource): DesiredBPsWithExistingBPsMatch {
         return new DesiredBPsWithExistingBPsMatcher(desiredBPs, this).match();
     }
 
