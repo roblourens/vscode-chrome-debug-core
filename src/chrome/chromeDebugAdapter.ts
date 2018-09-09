@@ -8,8 +8,7 @@ import { InitializedEvent, TerminatedEvent, ContinuedEvent, OutputEvent, Logger,
 import {
     ICommonRequestArgs, ILaunchRequestArgs, IAttachRequestArgs, IScopesResponseBody, IVariablesResponseBody,
     IThreadsResponseBody, IEvaluateResponseBody, ISetVariableResponseBody,
-    ICompletionsResponseBody, IExceptionInfoResponseBody, TimeTravelRuntime, IRestartRequestArgs, IInitializeRequestArgs, ISetBreakpointResult
-} from '../debugAdapterInterfaces';
+    ICompletionsResponseBody, IExceptionInfoResponseBody, TimeTravelRuntime, IRestartRequestArgs, IInitializeRequestArgs } from '../debugAdapterInterfaces';
 import { ChromeConnection } from './chromeConnection';
 import * as ChromeUtils from './chromeUtils';
 import { Protocol as Crdp } from 'devtools-protocol';
@@ -17,7 +16,7 @@ import { PropertyContainer, ScopeContainer, ExceptionContainer, isIndexedPropNam
 import * as variables from './variables';
 import { formatConsoleArguments, formatExceptionDetails, clearConsoleCode } from './consoleHelper';
 import { ReasonType, StoppedEvent2 } from './stoppedEvent';
-import { InternalSourceBreakpoint, stackTraceWithoutLogpointFrame } from './internalSourceBreakpoint';
+import { stackTraceWithoutLogpointFrame } from './internalSourceBreakpoint';
 
 import * as errors from '../errors';
 import * as utils from '../utils';
@@ -40,7 +39,7 @@ import { IScript } from './internal/script';
 import { ISourceIdentifier } from './internal/sourceIdentifier';
 
 import { ChromeDebugAdapter as ChromeDebugAdapterClass } from './client/chromeDebugAdapterV2';
-import { INewAddBreakpointsResult, EvaluateOnCallFrameRequest } from './target/requests';
+import { EvaluateOnCallFrameRequest } from './target/requests';
 import { PausedEvent, ConsoleAPICalledEvent, ScriptParsedEvent, ExceptionThrownEvent, LogEntry } from './target/events';
 import { CallFrame, StackTraceCodeFlow } from './internal/stackTraces';
 import { LocationInLoadedSource, ScriptOrSource } from './internal/locationInResource';
@@ -123,16 +122,7 @@ export class ChromeDebugAdapter extends ChromeDebugAdapterClass {
     protected sendInitializedEvent(): Promise<void> {
         return this._chromeDebugAdapter.sendInitializedEvent();
     }
-    protected async addBreakpoints(url: string, breakpoints: InternalSourceBreakpoint[]): Promise<(INewAddBreakpointsResult & ISetBreakpointResult)[] | (ISetBreakpointResult)[]> {
-        const runtimeScript = this._scriptsLogic.getScriptsByPath(parseResourceIdentifier(url))[0];
-        const scriptId = this._scriptsLogic.getCrdpId(runtimeScript);
-        const addBreakpointsResult = await this._breakpointsLogic.addBreakpoints(url, breakpoints, runtimeScript);
-        const addBreakpointsResultForNode = addBreakpointsResult as (INewAddBreakpointsResult & ISetBreakpointResult)[];
-        for (const breakpoint of addBreakpointsResultForNode) {
-            (breakpoint.actualLocation as any).scriptId = scriptId; // TODO: Remove this hack after we update node-debug2 to not need scriptId in this method
-        }
-        return addBreakpointsResultForNode;
-    }
+
     protected static get EVAL_NAME_PREFIX(): string {
         return ChromeDebugLogic.EVAL_NAME_PREFIX;
     }

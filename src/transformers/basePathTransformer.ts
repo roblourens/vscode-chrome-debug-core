@@ -6,7 +6,7 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 
 import { ILaunchRequestArgs, IAttachRequestArgs } from '../debugAdapterInterfaces';
 import { IResourceIdentifier } from '../chrome/internal/resourceIdentifier';
-import { INewSetBreakpointsArgs } from '../chrome/internal/breakpoints';
+import { INewSetBreakpointsArgs } from '../chrome/internal/breakpoints/breakpointRecipie';
 import { StackTracePresentation } from '../chrome/internal/stackTraces';
 
 /**

@@ -15,7 +15,7 @@ import { LocationInScript } from './chrome/internal/locationInResource';
 import { IScript } from './chrome/internal/script';
 import { IResourceIdentifier } from './chrome/internal/resourceIdentifier';
 import { ILoadedSource } from './chrome/internal/loadedSource';
-import { INewSetBreakpointsArgs } from './chrome/internal/breakpoints';
+import { INewSetBreakpointsArgs } from './chrome/internal/breakpoints/breakpointRecipie';
 
 export type ISourceMapPathOverrides = IStringDictionary<string>;
 export type IPathMapping = IStringDictionary<string>;

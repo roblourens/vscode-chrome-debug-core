@@ -8,6 +8,7 @@ import { CDTPDebugger } from './cdtpDebugger';
 import { ValidatedMap } from '../collections/validatedMap';
 import { CDTPConsole, CDTPSchema, CDTPDOMDebugger, CDTPPage, CDTPNetwork, CDTPBrowser, CDTPOverlay, CDTPLog } from './cdtpSmallerModules';
 import { CDTPRuntime } from './cdtpRuntime';
+import { BreakpointRegistry } from '../internal/breakpoints/breakpointRegistry';
 
 export class CDTPDiagnostics {
     public Debugger: CDTPDebugger;
@@ -23,8 +24,9 @@ export class CDTPDiagnostics {
 
     constructor(private _api: () => Crdp.ProtocolApi, runtimeScriptsManager: RuntimeScriptsManager,
         pathTransformer: BasePathTransformer, sourceMapTransformer: BaseSourceMapTransformer) {
-        const crdpToInternal = new TargetToInternal(runtimeScriptsManager, pathTransformer, sourceMapTransformer);
-        const internalToCRDP = new InternalToTarget(runtimeScriptsManager, new ValidatedMap<CallFrame<IScript>, Crdp.Debugger.CallFrameId>());
+        const breakpointRegistry = new BreakpointRegistry();
+        const crdpToInternal = new TargetToInternal(runtimeScriptsManager, pathTransformer, sourceMapTransformer, breakpointRegistry);
+        const internalToCRDP = new InternalToTarget(runtimeScriptsManager, new ValidatedMap<CallFrame<IScript>, Crdp.Debugger.CallFrameId>(), breakpointRegistry);
         this.Debugger = new CDTPDebugger(() => this._api().Debugger, crdpToInternal, internalToCRDP);
         this.Console = new CDTPConsole(() => this._api().Console);
         this.Runtime = new CDTPRuntime(() => this._api().Runtime, crdpToInternal);

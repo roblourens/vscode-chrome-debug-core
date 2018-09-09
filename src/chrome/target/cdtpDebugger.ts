@@ -1,12 +1,15 @@
 import { CDTPDiagnosticsModule } from './cdtpDiagnosticsModule';
 import { Crdp, utils } from '../..';
-import { LocationInScript, ZeroBasedLocation } from '../internal/locationInResource';
+import { LocationInScript, ScriptOrSourceOrIdentifierOrUrlRegexp } from '../internal/locationInResource';
 import { PausedEvent, SetVariableValueRequest, ScriptParsedEvent } from './events';
 import { IScript } from '../internal/script';
-import { EvaluateOnCallFrameRequest, INewSetBreakpointResult } from './requests';
+import { EvaluateOnCallFrameRequest } from './requests';
 import { CallFrame } from '../internal/stackTraces';
 import { TargetToInternal } from './targetToInternal';
 import { InternalToTarget } from './internalToTarget';
+import { BreakpointRecipieInScript, BreakpointRecipieInUrl, BreakpointRecipieInUrlRegexp, BreakpointRecipie } from '../internal/breakpoints/breakpointRecipie';
+import { AlwaysBreak, ConditionalBreak } from '../internal/breakpoints/behaviorRecipie';
+import { BreakpointInUrl, BreakpointInScript, BreakpointInUrlRegexp } from '../internal/breakpoints/breakpoint';
 
 export type onScriptParsedListener = (params: ScriptParsedEvent) => void;
 
@@ -75,17 +78,36 @@ export class CDTPDebugger extends CDTPDiagnosticsModule<Crdp.DebuggerApi> {
         return this.api.setBlackboxPatterns(params);
     }
 
-    public removeBreakpoint(params: Crdp.Debugger.RemoveBreakpointRequest): Promise<void> {
-        return this.api.removeBreakpoint(params);
+    public removeBreakpoint(bpRecipie: BreakpointRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp>): Promise<void> {
+        return this.api.removeBreakpoint({ breakpointId: this._internalToCRDP.getBreakpointId(bpRecipie) });
     }
 
-    public async setBreakpoint(location: LocationInScript, condition?: string): Promise<INewSetBreakpointResult> {
-        const response = await this.api.setBreakpoint({ location: this._internalToCRDP.toCrdpLocation(location), condition });
-        return { breakpointId: response.breakpointId, actualLocation: await this._crdpToInternal.toLocationInScript(response.actualLocation) };
+    public async setBreakpoint(bpRecipie: BreakpointRecipieInScript<AlwaysBreak | ConditionalBreak>): Promise<BreakpointInScript> {
+        const condition = this._internalToCRDP.getBPRecipieCondition(bpRecipie);
+
+        const response = await this.api.setBreakpoint({ location: this._internalToCRDP.toCrdpLocation(bpRecipie.locationInResource), condition });
+
+        return this._crdpToInternal.toBreakpointInScript(bpRecipie, response);
     }
 
-    public setBreakpointByUrl(urlRegex: string, location: ZeroBasedLocation, condition?: string): Promise<Crdp.Debugger.SetBreakpointByUrlResponse> {
-        return this.api.setBreakpointByUrl({ urlRegex, lineNumber: location.lineNumber, columnNumber: location.columnNumber, condition });
+    public async setBreakpointByUrl(bpRecipie: BreakpointRecipieInUrl<AlwaysBreak | ConditionalBreak>): Promise<BreakpointInUrl[]> {
+        const condition = this._internalToCRDP.getBPRecipieCondition(bpRecipie);
+        const url = bpRecipie.locationInResource.resource.textRepresentation;
+        const location = bpRecipie.locationInResource.location;
+
+        const response = await this.api.setBreakpointByUrl({ url, lineNumber: location.lineNumber, columnNumber: location.columnNumber, condition });
+
+        return Promise.all(response.locations.map(cdtpLocation => this._crdpToInternal.toBreakpointInUrl(bpRecipie, response.breakpointId, cdtpLocation)));
+    }
+
+    public async setBreakpointByUrlRegexp(bpRecipie: BreakpointRecipieInUrlRegexp<AlwaysBreak | ConditionalBreak>): Promise<BreakpointInUrlRegexp[]> {
+        const condition = this._internalToCRDP.getBPRecipieCondition(bpRecipie);
+        const urlRegex = bpRecipie.locationInResource.resource.textRepresentation;
+        const location = bpRecipie.locationInResource.location;
+
+        const response = await this.api.setBreakpointByUrl({ urlRegex, lineNumber: location.lineNumber, columnNumber: location.columnNumber, condition });
+
+        return Promise.all(response.locations.map(cdtpLocation => this._crdpToInternal.toBreakpointInUrlRegexp(bpRecipie, response.breakpointId, cdtpLocation)));
     }
 
     public setPauseOnExceptions(params: Crdp.Debugger.SetPauseOnExceptionsRequest): Promise<void> {

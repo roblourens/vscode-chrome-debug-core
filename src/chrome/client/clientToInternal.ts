@@ -2,13 +2,15 @@ import { Handles } from 'vscode-debugadapter';
 import { CallFrame } from '../internal/stackTraces';
 import { ILoadedSource } from '../internal/loadedSource';
 import * as errors from '../../errors';
-import { BehaviorRecipie, BreakpointRecipieInUnbindedSource, BreakpointRecipiesInUnbindedSource } from '../internal/breakpoints';
+import { BreakpointRecipieInUnbindedSource } from '../internal/breakpoints/breakpointRecipie';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { ISourceIdentifier, SourceIdentifiedByLoadedSource } from '../internal/sourceIdentifier';
 import { parseResourceIdentifier } from '../internal/resourceIdentifier';
 import { SourcesLogic } from '../internal/sources/sourcesLogic';
 import { ZeroBasedLocation, LocationInUnbindedSource } from '../internal/locationInResource';
 import { LineColTransformer } from '../../transformers/lineNumberTransformer';
+import { BreakpointRecipiesInUnbindedSource } from '../internal/breakpoints/breakpointRecipies';
+import { IBehaviorRecipie, AlwaysBreak, ConditionalBreak } from '../internal/breakpoints/behaviorRecipie';
 
 export class ClientToInternal {
     // V1 reseted the frames on an onPaused event. Figure out if that is the right thing to do
@@ -59,8 +61,26 @@ export class ClientToInternal {
         return new ZeroBasedLocation(lineNumber, columnNumber);
     }
 
-    public toBehaviorWhenExecuted(behavior: { condition?: string; hitCondition?: string; logMessage?: string; }): BehaviorRecipie {
-        return new BehaviorRecipie(behavior.condition, behavior.hitCondition, behavior.logMessage);
+    public toBehaviorWhenExecuted(behavior: { condition?: string; hitCondition?: string; logMessage?: string; }): IBehaviorRecipie {
+        let howManyDefined = 0;
+        howManyDefined += behavior.condition ? 1 : 0;
+        howManyDefined += behavior.hitCondition ? 1 : 0;
+        howManyDefined += behavior.logMessage ? 1 : 0;
+        if (howManyDefined === 0) {
+            return new AlwaysBreak();
+        } else if (howManyDefined === 1) {
+            if (behavior.condition) {
+                return new ConditionalBreak(behavior.condition);
+            } else if (behavior.hitCondition) {
+                return new ConditionalBreak(behavior.hitCondition);
+            } else if (behavior.logMessage) {
+                return new ConditionalBreak(behavior.logMessage);
+            } else {
+                throw new Error(`Couldn't parse the desired behavior for the breakpoint: 'condition' (${behavior.condition}), 'hitCondition' (${behavior.hitCondition}) or 'logMessage' (${behavior.logMessage})`);
+            }
+        } else { // howManyDefined >= 2
+            throw new Error(`Expected a single one of 'condition' (${behavior.condition}), 'hitCondition' (${behavior.hitCondition}) and 'logMessage' (${behavior.logMessage}) to be defined, yet multiple were defined.`);
+        }
     }
 
     constructor(

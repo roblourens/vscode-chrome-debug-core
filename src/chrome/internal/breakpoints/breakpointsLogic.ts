@@ -1,20 +1,22 @@
-import { INewSetBreakpointsArgs, BreakpointRecipiesInUnbindedSource, BreakpointRecipieInLoadedSource } from '../breakpoints';
+import { INewSetBreakpointsArgs, BPRecipieInLoadedSource, BreakpointRecipie } from './breakpointRecipie';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { newResourceIdentifierMap, IResourceIdentifier, parseResourceIdentifier } from '../resourceIdentifier';
 import { INewSetBreakpointResult } from '../../target/requests';
-import { utils, Crdp, ITelemetryPropertyCollector, ISetBreakpointsResponseBody, InternalSourceBreakpoint, ChromeDebugLogic, LineColTransformer, BaseSourceMapTransformer, chromeUtils } from '../../..';
+import { utils, Crdp, ITelemetryPropertyCollector, ISetBreakpointsResponseBody, LineColTransformer, BaseSourceMapTransformer } from '../../..';
 import { IScript } from '../script';
 import { PromiseDefer, promiseDefer } from '../../../utils';
 import { PausedEvent } from '../../target/events';
 import { logger } from 'vscode-debugadapter/lib/logger';
 import { BreakpointEvent } from 'vscode-debugadapter';
-import { LocationInScript, ZeroBasedLocation } from '../locationInResource';
+import { LocationInScript, ScriptOrSourceOrIdentifierOrUrlRegexp } from '../locationInResource';
 import { CDTPDiagnostics } from '../../target/cdtpDiagnostics';
 import { BreakOnLoadHelper } from '../../breakOnLoadHelper';
 import { ISession } from '../../client/delayMessagesUntilInitializedSession';
 import { BasePathTransformer } from '../../../transformers/basePathTransformer';
 import * as path from 'path';
 import { ClientBPsRegistry } from './breakpointsRegistry';
+import { BreakpointRecipiesInUnbindedSource } from './breakpointRecipies';
+import { ConditionalBreak, AlwaysBreak } from './behaviorRecipie';
 
 export interface IPendingBreakpoint {
     args: INewSetBreakpointsArgs;
@@ -125,18 +127,13 @@ export class BreakpointsLogic {
         }
     }
 
-    public resolvePendingBreakpoint(pendingBP: {
+    public async resolvePendingBreakpoint(_pendingBP: {
         args: INewSetBreakpointsArgs;
         ids: number[];
         requestSeq: number;
         setWithPath: string;
     }): Promise<void> {
-        return this.setBreakpoints(pendingBP.args, null, pendingBP.requestSeq, pendingBP.ids).then((response: ISetBreakpointsResponseBody) => {
-            response.breakpoints.forEach((bp: DebugProtocol.Breakpoint, i: number) => {
-                bp.id = pendingBP.ids[i];
-                this._session.sendEvent(new BreakpointEvent('changed', bp));
-            });
-        });
+        // this._session.sendEvent(new BreakpointEvent('changed', bp));
     }
 
     protected onBreakpointResolved(breakpointCrdpId: Crdp.Debugger.BreakpointId, location: LocationInScript): void {
@@ -174,47 +171,24 @@ export class BreakpointsLogic {
         this._session.sendEvent(new BreakpointEvent('changed', bp));
     }
 
-    public async addBreakpoint(breakpoint: BreakpointRecipieInLoadedSource) {
-        const locationInScript = breakpoint.locationInResource.asLocationInScript();
-        if (locationInScript.script.runtimeSource.doesScriptHasUrl()) {
-            this.chrome.Debugger.setBreakpoint(locationInScript, breakpoint.behavior.condition);
+    public async addBreakpoint(bpRecipie: BPRecipieInLoadedSource<ConditionalBreak | AlwaysBreak>) {
+        const bpInScriptRecipie = bpRecipie.asBPInScriptRecipie();
+        const runtimeSource = bpInScriptRecipie.locationInResource.script.runtimeSource;
+        // TODO DIEGO: Understand why are we calling getBestActualLocationForBreakpoint
+        // const bestActualLocation = await this.getBestActualLocationForBreakpoint(bpInScriptRecipie.locationInResource);
+        if (runtimeSource.doesScriptHasUrl()) {
+            this.chrome.Debugger.setBreakpoint(bpInScriptRecipie);
         } else {
-            const url = locationInScript.script.runtimeSource.identifier.textRepresentation;
-            const urlRegexp = utils.pathToRegex(url);
-
-            // TODO DIEGO: Understand why are we calling getBestActualLocationForBreakpoint
-            const bestActualLocation = await this.getBestActualLocationForBreakpoint(locationInScript);
-            this.chrome.Debugger.setBreakpointByUrl(urlRegexp, bestActualLocation, breakpoint.behavior.condition);
-        }
-    }
-
-    private async getBestActualLocationForBreakpoint(location: LocationInScript): Promise<LocationInScript> {
-        if (this._columnBreakpointsEnabled) {
-            try {
-                const possibleBPLocations = await this.chrome.Debugger.getPossibleBreakpoints({
-                    start: LocationInScript.fromParameters(location.script, location.lineNumber, 0),
-                    end: LocationInScript.fromParameters(location.script, location.lineNumber + 1, 0),
-                    restrictToFunction: false
-                });
-                if (possibleBPLocations.locations.length > 0) {
-                    const bestLocation = chromeUtils.selectBreakpointLocation(location.lineNumber, location.lineNumber, possibleBPLocations.locations);
-                    return LocationInScript.fromParameters(location.script, bestLocation.lineNumber, bestLocation.columnNumber);
-                }
-            } catch (e) {
-                // getPossibleBPs not supported
-                // TODO DIEGO: Report telemetry
+            if (runtimeSource.identifier.isLocalFilePath()) {
+                this.chrome.Debugger.setBreakpointByUrlRegexp(bpInScriptRecipie.asBPInUrlRegexpRecipie());
+            } else {
+                this.chrome.Debugger.setBreakpointByUrl(bpInScriptRecipie.asBPInUrlRecipie());
             }
         }
-        return location;
     }
 
-    public removeBreakpoint(breakpoint: BreakpointRecipieInLoadedSource) {
-        const locationInScript = breakpoint.locationInResource.asLocationInScript();
-        if (locationInScript.script.runtimeSource.doesScriptHasUrl()) {
-            this.chrome.Debugger.setBreakpoint(locationInScript, breakpoint.behavior.condition);
-        } else {
-
-        }
+    public removeBreakpoint(bpRecipie: BreakpointRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp>) {
+        this.chrome.Debugger.removeBreakpoint(bpRecipie);
     }
 
     /* __GDPR__
@@ -274,61 +248,6 @@ export class BreakpointsLogic {
                     },
                         e => this.unverifiedBpResponse(args, requestSeq, undefined, e.message));
             */
-    }
-
-    public async addBreakpoints(url: string, breakpoints: InternalSourceBreakpoint[], script: IScript | undefined): Promise<{
-        breakpointId?: Crdp.Debugger.BreakpointId;
-        actualLocation?: LocationInScript;
-    }[]> {
-        let responsePs: Promise<INewSetBreakpointResult>[];
-        if (!script.runtimeSource.doesScriptHasUrl()) {
-            // eval script with no real url - use debugger_setBreakpoint
-            const scriptId: Crdp.Runtime.ScriptId = utils.lstrip(url, ChromeDebugLogic.EVAL_NAME_PREFIX);
-            responsePs = breakpoints.map(({ line, column = 0, condition }) => this.chrome.Debugger.setBreakpoint({ scriptId, lineNumber: line, columnNumber: column }, condition));
-        } else {
-            // script that has a url - use debugger_setBreakpointByUrl so that Chrome will rebind the breakpoint immediately
-            // after refreshing the page. This is the only way to allow hitting breakpoints in code that runs immediately when
-            // the page loads.
-            // If script has been parsed, script object won't be undefined and we would have the mapping file on the disk and we can directly set breakpoint using that
-            if (!this.breakOnLoadActive || script) {
-                const urlRegex = utils.pathToRegex(url);
-                responsePs = breakpoints.map(({ line, column = 0, condition }) => {
-                    return this.addOneBreakpointByUrl(script, urlRegex, line, column, condition);
-                });
-            } else { // Else if script hasn't been parsed and break on load is active, we need to do extra processing
-                if (this.breakOnLoadActive) {
-                    return await this._breakOnLoadHelper.handleAddBreakpoints(parseResourceIdentifier(url), breakpoints);
-                }
-            }
-        }
-
-        // Join all setBreakpoint requests to a single promise
-        return Promise.all(responsePs);
-    }
-
-    private async addOneBreakpointByUrl(script: IScript | undefined, urlRegex: string, lineNumber: number, columnNumber: number,
-        condition: string): Promise<{ breakpointId?: Crdp.Debugger.BreakpointId, actualLocation?: LocationInScript }> {
-        let bpLocation = { lineNumber, columnNumber };
-
-        let result;
-        try {
-            result = await this.chrome.Debugger.setBreakpointByUrl({ urlRegex, lineNumber: bpLocation.lineNumber, columnNumber: bpLocation.columnNumber, condition });
-        } catch (e) {
-            if (e.message === 'Breakpoint at specified location already exists.') {
-                return {
-                    actualLocation: new LocationInScript(script, bpLocation)
-                };
-            } else {
-                throw e;
-            }
-        }
-
-        // Now convert the response to a SetBreakpointResponse so both response types can be handled the same
-        const locations = result.locations;
-        return {
-            breakpointId: result.breakpointId,
-            actualLocation: locations[0] && new LocationInScript(script, locations[0])
-        };
     }
 
     public async resolvePendingBreakpointsOnScriptParsed(script: IScript) {

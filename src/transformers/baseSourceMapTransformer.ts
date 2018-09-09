@@ -11,7 +11,7 @@ import { SourceMaps } from '../sourceMaps/sourceMaps';
 import { logger } from 'vscode-debugadapter';
 
 import { ILoadedSource } from '../chrome/internal/loadedSource';
-import { INewSetBreakpointsArgs } from '../chrome/internal/breakpoints';
+import { INewSetBreakpointsArgs } from '../chrome/internal/breakpoints/breakpointRecipie';
 
 interface ISavedSetBreakpointsArgs {
     generatedPath: string;

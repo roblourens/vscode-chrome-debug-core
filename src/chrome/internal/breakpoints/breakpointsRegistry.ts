@@ -1,8 +1,10 @@
-import { BreakpointRecipieInLoadedSource, BreakpointRecipiesInLoadedSource } from '../breakpoints';
+import { BPRecipieInLoadedSource } from './breakpointRecipie';
 import { SetUsingProjection } from '../../collections/setUsingProjection';
 import { DesiredBPsWithExistingBPsMatcher, DesiredBPsWithExistingBPsMatch } from './matchingLogic';
 import { ILoadedSource } from '../loadedSource';
 import { ValidatedMap } from '../../collections/validatedMap';
+import { BreakpointRecipiesInLoadedSource } from './breakpointRecipies';
+import { IBehaviorRecipie } from './behaviorRecipie';
 
 export class ClientBPsRegistry {
     private readonly _loadedSourceToBreakpoints = new ValidatedMap<ILoadedSource, ClientBPsInLoadedSourceRegistry>();
@@ -24,8 +26,8 @@ export class ClientBPsInLoadedSourceRegistry {
     }
 
     public findMatchingBreakpoint<R>(
-        breakpoint: BreakpointRecipieInLoadedSource,
-        ifFoundDo: (existingEquivalentBreakpoint: BreakpointRecipieInLoadedSource) => R,
+        breakpoint: BPRecipieInLoadedSource,
+        ifFoundDo: (existingEquivalentBreakpoint: BPRecipieInLoadedSource) => R,
         ifNotFoundDo: () => R): R {
         const matchingBreakpoint = this._breakpoints.tryGetting(breakpoint);
         if (matchingBreakpoint !== null) {
@@ -35,7 +37,7 @@ export class ClientBPsInLoadedSourceRegistry {
         }
     }
 
-    public allBreakpoints(): BreakpointRecipieInLoadedSource[] {
+    public allBreakpoints(): BPRecipieInLoadedSource[] {
         // We return a copy to avoid side-effects
         return Array.from(this._breakpoints);
     }
@@ -49,12 +51,19 @@ export class ClientBreakpointsInUnbindedSourceRegistry {
 
 }
 
-export function canonicalizeEverythingButSource(breakpoint: BreakpointRecipieInLoadedSource): string {
+function canonicalizeBehavior(behavior: IBehaviorRecipie): string {
+    return behavior.execute({
+        alwaysBreak: () => 'none',
+        conditionalBreak: conditionalBreak => `condition: ${conditionalBreak.expressionOfWhenToBreak}`,
+        logMessage: logMessage => `log: ${logMessage.expressionOfMessageToLog}`,
+        breakOnSpecificHitCounts: breakOnSpecificHitCounts => `breakWhenHitCount: ${breakOnSpecificHitCounts.expressionOfOnWhichHitsToBreak}`
+    });
+}
+
+export function canonicalizeEverythingButSource(breakpoint: BPRecipieInLoadedSource): string {
     return JSON.stringify({
         lineNumber: breakpoint.locationInResource.lineNumber,
         columnNumber: breakpoint.locationInResource.columnNumber,
-        condition: breakpoint.condition,
-        hitCondition: breakpoint.hitCondition,
-        logMessage: breakpoint.logMessage
+        behavior: canonicalizeBehavior(breakpoint.behavior)
     });
 }

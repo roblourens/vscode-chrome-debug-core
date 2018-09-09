@@ -1,8 +1,10 @@
 import * as Validation from '../../validation';
 import { IScript } from './script';
 import { ISourceIdentifier } from './sourceIdentifier';
-import { parseResourceIdentifier } from './resourceIdentifier';
+import { parseResourceIdentifier, IResourceIdentifier } from './resourceIdentifier';
 import { ILoadedSource } from './loadedSource';
+import { URLRegexp } from './breakpoints/breakpointRecipie';
+import { CDTPScriptUrl } from './resourceIdentifierSubtypes';
 
 export type integer = number;
 
@@ -19,21 +21,25 @@ export class ZeroBasedLocation {
 
 export type ScriptOrSource = IScript | ILoadedSource;
 export type ScriptOrSourceOrIdentifier = ScriptOrSource | ISourceIdentifier;
+export type ScriptOrSourceOrIdentifierOrUrlRegexp = ScriptOrSourceOrIdentifier | IResourceIdentifier | URLRegexp | IResourceIdentifier<CDTPScriptUrl>;
 
-interface ILocationInResource<T extends ScriptOrSourceOrIdentifier> {
+interface ILocationInResource<T extends ScriptOrSourceOrIdentifierOrUrlRegexp> {
     readonly lineNumber: NonNullable<integer>;
     readonly columnNumber?: integer;
     readonly resource: NonNullable<T>;
     readonly location: NonNullable<ZeroBasedLocation>;
 }
 
-export type LocationInResource<T extends ScriptOrSourceOrIdentifier> =
+export type LocationInResource<T extends ScriptOrSourceOrIdentifierOrUrlRegexp> =
     T extends IScript ? LocationInScript :
     T extends ISourceIdentifier ? LocationInUnbindedSource :
     T extends ILoadedSource ? LocationInLoadedSource :
+    T extends IResourceIdentifier ? ILocationInResource<IResourceIdentifier> :
+    T extends IResourceIdentifier<CDTPScriptUrl> ? ILocationInResource<IResourceIdentifier<CDTPScriptUrl>> :
+    T extends URLRegexp ? ILocationInResource<URLRegexp> :
     never;
 
-abstract class LocationInResourceCommonLogic<T extends ScriptOrSourceOrIdentifier> implements ILocationInResource<T> {
+abstract class LocationInResourceCommonLogic<T extends ScriptOrSourceOrIdentifierOrUrlRegexp> implements ILocationInResource<T> {
     constructor(
         public readonly resource: NonNullable<T>,
         public readonly location: NonNullable<ZeroBasedLocation>) { }
@@ -61,7 +67,7 @@ export class LocationInUnbindedSource extends LocationInResourceCommonLogic<ISou
     }
 }
 
-interface IBindedLocationInResource<T extends ScriptOrSource> extends ILocationInResource<T> {
+interface IBindedLocationInResource<T extends ScriptOrSourceOrIdentifierOrUrlRegexp> extends ILocationInResource<T> {
     readonly source: T extends ILoadedSource ? NonNullable<T> : never;
     readonly script: T extends IScript ? NonNullable<T> : never;
     asLocationInLoadedSource(): LocationInLoadedSource;
@@ -94,6 +100,14 @@ export class LocationInScript extends LocationInResourceCommonLogic<IScript> imp
     public asLocationInScript(): LocationInScript {
         return this;
     }
+
+    public asLocationInUrl(): LocationInUrl {
+        if (this.script.runtimeSource.doesScriptHasUrl()) {
+            return new LocationInUrl(this.script.runtimeSource.identifier, this.location);
+        } else {
+            throw new Error(`Can't convert a location in a script without an URL (${this}) into a location in a URL`);
+        }
+    }
 }
 
 export class LocationInLoadedSource extends LocationInResourceCommonLogic<ILoadedSource> implements IBindedLocationInResource<ILoadedSource> {
@@ -120,6 +134,30 @@ export class LocationInLoadedSource extends LocationInResourceCommonLogic<ILoade
         } else {
             throw new Error(`Couldn't map the location (${this.location}) in the source $(${this.source}) to a script file`);
         }
+    }
+}
+
+export class LocationInUrl extends LocationInResourceCommonLogic<IResourceIdentifier<CDTPScriptUrl>> implements ILocationInResource<IResourceIdentifier<CDTPScriptUrl>> {
+    public static fromParameters(script: IScript, lineNumber: number, columnNumber: number): LocationInScript {
+        return new LocationInScript(script, new ZeroBasedLocation(lineNumber, columnNumber));
+    }
+
+    public get url(): NonNullable<IResourceIdentifier<CDTPScriptUrl>> {
+        return this.resource;
+    }
+
+    public get source(): never {
+        throw new Error(`LocationInScript doesn't support the source property`);
+    }
+}
+
+export class LocationInUrlRegexp extends LocationInResourceCommonLogic<URLRegexp> implements ILocationInResource<URLRegexp> {
+    public get urlRegexp(): NonNullable<URLRegexp> {
+        return this.resource;
+    }
+
+    public get source(): never {
+        throw new Error(`LocationInScript doesn't support the source property`);
     }
 }
 

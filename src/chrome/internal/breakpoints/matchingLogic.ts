@@ -1,5 +1,6 @@
-import { BreakpointRecipieInLoadedSource, BreakpointRecipiesInLoadedSource } from '../breakpoints';
+import { BPRecipieInLoadedSource } from './breakpointRecipie';
 import { ClientBPsInLoadedSourceRegistry, canonicalizeEverythingButSource } from './breakpointsRegistry';
+import { BreakpointRecipiesInLoadedSource } from './breakpointRecipies';
 
 export class DesiredBPsWithExistingBPsMatcher {
     constructor(
@@ -8,10 +9,10 @@ export class DesiredBPsWithExistingBPsMatcher {
 
     public match(): DesiredBPsWithExistingBPsMatch {
         const match = {
-            matchesForDesired: [] as BreakpointRecipieInLoadedSource[], // Every iteration we'll add either the existing BP match, or the new BP as it's own match here
-            desiredToAdd: [] as BreakpointRecipieInLoadedSource[], // Every time we don't find an existing match BP, we'll add the desired BP here
-            existingToLeaveAsIs: [] as BreakpointRecipieInLoadedSource[], // Every time we do find an existing match BP, we'll add the existing BP here
-            existingToRemove: [] as BreakpointRecipieInLoadedSource[] // Calculated at the end of the algorithm by doing (existingBreakpoints - existingToLeaveAsIs)
+            matchesForDesired: [] as BPRecipieInLoadedSource[], // Every iteration we'll add either the existing BP match, or the new BP as it's own match here
+            desiredToAdd: [] as BPRecipieInLoadedSource[], // Every time we don't find an existing match BP, we'll add the desired BP here
+            existingToLeaveAsIs: [] as BPRecipieInLoadedSource[], // Every time we do find an existing match BP, we'll add the existing BP here
+            existingToRemove: [] as BPRecipieInLoadedSource[] // Calculated at the end of the algorithm by doing (existingBreakpoints - existingToLeaveAsIs)
         };
 
         this._desiredBreakpoints.breakpoints.forEach(desiredBreakpoint => {
@@ -67,8 +68,8 @@ export class DesiredBPsWithExistingBPsMatcher {
 type MatchKey = 'matchesForDesired' | 'desiredToAdd' | 'existingToRemove' | 'existingToLeaveAsIs';
 
 export class DesiredBPsWithExistingBPsMatch {
-    matchesForDesired: BreakpointRecipieInLoadedSource[];
-    desiredToAdd: BreakpointRecipieInLoadedSource[];
-    existingToRemove: BreakpointRecipieInLoadedSource[];
-    existingToLeaveAsIs: BreakpointRecipieInLoadedSource[];
+    matchesForDesired: BPRecipieInLoadedSource[];
+    desiredToAdd: BPRecipieInLoadedSource[];
+    existingToRemove: BPRecipieInLoadedSource[];
+    existingToLeaveAsIs: BPRecipieInLoadedSource[];
 }

@@ -1,9 +1,7 @@
 import { IResourceIdentifier } from './resourceIdentifier';
 
 const CDTPScriptUrlSymbol = Symbol();
-export interface CDTPScriptUrl extends IResourceIdentifier {
-    [CDTPScriptUrlSymbol]: true;
-}
+export type CDTPScriptUrl = string & { [CDTPScriptUrlSymbol]: true };
 
 const ScriptDevelopmentLocationSymbol = Symbol();
 export interface ScriptDevelopmentLocation extends IResourceIdentifier {

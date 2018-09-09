@@ -261,14 +261,17 @@ export class BreakOnLoadHelper {
     }
 
     // Sets a breakpoint on (0,0) for the files matching the given regex
-    private async setStopOnEntryBreakpoint(urlRegex: string): Promise<Crdp.Debugger.SetBreakpointByUrlResponse> {
-        let result = await this._chromeDebugAdapter.chrome.Debugger.setBreakpointByUrl({ urlRegex, lineNumber: 0, columnNumber: 0 });
-        return result;
+    private async setStopOnEntryBreakpoint(_urlRegex: string): Promise<Crdp.Debugger.SetBreakpointByUrlResponse> {
+        // DIEGO TODO: Re-enable this code
+        // let result = await this._chromeDebugAdapter.chrome.Debugger.setBreakpointByUrl({ urlRegex, lineNumber: 0, columnNumber: 0 });
+        // return result;
+        return Promise.reject(new Error('Not yet implemented'));
     }
 
     // Removes a breakpoint by it's chrome-crdp-id
-    private async removeBreakpointById(breakpointId: string): Promise<void> {
-        return await this._chromeDebugAdapter.chrome.Debugger.removeBreakpoint({breakpointId: breakpointId });
+    private async removeBreakpointById(_breakpointId: string): Promise<void> {
+        // DIEGO TODO: Re-enable this code
+        // return await this._chromeDebugAdapter.chrome.Debugger.removeBreakpoint({breakpointId: breakpointId });
     }
 
     /**

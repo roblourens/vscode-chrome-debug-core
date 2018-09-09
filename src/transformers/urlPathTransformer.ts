@@ -11,7 +11,7 @@ import * as ChromeUtils from '../chrome/chromeUtils';
 
 import * as path from 'path';
 import { IResourceIdentifier, newResourceIdentifierMap, parseResourceIdentifier } from '../chrome/internal/resourceIdentifier';
-import { INewSetBreakpointsArgs } from '../chrome/internal/breakpoints';
+import { INewSetBreakpointsArgs } from '../chrome/internal/breakpoints/breakpointRecipie';
 
 /**
  * Converts a local path from Code to a path on the target.

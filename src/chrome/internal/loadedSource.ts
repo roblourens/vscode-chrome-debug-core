@@ -1,9 +1,10 @@
 import { IScript } from './script';
 import { IResourceIdentifier, ResourceName, parseResourceIdentifier } from './resourceIdentifier';
+import { CDTPScriptUrl } from './resourceIdentifierSubtypes';
 
-export interface ILoadedSource {
+export interface ILoadedSource<TString = string> {
     readonly script: IScript;
-    readonly identifier: IResourceIdentifier;
+    readonly identifier: IResourceIdentifier<TString>;
     readonly origin: string;
     doesScriptHasUrl(): boolean; // TODO DIEGO: Figure out if we can delete this property
     isSourceOfCompiled(): boolean;
@@ -18,9 +19,9 @@ export interface ILoadedSource {
  *  2. Two: We assume one path is from the webserver, and the other path is in the workspace: RuntimeScriptWithSourceOnWorkspace
  */
 
-abstract class LoadedSourceCommonLogic implements ILoadedSource {
+abstract class LoadedSourceCommonLogic<TSource = string> implements ILoadedSource<TSource> {
     public abstract get origin(): string;
-    protected abstract get _identifier(): IResourceIdentifier;
+    protected abstract get _identifier(): IResourceIdentifier<TSource>;
     protected abstract get _script(): IScript;
 
     public isSourceOfCompiled(): boolean {
@@ -31,7 +32,7 @@ abstract class LoadedSourceCommonLogic implements ILoadedSource {
         return false;
     }
 
-    public get identifier(): IResourceIdentifier {
+    public get identifier(): IResourceIdentifier<TSource> {
         return this._identifier;
     }
 
@@ -40,27 +41,27 @@ abstract class LoadedSourceCommonLogic implements ILoadedSource {
     }
 }
 
-abstract class LoadedSourceWithURLCommonLogic extends LoadedSourceCommonLogic {
-    constructor(protected readonly _script: IScript, protected _identifier: IResourceIdentifier, public readonly origin: string) {
+abstract class LoadedSourceWithURLCommonLogic<TSource = string> extends LoadedSourceCommonLogic<TSource> {
+    constructor(protected readonly _script: IScript, protected _identifier: IResourceIdentifier<TSource>, public readonly origin: string) {
         super();
     }
 }
 
-export class ScriptRunFromLocalStorage extends LoadedSourceWithURLCommonLogic implements ILoadedSource { }
-export class DynamicScript extends LoadedSourceWithURLCommonLogic implements ILoadedSource { }
-export class ScriptRuntimeSource extends LoadedSourceWithURLCommonLogic implements ILoadedSource { }
+export class ScriptRunFromLocalStorage extends LoadedSourceWithURLCommonLogic<CDTPScriptUrl> implements ILoadedSource<CDTPScriptUrl> { }
+export class DynamicScript extends LoadedSourceWithURLCommonLogic<CDTPScriptUrl> implements ILoadedSource<CDTPScriptUrl> { }
+export class ScriptRuntimeSource extends LoadedSourceWithURLCommonLogic<CDTPScriptUrl> implements ILoadedSource<CDTPScriptUrl> { }
 export class ScriptDevelopmentSource extends LoadedSourceWithURLCommonLogic implements ILoadedSource { }
 
-export class NoURLScriptSource extends LoadedSourceCommonLogic implements ILoadedSource {
-    protected get _identifier(): IResourceIdentifier {
-        return parseResourceIdentifier(`${NoURLScriptSource.EVAL_PRESUDONAME_PREFIX}${this._name}`);
+export class NoURLScriptSource extends LoadedSourceCommonLogic<CDTPScriptUrl> implements ILoadedSource<CDTPScriptUrl> {
+    protected get _identifier(): IResourceIdentifier<CDTPScriptUrl> {
+        return parseResourceIdentifier<CDTPScriptUrl>(`${NoURLScriptSource.EVAL_PRESUDONAME_PREFIX}${this._name}` as any);
     }
 
     // TODO DIEGO: Move these two properties to the client layer
     public static EVAL_PRESUDONAME_PREFIX = 'VM';
     public static EVAL_PSEUDOPATH_PREFIX = '<eval>';
 
-    constructor(protected readonly _script: IScript, protected _name: ResourceName, public readonly origin: string) {
+    constructor(protected readonly _script: IScript, protected _name: ResourceName<CDTPScriptUrl>, public readonly origin: string) {
         super();
     }
 }

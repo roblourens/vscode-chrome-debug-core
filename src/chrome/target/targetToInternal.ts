@@ -3,11 +3,14 @@ import { IScript, Script } from '../internal/script';
 import { RuntimeScriptsManager } from './runtimeScriptsManager';
 import { ScriptParsedEvent, ExceptionDetails, LogEntry } from './events';
 import { StackTraceCodeFlow, CallFrameCodeFlow, CallFrame, createCallFrameName, Scope, ScriptCallFrame } from '../internal/stackTraces';
-import { LocationInScript, ZeroBasedLocation } from '../internal/locationInResource';
+import { LocationInScript, ZeroBasedLocation, ScriptOrSourceOrIdentifierOrUrlRegexp } from '../internal/locationInResource';
 import { asyncUndefinedOnFailure } from '../internal/failures';
 import { SourcesMapper, NoSourceMapping } from '../internal/sourcesMapper';
-import { parseResourceIdentifier } from '../internal/resourceIdentifier';
+import { parseResourceIdentifier, IResourceIdentifier } from '../internal/resourceIdentifier';
 import { CDTPScriptUrl } from '../internal/resourceIdentifierSubtypes';
+import { BreakpointInScript, BreakpointInUrl, BreakpointInUrlRegexp, Breakpoint } from '../internal/breakpoints/breakpoint';
+import { BreakpointRegistry } from '../internal/breakpoints/breakpointRegistry';
+import { BreakpointRecipieInUrl, BreakpointRecipieInScript, BreakpointRecipie, BreakpointRecipieInUrlRegexp, URLRegexp } from '../internal/breakpoints/breakpointRecipie';
 
 interface HasLocation {
     lineNumber: number;
@@ -20,7 +23,48 @@ interface HasScript {
 
 interface HasScriptLocation extends HasLocation, HasScript { }
 
+interface BreakpointClass<TResource extends ScriptOrSourceOrIdentifierOrUrlRegexp> {
+    new(recipie: BreakpointRecipie<TResource>, actualLocation: LocationInScript): Breakpoint<TResource>;
+}
+
 export class TargetToInternal {
+    public async toBreakpoinInResource<TResource extends ScriptOrSourceOrIdentifierOrUrlRegexp>
+        (classToUse: BreakpointClass<TResource>, bpRecipie: BreakpointRecipie<TResource>,
+        breakpointId: Crdp.Debugger.BreakpointId, actualLocation: Crdp.Debugger.Location): Promise<Breakpoint<TResource>> {
+
+        const breakpoint = new classToUse(bpRecipie, await this.toLocationInScript(actualLocation));
+        this._breakpointRegistry.registerRecipie(breakpointId, bpRecipie);
+        return breakpoint;
+    }
+
+    public async toBreakpointInScript(bpRecipie: BreakpointRecipieInScript,
+        params: Crdp.Debugger.SetBreakpointResponse): Promise<BreakpointInScript> {
+        return this.toBreakpoinInResource<IScript>(BreakpointInScript, bpRecipie, params.breakpointId, params.actualLocation);
+
+        const breakpoint = new BreakpointInScript(bpRecipie, await this.toLocationInScript(params.actualLocation));
+        this._breakpointRegistry.registerRecipie(params.breakpointId, bpRecipie);
+        return breakpoint;
+    }
+
+    public async toBreakpointInUrl(bpRecipie: BreakpointRecipieInUrl,
+        breakpointId: Crdp.Debugger.BreakpointId,
+        actualLocation: Crdp.Debugger.Location): Promise<BreakpointInUrl> {
+        return this.toBreakpoinInResource<IResourceIdentifier>(BreakpointInUrl, bpRecipie, breakpointId, actualLocation);
+
+        const breakpoint = new BreakpointInUrl(bpRecipie, await this.toLocationInScript(actualLocation));
+        this._breakpointRegistry.registerRecipie(breakpointId, bpRecipie);
+        return breakpoint;
+    }
+
+    public async toBreakpointInUrlRegexp(bpRecipie: BreakpointRecipieInUrlRegexp, breakpointId: Crdp.Debugger.BreakpointId,
+        actualLocation: Crdp.Debugger.Location): Promise<BreakpointInUrlRegexp> {
+        return this.toBreakpoinInResource<URLRegexp>(BreakpointInUrlRegexp, bpRecipie, breakpointId, actualLocation);
+
+        const breakpoint = new BreakpointInUrlRegexp(bpRecipie, await this.toLocationInScript(actualLocation));
+        this._breakpointRegistry.registerRecipie(breakpointId, bpRecipie);
+        return breakpoint;
+    }
+
     public async toScriptParsedEvent(params: Crdp.Debugger.ScriptParsedEvent): Promise<ScriptParsedEvent> {
         return {
             script: await this.toScript(params.scriptId),
@@ -127,7 +171,7 @@ export class TargetToInternal {
                 params.url = params.scriptId;
             }
 
-            const runtimeSourceLocation = parseResourceIdentifier(params.url) as CDTPScriptUrl;
+            const runtimeSourceLocation = parseResourceIdentifier<CDTPScriptUrl>(params.url as CDTPScriptUrl);
             const developmentSourceLocation = await this._pathTransformer.scriptParsed(runtimeSourceLocation);
             const sourceMap = await this._sourceMapTransformer.scriptParsed(developmentSourceLocation.canonicalized, params.sourceMapURL);
             const sourceMapper = sourceMap
@@ -157,5 +201,6 @@ export class TargetToInternal {
     constructor(
         private readonly _runtimeScriptsManager: RuntimeScriptsManager,
         private readonly _pathTransformer: BasePathTransformer,
-        private readonly _sourceMapTransformer: BaseSourceMapTransformer) { }
+        private readonly _sourceMapTransformer: BaseSourceMapTransformer,
+        private readonly _breakpointRegistry: BreakpointRegistry) { }
 }
