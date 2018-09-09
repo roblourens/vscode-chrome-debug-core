@@ -1,4 +1,5 @@
 import { ValidatedMap } from './validatedMap';
+import { printMap } from './printting';
 
 export class ValidatedMultiMap<K, V> {
     private readonly _wrappedMap: ValidatedMap<K, Set<V>>;
@@ -78,5 +79,9 @@ export class ValidatedMultiMap<K, V> {
 
     public tryGetting(key: K): Set<V> | null {
         return this._wrappedMap.tryGetting(key);
+    }
+
+    public toString(): string {
+        return printMap('ValidatedMultiMap', this);
     }
 }

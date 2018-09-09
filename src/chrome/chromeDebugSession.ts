@@ -4,7 +4,7 @@
 
 import * as os from 'os';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { LoggingDebugSession, ErrorDestination, Response, logger } from 'vscode-debugadapter';
+import { LoggingDebugSession, ErrorDestination, Response, logger, DebugSession } from 'vscode-debugadapter';
 
 import { ITargetFilter, ChromeConnection, IChromeError } from './chromeConnection';
 import { BasePathTransformer } from '../transformers/basePathTransformer';
@@ -79,7 +79,7 @@ export class ChromeDebugSession extends LoggingDebugSession implements IObservab
      * DebugSession.run with the result. Alternatively they could subclass ChromeDebugSession and pass
      * their options to the super constructor, but I think this is easier to follow.
      */
-    public static getSession(opts: IChromeDebugSessionOpts): typeof ChromeDebugSession {
+    public static getSession(opts: IChromeDebugSessionOpts): typeof DebugSession {
         // class expression!
         return class extends ChromeDebugSession {
             constructor(debuggerLinesAndColumnsStartAt1?: boolean, isServer?: boolean) {
@@ -158,9 +158,9 @@ export class ChromeDebugSession extends LoggingDebugSession implements IObservab
                     this.sendUnknownCommandResponse(response, request.command);
                 } else {
                     telemetryPropertyCollector.addTelemetryProperty('requestType', request.type);
-                    const requestHandler = (this._debugAdapter as any) [command];
+                    const requestHandler = (this._debugAdapter as any) [command] as Function;
                     if (requestHandler instanceof Function) {
-                        response.body = await requestHandler(request.arguments, telemetryPropertyCollector, request.seq);
+                        response.body = await requestHandler.call(this._debugAdapter, request.arguments, telemetryPropertyCollector, request.seq);
                     } else {
                         throw new Error(`Couldn't find a handler for request ${command}`);
                     }

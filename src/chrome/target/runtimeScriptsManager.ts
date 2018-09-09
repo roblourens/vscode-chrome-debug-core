@@ -46,7 +46,7 @@ export class ExecutionContext {
 
         const runtimePath = script.runtimeSource.identifier;
         let scriptsWithSamePath = this._scriptByPath.tryGetting(runtimePath);
-        if (scriptsWithSamePath !== null) {
+        if (scriptsWithSamePath !== undefined) {
             scriptsWithSamePath.push(script);
         } else {
             this._scriptByPath.set(runtimePath, [script]);

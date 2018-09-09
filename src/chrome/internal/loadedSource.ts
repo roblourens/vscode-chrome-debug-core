@@ -54,7 +54,7 @@ export class ScriptDevelopmentSource extends LoadedSourceWithURLCommonLogic impl
 
 export class NoURLScriptSource extends LoadedSourceCommonLogic<CDTPScriptUrl> implements ILoadedSource<CDTPScriptUrl> {
     protected get _identifier(): IResourceIdentifier<CDTPScriptUrl> {
-        return parseResourceIdentifier<CDTPScriptUrl>(`${NoURLScriptSource.EVAL_PRESUDONAME_PREFIX}${this._name}` as any);
+        return parseResourceIdentifier<CDTPScriptUrl>(`${NoURLScriptSource.EVAL_PRESUDONAME_PREFIX}${this._name.textRepresentation}` as any);
     }
 
     // TODO DIEGO: Move these two properties to the client layer

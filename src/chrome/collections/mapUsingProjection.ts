@@ -1,5 +1,6 @@
 import { ValidatedMap, IValidatedMap } from './validatedMap';
 import { IProjection } from './setUsingProjection';
+import { printMap } from './printting';
 
 class KeyAndValue<K, V> {
     constructor(public readonly key: K, public readonly value: V) { }
@@ -8,11 +9,12 @@ class KeyAndValue<K, V> {
 export class MapUsingProjection<K, V, P> implements IValidatedMap<K, V> {
     private readonly _projectionToKeyAndvalue: IValidatedMap<P, KeyAndValue<K, V>>;
 
-    constructor(private _projection: IProjection<K, P>, readonly initialContents: [K, V][] = []) {
-        const entries = initialContents.map<[P, KeyAndValue<K, V>]>(pair => {
+    constructor(private _projection: IProjection<K, P>, readonly initialContents?: Map<K, V> | Iterable<[K, V]> | ReadonlyArray<[K, V]>) {
+        const entries = Array.from(initialContents).map<[P, KeyAndValue<K, V>]>(pair => {
             const projected = this._projection(pair[0]);
             return [projected, new KeyAndValue(pair[0], pair[1])];
         });
+
         this._projectionToKeyAndvalue = new ValidatedMap<P, KeyAndValue<K, V>>(entries);
     }
 
@@ -43,7 +45,7 @@ export class MapUsingProjection<K, V, P> implements IValidatedMap<K, V> {
     }
 
     public has(key: K): boolean {
-        return this.get(key) !== undefined;
+        return this.tryGetting(key) !== undefined;
     }
 
     public set(key: K, value: V): this {
@@ -79,5 +81,9 @@ export class MapUsingProjection<K, V, P> implements IValidatedMap<K, V> {
 
     public get [Symbol.toStringTag](): 'Map' {
         return JSON.stringify(Array.from(this.entries())) as 'Map';
+    }
+
+    public toString(): string {
+        return printMap('MapUsingProjection', this);
     }
 }

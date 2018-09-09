@@ -1,6 +1,6 @@
 import { INewSetBreakpointsArgs, BPRecipieInLoadedSource, BreakpointRecipie } from './breakpointRecipie';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { newResourceIdentifierMap, IResourceIdentifier, parseResourceIdentifier } from '../resourceIdentifier';
+import { newResourceIdentifierMap, IResourceIdentifier } from '../resourceIdentifier';
 import { INewSetBreakpointResult } from '../../target/requests';
 import { utils, Crdp, ITelemetryPropertyCollector, ISetBreakpointsResponseBody, LineColTransformer, BaseSourceMapTransformer } from '../../..';
 import { IScript } from '../script';
@@ -13,7 +13,6 @@ import { CDTPDiagnostics } from '../../target/cdtpDiagnostics';
 import { BreakOnLoadHelper } from '../../breakOnLoadHelper';
 import { ISession } from '../../client/delayMessagesUntilInitializedSession';
 import { BasePathTransformer } from '../../../transformers/basePathTransformer';
-import * as path from 'path';
 import { ClientBPsRegistry } from './breakpointsRegistry';
 import { BreakpointRecipiesInUnbindedSource } from './breakpointRecipies';
 import { ConditionalBreak, AlwaysBreak } from './behaviorRecipie';
@@ -176,14 +175,12 @@ export class BreakpointsLogic {
         const runtimeSource = bpInScriptRecipie.locationInResource.script.runtimeSource;
         // TODO DIEGO: Understand why are we calling getBestActualLocationForBreakpoint
         // const bestActualLocation = await this.getBestActualLocationForBreakpoint(bpInScriptRecipie.locationInResource);
-        if (runtimeSource.doesScriptHasUrl()) {
-            this.chrome.Debugger.setBreakpoint(bpInScriptRecipie);
-        } else {
-            if (runtimeSource.identifier.isLocalFilePath()) {
-                this.chrome.Debugger.setBreakpointByUrlRegexp(bpInScriptRecipie.asBPInUrlRegexpRecipie());
-            } else {
-                this.chrome.Debugger.setBreakpointByUrl(bpInScriptRecipie.asBPInUrlRecipie());
-            }
+        if (!runtimeSource.doesScriptHasUrl()) {
+            return await this.chrome.Debugger.setBreakpoint(bpInScriptRecipie);
+        } else if (runtimeSource.identifier.isLocalFilePath()) {
+            return await this.chrome.Debugger.setBreakpointByUrlRegexp(bpInScriptRecipie.asBPInUrlRegexpRecipie());
+        } else { // The script has a URL and it's not a local file path, so we can leave it as-is
+            return await this.chrome.Debugger.setBreakpointByUrl(bpInScriptRecipie.asBPInUrlRecipie());
         }
     }
 
@@ -253,19 +250,20 @@ export class BreakpointsLogic {
     public async resolvePendingBreakpointsOnScriptParsed(script: IScript) {
         const breakpointsAreResolvedDefer = this.getBreakpointsResolvedDefer(script);
         try {
-            await Promise.all(script.allSources.map(async sourceObj => {
-                let source = sourceObj.identifier; // DIEGO TODO: Use the source object instead
-                const pendingBP = this._pendingBreakpointsByUrl.get(source);
-                if (pendingBP && (!pendingBP.setWithPath || parseResourceIdentifier(pendingBP.setWithPath).isEquivalent(source))) {
-                    logger.log(`OnScriptParsed.resolvePendingBPs: Resolving pending breakpoints: ${JSON.stringify(pendingBP)}`);
-                    await this.resolvePendingBreakpoint(pendingBP);
-                    this._pendingBreakpointsByUrl.delete(sourceObj.identifier);
-                } else if (source) {
-                    const sourceFileName = path.basename(source.canonicalized);
-                    if (Array.from(this._pendingBreakpointsByUrl.keys()).find(key => key.canonicalized.indexOf(sourceFileName) > -1)) {
-                        logger.log(`OnScriptParsed.resolvePendingBPs: The following pending breakpoints won't be resolved: ${JSON.stringify(pendingBP)} pendingBreakpointsByUrl = ${JSON.stringify([...this._pendingBreakpointsByUrl])} source = ${source}`);
-                    }
-                }
+            await Promise.all(script.allSources.map(async _sourceObj => {
+                // DIEGO TODO: RE-ENABLE THIS CODE
+                // let source = sourceObj.identifier; // DIEGO TODO: Use the source object instead
+                // const pendingBP = this._pendingBreakpointsByUrl.get(source);
+                // if (pendingBP && (!pendingBP.setWithPath || parseResourceIdentifier(pendingBP.setWithPath).isEquivalent(source))) {
+                //     logger.log(`OnScriptParsed.resolvePendingBPs: Resolving pending breakpoints: ${JSON.stringify(pendingBP)}`);
+                //     await this.resolvePendingBreakpoint(pendingBP);
+                //     this._pendingBreakpointsByUrl.delete(sourceObj.identifier);
+                // } else if (source) {
+                //     const sourceFileName = path.basename(source.canonicalized);
+                //     if (Array.from(this._pendingBreakpointsByUrl.keys()).find(key => key.canonicalized.indexOf(sourceFileName) > -1)) {
+                //         logger.log(`OnScriptParsed.resolvePendingBPs: The following pending breakpoints won't be resolved: ${JSON.stringify(pendingBP)} pendingBreakpointsByUrl = ${JSON.stringify([...this._pendingBreakpointsByUrl])} source = ${source}`);
+                //     }
+                // }
             }));
             breakpointsAreResolvedDefer.resolve(); // By now no matter which code path we choose, resolving pending breakpoints should be finished, so trigger the defer
         } catch (exception) {

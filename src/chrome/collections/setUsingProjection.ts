@@ -1,4 +1,5 @@
 import { ValidatedMap, IValidatedMap } from './validatedMap';
+import { printSet } from './printting';
 
 export interface IProjection<K, P> {
     (element: K): P;
@@ -75,6 +76,10 @@ export class SetUsingProjection<T, P> implements Set<T> {
     }
 
     public get [Symbol.toStringTag](): 'Set' {
-        return JSON.stringify(Array.from(this.keys())) as 'Set';
+        return 'SetUsingProjection' as 'Set';
+    }
+
+    public toString(): string {
+        return printSet('SetUsingProjection', this);
     }
 }

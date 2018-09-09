@@ -47,6 +47,10 @@ abstract class IsEquivalentAndConstructorCommonLogic<TString extends string = st
     public get canonicalized(): string {
         return this.textRepresentation;
     }
+
+    public toString(): string {
+        return `resource:${this.textRepresentation}`;
+    }
 }
 
 // A resource name is any string that identifies the resource, but doesn't tell us how to find it's contents
@@ -56,7 +60,7 @@ export class ResourceName<TString extends string = string> extends IsEquivalentA
 export interface IResourceLocation<TString extends string = string> extends IResourceIdentifier<TString> { }
 
 // A standard URL
-export interface URL<TString extends string = string> extends IResourceLocation<TString>{ }
+export interface URL<TString extends string = string> extends IResourceLocation<TString> { }
 
 // A local file URL is a 'file:///' url
 export class LocalFileURL<TString extends string = string> extends IsEquivalentCommonLogic implements URL<TString> {
@@ -198,6 +202,8 @@ export function parseResourceIdentifiers(textRepresentations: string[]): IResour
     return textRepresentations.map(parseResourceIdentifier);
 }
 
-export function newResourceIdentifierMap<V, TString extends string = string>(initialContents: [IResourceIdentifier<TString>, V][] = []): IValidatedMap<IResourceIdentifier<TString>, V> {
+export function newResourceIdentifierMap<V, TString extends string = string>(
+    initialContents: Map<IResourceIdentifier<TString>, V> | Iterable<[IResourceIdentifier<TString>, V]>
+        | ReadonlyArray<[IResourceIdentifier<TString>, V]> = []): IValidatedMap<IResourceIdentifier<TString>, V> {
     return new MapUsingProjection<IResourceIdentifier<TString>, V, string>(path => path.canonicalized, initialContents);
 }

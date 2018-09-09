@@ -1,6 +1,6 @@
 import { Handles } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { utils, LineColTransformer, BasePathTransformer } from '../..';
+import { utils, LineColTransformer } from '../..';
 import * as pathModule from 'path';
 import { asyncAdaptToSinglIntoToMulti } from '../../utils';
 import { CallFramePresentation, CallFramePresentationOrLabel, StackTraceLabel } from '../internal/stackTraces';
@@ -22,11 +22,11 @@ export class InternalToClient {
     public readonly toStackFrames = asyncAdaptToSinglIntoToMulti((s: CallFramePresentationOrLabel<ILoadedSource>) => this.toStackFrame(s));
     public readonly toSourceTrees = asyncAdaptToSinglIntoToMulti((s: ILoadedSourceTreeNode) => this.toSourceTree(s));
 
-    constructor(private readonly _lineColTransformer: NonNullable<LineColTransformer>,
-        private readonly _pathTransformer: NonNullable<BasePathTransformer>,
+    constructor(
+        private readonly _lineColTransformer: NonNullable<LineColTransformer>,
         private readonly _sourceHandles: Handles<ILoadedSource>) {
 
-        }
+    }
 
     public async toStackFrame(stackFrame: CallFramePresentationOrLabel<ILoadedSource>): Promise<DebugProtocol.StackFrame> {
         if (stackFrame instanceof CallFramePresentation) {
@@ -72,9 +72,6 @@ export class InternalToClient {
             pathModule.basename(loadedSource.identifier.textRepresentation),
             loadedSource.identifier.textRepresentation,
             exists ? undefined : this._sourceHandles.create(loadedSource));
-
-        // TODO: We should move this inside the internal model at certain point
-        this._pathTransformer.fixSource(source);
 
         return source;
     }

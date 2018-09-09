@@ -1,5 +1,7 @@
+import { printMap } from './printting';
+
 export interface IValidatedMap<K, V> extends Map<K, V> {
-    tryGetting(key: K): V | null;
+    tryGetting(key: K): V | undefined;
 }
 
 export class ValidatedMap<K, V> implements IValidatedMap<K, V> {
@@ -38,7 +40,7 @@ export class ValidatedMap<K, V> implements IValidatedMap<K, V> {
     public get(key: K): V {
         const value = this._wrappedMap.get(key);
         if (value === undefined) {
-            throw new Error(`Couldn't get the element with key ${key} because it wasn't present in the map`);
+            throw new Error(`Couldn't get the element with key '${key}' because it wasn't present in this map <${this}>`);
         }
         return value;
     }
@@ -68,7 +70,11 @@ export class ValidatedMap<K, V> implements IValidatedMap<K, V> {
         return this._wrappedMap.values();
     }
 
-    public tryGetting(key: K): V | null {
-        return this._wrappedMap.get(key) || null;
+    public tryGetting(key: K): V | undefined {
+        return this._wrappedMap.get(key) || undefined;
+    }
+
+    public toString(): string {
+        return printMap('ValidatedMap', this);
     }
 }

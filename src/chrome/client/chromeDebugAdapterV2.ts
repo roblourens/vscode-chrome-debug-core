@@ -46,15 +46,16 @@ export class ChromeDebugAdapter implements IDebugAdapter {
 
         const chromeDiagnostics = new CDTPDiagnostics(() => chromeConnection.api, this._scriptsLogic, pathTransformer, sourceMapTransformer);
 
+        this._lineColTransformer = new (args.lineColTransformer || LineColTransformer)(session);
+
         this._breakpointsLogic = new BreakpointsLogic(chromeDiagnostics, this._lineColTransformer);
 
         this._sourcesLogic = new SourcesLogic(chromeDiagnostics, this._scriptsLogic);
-        this._lineColTransformer = new (args.lineColTransformer || LineColTransformer)(session);
         this._clientToInternal = new ClientToInternal(this._sourcesLogic, sourcesHandle, this._lineColTransformer);
 
         const chromeConnection = new (args.chromeConnection || ChromeConnection)(undefined, args.targetFilter);
 
-        this._internalToVsCode = new InternalToClient(this._lineColTransformer, pathTransformer, sourcesHandle);
+        this._internalToVsCode = new InternalToClient(this._lineColTransformer, sourcesHandle);
 
         const eventSender = new EventSender(session, this._internalToVsCode);
 

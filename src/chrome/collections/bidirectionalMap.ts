@@ -1,5 +1,6 @@
 import * as assert from 'assert';
 import { ValidatedMap } from './validatedMap';
+import { printMap } from './printting';
 
 export class BidirectionalMap<Left, Right> {
     private readonly _leftToRight = new ValidatedMap<Left, Right>();
@@ -82,5 +83,9 @@ export class BidirectionalMap<Left, Right> {
 
     public rights(): IterableIterator<Right> {
         return this._rightToLeft.keys();
+    }
+
+    public toString(): string {
+        return printMap('BidirectionalMap', this._leftToRight);
     }
 }

@@ -1,9 +1,9 @@
 import { IResourceIdentifier, IResourceLocation, ResourceName, parseResourceIdentifier, newResourceIdentifierMap } from '../internal/resourceIdentifier';
 import * as fs from 'fs';
-import { ISourcesMapper, NoSourceMapping } from '../internal/sourcesMapper';
+import { ISourcesMapper } from '../internal/sourcesMapper';
 import { ILoadedSource, SourceOfCompiled, ScriptRunFromLocalStorage, DynamicScript, ScriptRuntimeSource, ScriptDevelopmentSource, NoURLScriptSource } from './loadedSource';
 import { CDTPScriptUrl } from './resourceIdentifierSubtypes';
-import { ValidatedMap } from '../collections/validatedMap';
+import { IValidatedMap } from '../collections/validatedMap';
 
 export interface IScript {
     runtimeSource: ILoadedSource<CDTPScriptUrl>; // Source in Webserver
@@ -20,7 +20,7 @@ export interface IScript {
 export class Script implements IScript {
     private readonly _runtimeSource: ILoadedSource<CDTPScriptUrl>;
     private readonly _developmentSource: ILoadedSource;
-    private readonly _compiledSources: ValidatedMap<IResourceIdentifier, SourceOfCompiled>;
+    private readonly _compiledSources: IValidatedMap<IResourceIdentifier, SourceOfCompiled>;
 
     public static create(locationInRuntimeEnvironment: IResourceLocation<CDTPScriptUrl>, locationInDevelopmentEnvinronment: IResourceLocation,
         sourcesMapper: ISourcesMapper): Script {
@@ -53,17 +53,17 @@ export class Script implements IScript {
         return new Script(runtimeSource, developmentSource, sourcesOfCompiled, sourcesMapper);
     }
 
-    public static createEval(name: ResourceName<CDTPScriptUrl>): Script {
+    public static createEval(name: ResourceName<CDTPScriptUrl>, sourcesMapper: ISourcesMapper): Script {
         // TODO DIEGO Return the same instance both functions
         const getNoURLScript = (script: IScript) => new NoURLScriptSource(script, name, 'TODO DIEGO');
-        return new Script(getNoURLScript, getNoURLScript, _ => new Map<IResourceIdentifier, SourceOfCompiled>(), new NoSourceMapping());
+        return new Script(getNoURLScript, getNoURLScript, _ => new Map<IResourceIdentifier, SourceOfCompiled>(), sourcesMapper);
     }
 
     constructor(getRuntimeSource: (script: IScript) => ILoadedSource<CDTPScriptUrl>, getDevelopmentSource: (script: IScript) => ILoadedSource,
         getCompiledScriptSources: (script: IScript) => Map<IResourceIdentifier, SourceOfCompiled>, public readonly sourcesMapper: ISourcesMapper) {
         this._runtimeSource = getRuntimeSource(this);
         this._developmentSource = getDevelopmentSource(this);
-        this._compiledSources = new ValidatedMap(getCompiledScriptSources(this));
+        this._compiledSources = newResourceIdentifierMap(getCompiledScriptSources(this));
     }
 
     public get developmentSource(): ILoadedSource {

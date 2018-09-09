@@ -6,7 +6,7 @@ import { StackTraceCodeFlow, CallFrameCodeFlow, CallFrame, createCallFrameName, 
 import { LocationInScript, ZeroBasedLocation, ScriptOrSourceOrIdentifierOrUrlRegexp } from '../internal/locationInResource';
 import { asyncUndefinedOnFailure } from '../internal/failures';
 import { SourcesMapper, NoSourceMapping } from '../internal/sourcesMapper';
-import { parseResourceIdentifier, IResourceIdentifier } from '../internal/resourceIdentifier';
+import { parseResourceIdentifier, IResourceIdentifier, ResourceName } from '../internal/resourceIdentifier';
 import { CDTPScriptUrl } from '../internal/resourceIdentifierSubtypes';
 import { BreakpointInScript, BreakpointInUrl, BreakpointInUrlRegexp, Breakpoint } from '../internal/breakpoints/breakpoint';
 import { BreakpointRegistry } from '../internal/breakpoints/breakpointRegistry';
@@ -166,21 +166,24 @@ export class TargetToInternal {
         delete params.hash;
 
         const script = await this._runtimeScriptsManager.registerNewScript(params.scriptId, async () => {
-            // TODO DIEGO: Handle evals and no url scripts properly
-            if (!params.url) {
-                params.url = params.scriptId;
+            if (params.url !== undefined && params.url !== '') {
+                const runtimeSourceLocation = parseResourceIdentifier<CDTPScriptUrl>(params.url as CDTPScriptUrl);
+                const developmentSourceLocation = await this._pathTransformer.scriptParsed(runtimeSourceLocation);
+                const sourceMap = await this._sourceMapTransformer.scriptParsed(developmentSourceLocation.canonicalized, params.sourceMapURL);
+                const sourceMapper = sourceMap
+                    ? new SourcesMapper(sourceMap)
+                    : new NoSourceMapping();
+
+                const runtimeScript = Script.create(runtimeSourceLocation, developmentSourceLocation, sourceMapper);
+                return runtimeScript;
+            } else {
+                const sourceMap = await this._sourceMapTransformer.scriptParsed('', params.sourceMapURL);
+                const sourceMapper = sourceMap
+                    ? new SourcesMapper(sourceMap)
+                    : new NoSourceMapping();
+                const runtimeScript = Script.createEval(new ResourceName(params.scriptId as CDTPScriptUrl), sourceMapper);
+                return runtimeScript;
             }
-
-            const runtimeSourceLocation = parseResourceIdentifier<CDTPScriptUrl>(params.url as CDTPScriptUrl);
-            const developmentSourceLocation = await this._pathTransformer.scriptParsed(runtimeSourceLocation);
-            const sourceMap = await this._sourceMapTransformer.scriptParsed(developmentSourceLocation.canonicalized, params.sourceMapURL);
-            const sourceMapper = sourceMap
-                ? new SourcesMapper(sourceMap)
-                : new NoSourceMapping();
-
-            const runtimeScript = Script.create(runtimeSourceLocation, developmentSourceLocation, sourceMapper);
-
-            return runtimeScript;
         });
 
         return script;

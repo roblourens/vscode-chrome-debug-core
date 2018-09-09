@@ -30,6 +30,7 @@ import * as executionTimingsReporter from './executionTimingsReporter';
 import { Protocol as Crdp } from 'devtools-protocol';
 import { ProtocolSchema } from './chrome/chromeTargetDiscoveryStrategy';
 import { IOnPausedResult } from './chrome/internal/breakpoints/breakpointsLogic';
+import { parseResourceIdentifier } from './chrome/internal/resourceIdentifier';
 
 export {
     chromeConnection,
@@ -58,6 +59,8 @@ export {
     executionTimingsReporter,
 
     ProtocolSchema,
+
+    parseResourceIdentifier,
 
     Crdp
 };
