@@ -27,47 +27,46 @@ export class RuntimeScriptsManager {
     }
 }
 
-const scriptId = Symbol('secretScriptId');
-
-interface HasScriptId {
-    [scriptId]: Crdp.Runtime.ScriptId;
-}
-
 export class ExecutionContext {
-    private readonly _scriptByCdtpId = new ValidatedMap<Crdp.Runtime.ScriptId, Promise<IScript>>();
+    private readonly _cdtpIdByScript = new ValidatedMap<Crdp.Runtime.ScriptId, Promise<IScript>>();
+    private readonly _scriptByCdtpId = new ValidatedMap<IScript, Crdp.Runtime.ScriptId>();
     private readonly _scriptByPath = newResourceIdentifierMap<IScript[]>();
 
+    private createScriptInitialConfiguration(scriptId: Crdp.Runtime.ScriptId, script: IScript): void {
+        this._scriptByCdtpId.set(script, scriptId);
+
+        let scriptsWithSamePath = this._scriptByPath.getOrAdd(script.runtimeSource.identifier, () => []);
+        scriptsWithSamePath.push(script);
+    }
+
     public async registerNewScript(scriptId: Crdp.Runtime.ScriptId, obtainScript: () => Promise<IScript>): Promise<IScript> {
-        const scriptPromise = obtainScript();
-        this._scriptByCdtpId.set(scriptId, scriptPromise);
-        const script = await scriptPromise;
+        const scriptWithConfigurationPromise = obtainScript().then(script => {
+            /**
+             * We need to configure the script here, so we can guarantee that clients who try to use a script will get
+             * blocked until the script is created, and all the initial configuration is done, so they can use APIs to get
+             * the script id, search by URL, etc...
+             */
+            this.createScriptInitialConfiguration(scriptId, script);
+            return script;
+        });
 
-        (script as any)[scriptId] = scriptId;
+        this._cdtpIdByScript.set(scriptId, scriptWithConfigurationPromise);
 
-        const runtimePath = script.runtimeSource.identifier;
-        let scriptsWithSamePath = this._scriptByPath.tryGetting(runtimePath);
-        if (scriptsWithSamePath !== undefined) {
-            scriptsWithSamePath.push(script);
-        } else {
-            this._scriptByPath.set(runtimePath, [script]);
-        }
-
-        return script;
+        return await scriptWithConfigurationPromise;
     }
 
     public getCdtpId(script: IScript): Crdp.Runtime.ScriptId {
-        // We use any because we want this property to be hidden
-        const scriptWithScriptId = script as any as HasScriptId;
-        const crdpId = scriptWithScriptId[scriptId];
-        if (!script) {
+        const scriptId = this._scriptByCdtpId.get(script);
+
+        if (script === undefined) {
             throw new Error(`Couldn't find a CRDP id for script ${script}`);
         }
 
-        return crdpId;
+        return scriptId;
     }
 
     public scriptById(runtimeScriptCrdpId: string): Promise<IScript> {
-        return this._scriptByCdtpId.get(runtimeScriptCrdpId);
+        return this._cdtpIdByScript.get(runtimeScriptCrdpId);
     }
 
     public getScriptByPath(path: IResourceIdentifier): IScript[] {
@@ -76,6 +75,6 @@ export class ExecutionContext {
     }
 
     public getAllScripts(): IterableIterator<Promise<IScript>> {
-        return this._scriptByCdtpId.values();
+        return this._cdtpIdByScript.values();
     }
 }

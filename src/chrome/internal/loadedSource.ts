@@ -29,7 +29,7 @@ abstract class LoadedSourceCommonLogic<TSource = string> implements ILoadedSourc
     }
 
     public doesScriptHasUrl(): boolean {
-        return false;
+        return true;
     }
 
     public get identifier(): IResourceIdentifier<TSource> {
@@ -60,6 +60,10 @@ export class NoURLScriptSource extends LoadedSourceCommonLogic<CDTPScriptUrl> im
     // TODO DIEGO: Move these two properties to the client layer
     public static EVAL_PRESUDONAME_PREFIX = 'VM';
     public static EVAL_PSEUDOPATH_PREFIX = '<eval>';
+
+    public doesScriptHasUrl(): boolean {
+        return false;
+    }
 
     constructor(protected readonly _script: IScript, protected _name: ResourceName<CDTPScriptUrl>, public readonly origin: string) {
         super();

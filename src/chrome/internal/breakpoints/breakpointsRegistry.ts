@@ -10,7 +10,7 @@ export class ClientBPsRegistry {
     private readonly _loadedSourceToBreakpoints = new ValidatedMap<ILoadedSource, ClientBPsInLoadedSourceRegistry>();
 
     public matchDesiredBPsWithExistingBPs(desiredBPsInLoadedSource: BreakpointRecipiesInLoadedSource): DesiredBPsWithExistingBPsMatch {
-        const registry = this._loadedSourceToBreakpoints.get(desiredBPsInLoadedSource.source);
+        const registry = this._loadedSourceToBreakpoints.getOrAdd(desiredBPsInLoadedSource.source, () => new ClientBPsInLoadedSourceRegistry());
         return registry.matchDesiredBPsWithExistingBPs(desiredBPsInLoadedSource);
     }
 }
@@ -30,7 +30,7 @@ export class ClientBPsInLoadedSourceRegistry {
         ifFoundDo: (existingEquivalentBreakpoint: BPRecipieInLoadedSource) => R,
         ifNotFoundDo: () => R): R {
         const matchingBreakpoint = this._breakpoints.tryGetting(breakpoint);
-        if (matchingBreakpoint !== null) {
+        if (matchingBreakpoint !== undefined) {
             return ifFoundDo(matchingBreakpoint);
         } else {
             return ifNotFoundDo();

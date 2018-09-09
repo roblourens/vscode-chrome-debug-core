@@ -2,6 +2,7 @@ import { printMap } from './printting';
 
 export interface IValidatedMap<K, V> extends Map<K, V> {
     tryGetting(key: K): V | undefined;
+    getOrAdd(key: K, obtainValueToAdd: () => V): V;
 }
 
 export class ValidatedMap<K, V> implements IValidatedMap<K, V> {
@@ -43,6 +44,17 @@ export class ValidatedMap<K, V> implements IValidatedMap<K, V> {
             throw new Error(`Couldn't get the element with key '${key}' because it wasn't present in this map <${this}>`);
         }
         return value;
+    }
+
+    public getOrAdd(key: K, obtainValueToAdd: () => V): V {
+        const existingValue = this.tryGetting(key);
+        if (existingValue !== undefined) {
+            return existingValue;
+        } else {
+            const newValue = obtainValueToAdd();
+            this.set(key, newValue);
+            return newValue;
+        }
     }
 
     public has(key: K): boolean {

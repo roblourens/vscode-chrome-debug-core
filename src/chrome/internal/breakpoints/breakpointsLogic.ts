@@ -198,12 +198,12 @@ export class BreakpointsLogic {
     */
     public async setBreakpoints(desiredBPs: BreakpointRecipiesInUnbindedSource, _?: ITelemetryPropertyCollector, _requestSeq?: number, _ids?: number[]): Promise<ISetBreakpointsResponseBody> {
         await desiredBPs.tryGettingBPsInLoadedSource(
-            desiredBPsInLoadedSource => {
+            async desiredBPsInLoadedSource => {
                 // Match desired breakpoints to existing breakpoints
                 const match = this._clientBreakpointsRegistry.matchDesiredBPsWithExistingBPs(desiredBPsInLoadedSource);
-                match.desiredToAdd.forEach(desiredBP => {
-                    this.addBreakpoint(desiredBP);
-                });
+                await Promise.all(match.desiredToAdd.map(async desiredBP => {
+                    await this.addBreakpoint(desiredBP);
+                }));
                 match.existingToRemove.forEach(() => { });
                 return match.matchesForDesired;
             },

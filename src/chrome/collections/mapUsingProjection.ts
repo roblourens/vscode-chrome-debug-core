@@ -23,8 +23,8 @@ export class MapUsingProjection<K, V, P> implements IValidatedMap<K, V> {
     }
 
     public delete(key: K): boolean {
-        const projectedValue = this._projection(key);
-        return this._projectionToKeyAndvalue.delete(projectedValue);
+        const keyProjected = this._projection(key);
+        return this._projectionToKeyAndvalue.delete(keyProjected);
     }
 
     public forEach(callbackfn: (value: V, key: K, map: Map<K, V>) => void, thisArg?: any): void {
@@ -34,14 +34,20 @@ export class MapUsingProjection<K, V, P> implements IValidatedMap<K, V> {
     }
 
     public tryGetting(key: K): V {
-        const projectedValue = this._projection(key);
-        const keyAndValue = this._projectionToKeyAndvalue.tryGetting(projectedValue);
+        const keyProjected = this._projection(key);
+        const keyAndValue = this._projectionToKeyAndvalue.tryGetting(keyProjected);
         return keyAndValue !== undefined ? keyAndValue.value : undefined;
     }
 
     public get(key: K): V {
-        const projectedValue = this._projection(key);
-        return this._projectionToKeyAndvalue.get(projectedValue).value;
+        const keyProjected = this._projection(key);
+        return this._projectionToKeyAndvalue.get(keyProjected).value;
+    }
+
+    public getOrAdd(key: K, obtainValueToAdd: () => V): V {
+        const keyProjected = this._projection(key);
+        const keyAndValueAdded = this._projectionToKeyAndvalue.getOrAdd(keyProjected, () => new KeyAndValue(key, obtainValueToAdd()));
+        return keyAndValueAdded.value;
     }
 
     public has(key: K): boolean {
