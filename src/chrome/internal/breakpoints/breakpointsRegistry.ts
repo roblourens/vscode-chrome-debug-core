@@ -5,13 +5,21 @@ import { ILoadedSource } from '../loadedSource';
 import { ValidatedMap } from '../../collections/validatedMap';
 import { BreakpointRecipiesInLoadedSource } from './breakpointRecipies';
 import { IBehaviorRecipie } from './behaviorRecipie';
+import { IBPRecipieStatus } from './breakpoint';
 
 export class ClientBPsRegistry {
     private readonly _loadedSourceToBreakpoints = new ValidatedMap<ILoadedSource, ClientBPsInLoadedSourceRegistry>();
+    private readonly _bpRecipieToStatus = new ValidatedMap<BPRecipieInLoadedSource, IBPRecipieStatus>();
 
     public matchDesiredBPsWithExistingBPs(desiredBPsInLoadedSource: BreakpointRecipiesInLoadedSource): DesiredBPsWithExistingBPsMatch {
         const registry = this._loadedSourceToBreakpoints.getOrAdd(desiredBPsInLoadedSource.source, () => new ClientBPsInLoadedSourceRegistry());
         return registry.matchDesiredBPsWithExistingBPs(desiredBPsInLoadedSource);
+    }
+
+    // return new BPRecipieIsBinded(bpRecipie, Array.from(this._bpRecipieToBreakpoints.get(bpRecipie)));
+
+    public getStatus(bpRecipie: BPRecipieInLoadedSource<IBehaviorRecipie>): IBPRecipieStatus {
+        return this._bpRecipieToStatus.get(bpRecipie);
     }
 }
 

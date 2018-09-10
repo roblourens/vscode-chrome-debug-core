@@ -2,7 +2,7 @@ import { INewSetBreakpointsArgs, BPRecipieInLoadedSource, BreakpointRecipie } fr
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { newResourceIdentifierMap, IResourceIdentifier } from '../resourceIdentifier';
 import { INewSetBreakpointResult } from '../../target/requests';
-import { utils, Crdp, ITelemetryPropertyCollector, ISetBreakpointsResponseBody, LineColTransformer, BaseSourceMapTransformer } from '../../..';
+import { utils, Crdp, ITelemetryPropertyCollector, LineColTransformer, BaseSourceMapTransformer } from '../../..';
 import { IScript } from '../script';
 import { PromiseDefer, promiseDefer } from '../../../utils';
 import { PausedEvent } from '../../target/events';
@@ -16,6 +16,9 @@ import { BasePathTransformer } from '../../../transformers/basePathTransformer';
 import { ClientBPsRegistry } from './breakpointsRegistry';
 import { BreakpointRecipiesInUnbindedSource } from './breakpointRecipies';
 import { ConditionalBreak, AlwaysBreak } from './behaviorRecipie';
+import { IBreakpoint, BPRecipieIsBinded } from './breakpoint';
+import { asyncMap } from '../../collections/async';
+import { UnbindedBreakpointsLogic } from './UnbindedBreakpointsLogic';
 
 export interface IPendingBreakpoint {
     args: INewSetBreakpointsArgs;
@@ -55,6 +58,7 @@ export class BreakpointsLogic {
     private readonly _pathTransformer: BasePathTransformer;
     private readonly _sourceMapTransformer: BaseSourceMapTransformer;
     private readonly _clientBreakpointsRegistry = new ClientBPsRegistry();
+    private readonly _unbindedBreakpointsLogic = new UnbindedBreakpointsLogic();
 
     constructor(private readonly chrome: CDTPDiagnostics,
         private readonly _lineColTransformer: LineColTransformer) {
@@ -170,18 +174,21 @@ export class BreakpointsLogic {
         this._session.sendEvent(new BreakpointEvent('changed', bp));
     }
 
-    public async addBreakpoint(bpRecipie: BPRecipieInLoadedSource<ConditionalBreak | AlwaysBreak>) {
+    public async addBreakpoint(bpRecipie: BPRecipieInLoadedSource<ConditionalBreak | AlwaysBreak>): Promise<IBreakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>[]> {
         const bpInScriptRecipie = bpRecipie.asBPInScriptRecipie();
         const runtimeSource = bpInScriptRecipie.locationInResource.script.runtimeSource;
         // TODO DIEGO: Understand why are we calling getBestActualLocationForBreakpoint
         // const bestActualLocation = await this.getBestActualLocationForBreakpoint(bpInScriptRecipie.locationInResource);
+        let breakpoints;
         if (!runtimeSource.doesScriptHasUrl()) {
-            return await this.chrome.Debugger.setBreakpoint(bpInScriptRecipie);
+            breakpoints = [await this.chrome.Debugger.setBreakpoint(bpInScriptRecipie)];
         } else if (runtimeSource.identifier.isLocalFilePath()) {
-            return await this.chrome.Debugger.setBreakpointByUrlRegexp(bpInScriptRecipie.asBPInUrlRegexpRecipie());
+            breakpoints =  await this.chrome.Debugger.setBreakpointByUrlRegexp(bpInScriptRecipie.asBPInUrlRegexpRecipie());
         } else { // The script has a URL and it's not a local file path, so we can leave it as-is
-            return await this.chrome.Debugger.setBreakpointByUrl(bpInScriptRecipie.asBPInUrlRecipie());
+            breakpoints = await this.chrome.Debugger.setBreakpointByUrl(bpInScriptRecipie.asBPInUrlRecipie());
         }
+
+        return breakpoints;
     }
 
     public removeBreakpoint(bpRecipie: BreakpointRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp>) {
@@ -196,55 +203,24 @@ export class BreakpointsLogic {
             ]
         }
     */
-    public async setBreakpoints(desiredBPs: BreakpointRecipiesInUnbindedSource, _?: ITelemetryPropertyCollector, _requestSeq?: number, _ids?: number[]): Promise<ISetBreakpointsResponseBody> {
-        await desiredBPs.tryGettingBPsInLoadedSource(
+    public async setBreakpoints(desiredBPs: BreakpointRecipiesInUnbindedSource, _?: ITelemetryPropertyCollector): Promise<BPRecipieIsBinded[]> {
+        return await desiredBPs.tryGettingBPsInLoadedSource(
             async desiredBPsInLoadedSource => {
                 // Match desired breakpoints to existing breakpoints
                 const match = this._clientBreakpointsRegistry.matchDesiredBPsWithExistingBPs(desiredBPsInLoadedSource);
-                await Promise.all(match.desiredToAdd.map(async desiredBP => {
+                await asyncMap(match.desiredToAdd, async desiredBP => {
+                    // DIEGO TODO: Do we need to do one breakpoint at a time to avoid issues on Crdp, or can we do them in parallel now that we use a different algorithm?
                     await this.addBreakpoint(desiredBP);
+                });
+                await Promise.all(match.existingToRemove.map(async existingBPToRemove => {
+                    await this.removeBreakpoint(existingBPToRemove);
                 }));
-                match.existingToRemove.forEach(() => { });
-                return match.matchesForDesired;
+
+                return match.matchesForDesired.map(bpRecipie => this._clientBreakpointsRegistry.getStatus(bpRecipie));
             },
             () => {
-                // Add to pending breakpoints
+                return this._unbindedBreakpointsLogic.setBreakpoints(desiredBPs);
             });
-        return {} as ISetBreakpointsResponseBody;
-        /*
-                            const setBreakpointsPFailOnError = this._setBreakpointsRequestQ
-                                .then(() => this.clearAllBreakpoints(targetScriptUrl))
-                                .then(() => this.addBreakpoints(targetScriptUrl.textRepresentation, internalBPs, script))
-                                .then(responses => ({ breakpoints: this.targetBreakpointResponsesToBreakpointSetResults(targetScriptUrl, responses, internalBPs, ids) }));
-
-                            const setBreakpointsPTimeout = utils.promiseTimeout(setBreakpointsPFailOnError, BreakpointsLogic.SET_BREAKPOINTS_TIMEOUT, localize('setBPTimedOut', 'Set breakpoints request timed out'));
-
-                            // Do just one setBreakpointsRequest at a time to avoid interleaving breakpoint removed/breakpoint added requests to Crdp, which causes issues.
-                            // Swallow errors in the promise queue chain so it doesn't get blocked, but return the failing promise for error handling.
-                            this._setBreakpointsRequestQ = setBreakpointsPTimeout.catch(e => {
-                                // Log the timeout, but any other error will be logged elsewhere
-                                if (e.message && e.message.indexOf('timed out') >= 0) {
-                                    logger.error(e.stack);
-                                }
-                            });
-
-                            // Return the setBP request, no matter how long it takes. It may take awhile in Node 7.5 - 7.7, see https://github.com/nodejs/node/issues/11589
-                            return setBreakpointsPFailOnError.then(setBpResultBody => {
-                                const body = { breakpoints: setBpResultBody.breakpoints.map(setBpResult => setBpResult.breakpoint) };
-                                if (body.breakpoints.every(bp => !bp.verified)) {
-                                    // We need to send the original args to avoid adjusting the line and column numbers twice here
-                                    return this.unverifiedBpResponseForBreakpoints(originalArgs, requestSeq, targetScriptUrl.textRepresentation, body.breakpoints, localize('bp.fail.unbound', 'Breakpoint set but not yet bound'));
-                                }
-                                this._sourceMapTransformer.setBreakpointsResponse(body, requestSeq);
-                                this._lineColTransformer.setBreakpointsResponse(body);
-                                return body;
-                            });
-                        } else {
-                            return Promise.resolve(this.unverifiedBpResponse(args, requestSeq, undefined, localize('bp.fail.noscript', "Can't find script for breakpoint request")));
-                        }
-                    },
-                        e => this.unverifiedBpResponse(args, requestSeq, undefined, e.message));
-            */
     }
 
     public async resolvePendingBreakpointsOnScriptParsed(script: IScript) {

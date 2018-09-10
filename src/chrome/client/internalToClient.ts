@@ -8,6 +8,7 @@ import { ILoadedSource, ILoadedSourceTreeNode } from '../internal/loadedSource';
 import { LocationInLoadedSource } from '../internal/locationInResource';
 import { Source } from 'vscode-debugadapter';
 import { RemoveProperty } from '../../typeUtils';
+import { BPRecipieIsBinded } from '../internal/breakpoints/breakpoint';
 
 interface ClientLocationInSource {
     source: DebugProtocol.Source;
@@ -21,6 +22,7 @@ export class InternalToClient {
 
     public readonly toStackFrames = asyncAdaptToSinglIntoToMulti((s: CallFramePresentationOrLabel<ILoadedSource>) => this.toStackFrame(s));
     public readonly toSourceTrees = asyncAdaptToSinglIntoToMulti((s: ILoadedSourceTreeNode) => this.toSourceTree(s));
+    public readonly toBPRecipiesStatus = asyncAdaptToSinglIntoToMulti((s: BPRecipieIsBinded) => this.toBPRecipieStatus(s));
 
     constructor(
         private readonly _lineColTransformer: NonNullable<LineColTransformer>,
@@ -81,5 +83,16 @@ export class InternalToClient {
         const clientLocationInSource = { source, line: locationInSource.lineNumber, column: locationInSource.columnNumber };
         this._lineColTransformer.convertDebuggerLocationToClient(clientLocationInSource);
         return Object.assign(objectToUpdate, clientLocationInSource);
+    }
+
+    public async toBPRecipieStatus(bpRecipieStatus: BPRecipieIsBinded): Promise<DebugProtocol.Breakpoint> {
+        const clientStatus = {
+            verified: bpRecipieStatus.isVerified(),
+            message: bpRecipieStatus.statusDescription
+        };
+
+        await this.toLocationInSource(bpRecipieStatus.actualLocationInSource, clientStatus);
+
+        return clientStatus;
     }
 }

@@ -97,10 +97,11 @@ export class ChromeDebugAdapter implements IDebugAdapter {
         return this._chromeDebugAdapter.disconnect();
     }
 
-    public setBreakpoints(args: DebugProtocol.SetBreakpointsArguments, telemetryPropertyCollector?: ITelemetryPropertyCollector, requestSeq?: number): PromiseOrNot<ISetBreakpointsResponseBody> {
+    public async setBreakpoints(args: DebugProtocol.SetBreakpointsArguments, telemetryPropertyCollector?: ITelemetryPropertyCollector): Promise<ISetBreakpointsResponseBody> {
         if (args.breakpoints) {
-            const breakpoints = this._clientToInternal.toBreakpoints(args);
-            return this._breakpointsLogic.setBreakpoints(breakpoints, telemetryPropertyCollector, requestSeq);
+            const desiredBPRecipies = this._clientToInternal.toBreakpoints(args);
+            const bpRecipiesStatus = await this._breakpointsLogic.setBreakpoints(desiredBPRecipies, telemetryPropertyCollector);
+            return { breakpoints: await this._internalToVsCode.toBPRecipiesStatus(bpRecipiesStatus)};
         } else {
             throw new Error(`Expected the set breakpoints arguments to have a list of breakpoints yet it was ${args.breakpoints}`);
         }
