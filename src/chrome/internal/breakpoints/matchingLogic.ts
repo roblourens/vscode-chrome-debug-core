@@ -1,7 +1,7 @@
 import { BPRecipieInUnbindedSource, BPRecipie } from './bpRecipie';
 import { BPRecipiesInUnbindedSource } from './bpRecipies';
 import { canonicalizeEverythingButSource, CurrentBPRecipiesInSource } from './clientBPRecipiesRegistry';
-import { IRequestedSourceIdentifier, SourceIdentifiedByLoadedSource } from '../sourceIdentifier';
+import { IRequestedSourceIdentifier } from '../sourceIdentifier';
 import { ILoadedSource } from '../loadedSource';
 
 export class RequestedBPRecipiesFromExistingBPsCalculator {
@@ -10,7 +10,7 @@ export class RequestedBPRecipiesFromExistingBPsCalculator {
         private readonly _requestedBPRecipies: BPRecipiesInUnbindedSource,
         private readonly _currentBPRecipies: CurrentBPRecipiesInSource) { }
 
-    public calculateDelta(): BPRecipiesDelta<IRequestedSourceIdentifier> {
+    public calculateDelta(): BPRecipiesDeltaInRequestedSource {
         const match = {
             matchesForDesired: [] as BPRecipieInUnbindedSource[], // Every iteration we'll add either the existing BP match, or the new BP as it's own match here
             desiredToAdd: [] as BPRecipieInUnbindedSource[], // Every time we don't find an existing match BP, we'll add the desired BP here
@@ -35,12 +35,12 @@ export class RequestedBPRecipiesFromExistingBPsCalculator {
         match.existingToRemove = this._currentBPRecipies.allBreakpoints().filter(bp => !setOfExistingToLeaveAsIs.has(bp));
 
         // Do some minor validations of the result just in case
-        const delta = new BPRecipiesDelta(this.resourceSourceIdentifier, match.matchesForDesired, match.desiredToAdd, match.existingToRemove, match.existingToLeaveAsIs);
+        const delta = new BPRecipiesDeltaInRequestedSource(this.resourceSourceIdentifier, match.matchesForDesired, match.desiredToAdd, match.existingToRemove, match.existingToLeaveAsIs);
         this.validateResult(delta);
         return delta;
     }
 
-    private validateResult(match: BPRecipiesDelta<IRequestedSourceIdentifier>): void {
+    private validateResult(match: BPRecipiesDeltaInRequestedSource): void {
         let errorMessage = '';
         if (match.existingMatchesForRequested.length !== this._requestedBPRecipies.breakpoints.length) {
             errorMessage += 'Expected the matches for desired breakpoints list to have the same length as the desired breakpoints list\n';
@@ -72,18 +72,30 @@ export class RequestedBPRecipiesFromExistingBPsCalculator {
     }
 }
 
-export class BPRecipiesDelta<TResource extends ILoadedSource | IRequestedSourceIdentifier> {
-    public tryGettingBPsInLoadedSource<R>(
-        ifSuccesfulDo: (bpsInLoadedSourceDelta: BPRecipiesDelta<SourceIdentifiedByLoadedSource>) => R,
-        ifFailedDo: (bpsInLoadedSourceDelta: BPRecipiesDelta<IRequestedSourceIdentifier>) => R): R {
-        return (this.resource instanceof ILoadedSource) ? this.resource.tryGettingLoadedSource(() => {
-            return ifSuccesfulDo(new BPRecipiesDelta(this.resource as SourceIdentifiedByLoadedSource, this.existingMatchesForRequested, this.requestedToAdd, this.existingToRemove, this.existingToLeaveAsIs));
-        }, () => ifFailedDo(this));
-    }
-
+export abstract class BPRecipiesDeltaCommonLogic<TResource extends ILoadedSource | IRequestedSourceIdentifier> {
     constructor(public readonly resource: TResource,
         public readonly existingMatchesForRequested: BPRecipie<TResource>[],
         public readonly requestedToAdd: BPRecipie<TResource>[],
         public readonly existingToRemove: BPRecipie<TResource>[],
         public readonly existingToLeaveAsIs: BPRecipie<TResource>[]) { }
 }
+
+export class BPRecipiesDeltaInRequestedSource extends BPRecipiesDeltaCommonLogic<IRequestedSourceIdentifier> {
+    public tryGettingBPsInLoadedSource<R>(
+        ifSuccesfulDo: (bpsInLoadedSourceDelta: BPRecipiesDeltaInLoadedSource) => R,
+        ifFailedDo: (bpsInLoadedSourceDelta: BPRecipiesDeltaInRequestedSource) => R): R {
+        return this.resource.tryGettingLoadedSource(loadedSource => {
+            return ifSuccesfulDo(new BPRecipiesDeltaInLoadedSource(loadedSource,
+                this.toLoadedSources(this.existingMatchesForRequested),
+                this.toLoadedSources(this.requestedToAdd),
+                this.toLoadedSources(this.existingToRemove),
+                this.toLoadedSources(this.existingToLeaveAsIs)));
+        }, () => ifFailedDo(this));
+    }
+
+    private toLoadedSources(bpRecipies: BPRecipie<IRequestedSourceIdentifier>[]): BPRecipie<ILoadedSource>[] {
+        return bpRecipies.map(bpRecipie => bpRecipie.asBreakpointInLoadedSource());
+    }
+}
+
+export class BPRecipiesDeltaInLoadedSource extends BPRecipiesDeltaCommonLogic<ILoadedSource> { }

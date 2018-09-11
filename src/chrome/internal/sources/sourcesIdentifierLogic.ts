@@ -1,7 +1,7 @@
 import { CDTPDiagnostics } from '../../target/cdtpDiagnostics';
 import { IResourceIdentifier, newResourceIdentifierMap } from '../resourceIdentifier';
 import { ILoadedSource } from '../loadedSource';
-import { IRequestedSourceIdentifier, SourceIdentifiedByPath, SourceIdentifiedByLoadedSource } from '../sourceIdentifier';
+import { IRequestedSourceIdentifier, SourceIdentifiedByPath } from '../sourceIdentifier';
 
 export class SourcesIdentifierLogic {
     private _pathToSource = newResourceIdentifierMap<ILoadedSource>();
@@ -18,9 +18,7 @@ export class SourcesIdentifierLogic {
     }
 
     public createSourceIdentifier(identifier: IResourceIdentifier): IRequestedSourceIdentifier {
-        return this.tryGettingLoadedSourceByPath<IRequestedSourceIdentifier>(identifier,
-            loadedSource => new SourceIdentifiedByLoadedSource(loadedSource),
-            () => new SourceIdentifiedByPath(identifier, this));
+        return new SourceIdentifiedByPath(identifier, this);
     }
 
     public toString(): string {

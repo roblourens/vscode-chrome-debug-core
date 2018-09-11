@@ -1,16 +1,15 @@
 import { BPRecipiesInUnbindedSource } from './bpRecipies';
 
-import { BPRecipiesDelta, RequestedBPRecipiesFromExistingBPsCalculator } from './matchingLogic';
+import { RequestedBPRecipiesFromExistingBPsCalculator, BPRecipiesDeltaInRequestedSource } from './matchingLogic';
 import { SetUsingProjection } from '../../collections/setUsingProjection';
 import { BPRecipieInUnbindedSource } from './bpRecipie';
 import { IBPBehavior } from './bpBehavior';
 import { newResourceIdentifierMap, IResourceIdentifier } from '../resourceIdentifier';
-import { IRequestedSourceIdentifier } from '../sourceIdentifier';
 
 export class ClientBPRecipiesRegistry {
     private readonly _requestedSourceIdentifierToCurrentBPRecipies = newResourceIdentifierMap<CurrentBPRecipiesInSource>();
 
-    public updateBPRecipiesAndCalculateDelta(requestedBPRecipies: BPRecipiesInUnbindedSource): BPRecipiesDelta<IRequestedSourceIdentifier> {
+    public updateBPRecipiesAndCalculateDelta(requestedBPRecipies: BPRecipiesInUnbindedSource): BPRecipiesDeltaInRequestedSource {
         const bpsDelta = this.calculateBPSDeltaFromExistingBPs(requestedBPRecipies);
         this.registerCurrentBPRecipies(requestedBPRecipies.resource.identifier, bpsDelta.existingMatchesForRequested);
         return bpsDelta;
@@ -20,7 +19,7 @@ export class ClientBPRecipiesRegistry {
         this._requestedSourceIdentifierToCurrentBPRecipies.set(requestedSourceIdentifier, new CurrentBPRecipiesInSource(bpRecipies));
     }
 
-    private calculateBPSDeltaFromExistingBPs(requestedBPRecipies: BPRecipiesInUnbindedSource): BPRecipiesDelta<IRequestedSourceIdentifier> {
+    private calculateBPSDeltaFromExistingBPs(requestedBPRecipies: BPRecipiesInUnbindedSource): BPRecipiesDeltaInRequestedSource {
         const registry = this._requestedSourceIdentifierToCurrentBPRecipies.getOrAdd(requestedBPRecipies.requestedSourceIdentifier, () => new CurrentBPRecipiesInSource([]));
         return registry.calculateBPSDeltaFromExistingBPs(requestedBPRecipies);
     }
@@ -36,7 +35,7 @@ export class CurrentBPRecipiesInSource {
     /**
      * Precondition: All the breakpoints are in the same loaded source
      */
-    public calculateBPSDeltaFromExistingBPs(requestedBPRecipies: BPRecipiesInUnbindedSource): BPRecipiesDelta<IRequestedSourceIdentifier> {
+    public calculateBPSDeltaFromExistingBPs(requestedBPRecipies: BPRecipiesInUnbindedSource): BPRecipiesDeltaInRequestedSource {
         return new RequestedBPRecipiesFromExistingBPsCalculator(requestedBPRecipies.resource, requestedBPRecipies, this).calculateDelta();
     }
 

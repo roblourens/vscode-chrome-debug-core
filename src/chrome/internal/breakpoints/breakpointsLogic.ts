@@ -182,9 +182,9 @@ export class BreakpointsLogic {
             async bpsInLoadedSourcesDelta => {
                 // Match desired breakpoints to existing breakpoints
 
-                await asyncMap(bpsInLoadedSourcesDelta.requestedToAdd, async desiredBP => {
+                await asyncMap(bpsInLoadedSourcesDelta.requestedToAdd, async requestedBP => {
                     // DIEGO TODO: Do we need to do one breakpoint at a time to avoid issues on Crdp, or can we do them in parallel now that we use a different algorithm?
-                    await this.addBreakpoint(desiredBP);
+                    await this.addBreakpoint(requestedBP);
                 });
                 await Promise.all(bpsInLoadedSourcesDelta.existingToRemove.map(async existingBPToRemove => {
                     await this.removeBreakpoint(existingBPToRemove);

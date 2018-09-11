@@ -19,22 +19,12 @@ abstract class IsSameSourceCommonLogic implements IRequestedSourceIdentifier {
 
 // This represents a path where we can find the source
 export class SourceIdentifiedByPath extends IsSameSourceCommonLogic implements IRequestedSourceIdentifier {
-    private _loadedSource: ILoadedSource | null = null;
-
     public tryGettingLoadedSource<R>(whenSuccesfulDo: (loadedSource: ILoadedSource) => R, whenFailedDo: (identifier: IResourceIdentifier) => R) {
-        if (!this._loadedSource) {
-            this._sourceManager.tryGettingLoadedSourceByPath(this.identifier, loadedSource => this._loadedSource = loadedSource, () => { });
-        }
-
-        if (this._loadedSource) {
-            return whenSuccesfulDo(this._loadedSource);
-        } else {
-            return whenFailedDo(this.identifier);
-        }
+        return this._sourceManager.tryGettingLoadedSourceByPath(this.identifier, whenSuccesfulDo, whenFailedDo);
     }
 
     public toString(): string {
-        return `Source identify by path ${this.identifier}. Laoded source: ${this._loadedSource}`;
+        return `Source identify by path ${this.identifier}`;
     }
 
     constructor(public readonly identifier: IResourceIdentifier, private readonly _sourceManager: SourcesIdentifierLogic) {
