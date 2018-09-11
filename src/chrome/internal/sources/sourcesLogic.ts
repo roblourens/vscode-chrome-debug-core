@@ -5,7 +5,7 @@ import { CDTPDiagnostics } from '../../target/cdtpDiagnostics';
 import { RuntimeScriptsManager } from '../../target/runtimeScriptsManager';
 import { IResourceIdentifier } from '../resourceIdentifier';
 import { ILoadedSource, ILoadedSourceTreeNode } from '../loadedSource';
-import { ISourceIdentifier } from '../sourceIdentifier';
+import { IRequestedSourceIdentifier } from '../sourceIdentifier';
 import { IScript } from '../script';
 
 export class SourcesLogic {
@@ -19,7 +19,7 @@ export class SourcesLogic {
         return this._sourceIdentifierLogic.tryGettingLoadedSourceByPath(identifier, ifSuccesfulDo, ifFailedDo);
     }
 
-    public createSourceIdentifier(identifier: IResourceIdentifier): ISourceIdentifier {
+    public createSourceIdentifier(identifier: IResourceIdentifier): IRequestedSourceIdentifier {
         return this._sourceIdentifierLogic.createSourceIdentifier(identifier);
     }
 
@@ -35,7 +35,7 @@ export class SourcesLogic {
         return this._sourceTreeNodeLogic.getLoadedSourcesTree(script);
     }
 
-    public async getText(source: ISourceIdentifier): Promise<string> {
+    public async getText(source: IRequestedSourceIdentifier): Promise<string> {
         return await source.tryGettingLoadedSource(
             async loadedSource => await this.text(loadedSource),
             identifier => {

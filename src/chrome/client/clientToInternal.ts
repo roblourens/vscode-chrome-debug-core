@@ -2,9 +2,9 @@ import { Handles } from 'vscode-debugadapter';
 import { CallFrame } from '../internal/stackTraces';
 import { ILoadedSource } from '../internal/loadedSource';
 import * as errors from '../../errors';
-import { BreakpointRecipieInUnbindedSource } from '../internal/breakpoints/bpRecipie';
+import { BPRecipieInUnbindedSource } from '../internal/breakpoints/bpRecipie';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { ISourceIdentifier, SourceIdentifiedByLoadedSource } from '../internal/sourceIdentifier';
+import { IRequestedSourceIdentifier, SourceIdentifiedByLoadedSource } from '../internal/sourceIdentifier';
 import { parseResourceIdentifier } from '../internal/resourceIdentifier';
 import { SourcesLogic } from '../internal/sources/sourcesLogic';
 import { ZeroBasedLocation, LocationInUnbindedSource } from '../internal/locationInResource';
@@ -30,7 +30,7 @@ export class ClientToInternal {
         return loadedSource;
     }
 
-    public toSource(clientSource: DebugProtocol.Source): ISourceIdentifier {
+    public toSource(clientSource: DebugProtocol.Source): IRequestedSourceIdentifier {
         if (clientSource.path && !clientSource.sourceReference) {
             // Request url has chars unescaped, but they will be escaped in scriptsByUrl
             const identifier = parseResourceIdentifier(clientSource.path);
@@ -49,8 +49,8 @@ export class ClientToInternal {
         return new BPRecipiesInUnbindedSource(source, breakpoints);
     }
 
-    public toBreakpoint(source: ISourceIdentifier, clientBreakpoint: DebugProtocol.SourceBreakpoint): BreakpointRecipieInUnbindedSource {
-        return new BreakpointRecipieInUnbindedSource(
+    public toBreakpoint(source: IRequestedSourceIdentifier, clientBreakpoint: DebugProtocol.SourceBreakpoint): BPRecipieInUnbindedSource {
+        return new BPRecipieInUnbindedSource(
             new LocationInUnbindedSource(source, this.toLocation(clientBreakpoint)),
             this.toBehaviorWhenExecuted(clientBreakpoint));
     }

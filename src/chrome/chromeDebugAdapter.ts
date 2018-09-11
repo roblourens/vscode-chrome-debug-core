@@ -36,7 +36,7 @@ import { RuntimeScriptsManager } from './target/runtimeScriptsManager';
 import { IResourceIdentifier, parseResourceIdentifier, newResourceIdentifierMap } from './internal/resourceIdentifier';
 import { ISession } from './client/delayMessagesUntilInitializedSession';
 import { IScript } from './internal/script';
-import { ISourceIdentifier } from './internal/sourceIdentifier';
+import { IRequestedSourceIdentifier } from './internal/sourceIdentifier';
 
 import { ChromeDebugAdapter as ChromeDebugAdapterClass } from './client/chromeDebugAdapterV2';
 import { EvaluateOnCallFrameRequest } from './target/requests';
@@ -1845,7 +1845,7 @@ export class ChromeDebugLogic {
         return this._runtimeScriptsManager.getScriptsByPath(url);
     }
 
-    public getSourceByUrl(path: IResourceIdentifier): ISourceIdentifier {
+    public getSourceByUrl(path: IResourceIdentifier): IRequestedSourceIdentifier {
         return this._sourcesLogic.createSourceIdentifier(path);
     }
 

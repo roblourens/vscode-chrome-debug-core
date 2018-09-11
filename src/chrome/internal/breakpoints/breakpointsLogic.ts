@@ -176,21 +176,21 @@ export class BreakpointsLogic {
         }
     */
     public async setBreakpoints(requestedBPs: BPRecipiesInUnbindedSource, _?: ITelemetryPropertyCollector): Promise<IBPRecipieStatus[]> {
-        return await requestedBPs.tryGettingBPsInLoadedSource(
-            async desiredBPsInLoadedSource => {
-                // Match desired breakpoints to existing breakpoints
-                const match = this._clientBreakpointsRegistry.matchDesiredBPsWithExistingBPs(desiredBPsInLoadedSource);
-                this._clientBreakpointsRegistry.registerBPRecipiesInLoadedSource(desiredBPsInLoadedSource.resource, match.matchesForDesired);
+        const bpsDelta = this._clientBreakpointsRegistry.updateBPRecipiesAndCalculateDelta(requestedBPs);
 
-                await asyncMap(match.desiredToAdd, async desiredBP => {
+        return await bpsDelta.tryGettingBPsInLoadedSource(
+            async bpsInLoadedSourcesDelta => {
+                // Match desired breakpoints to existing breakpoints
+
+                await asyncMap(bpsInLoadedSourcesDelta.requestedToAdd, async desiredBP => {
                     // DIEGO TODO: Do we need to do one breakpoint at a time to avoid issues on Crdp, or can we do them in parallel now that we use a different algorithm?
                     await this.addBreakpoint(desiredBP);
                 });
-                await Promise.all(match.existingToRemove.map(async existingBPToRemove => {
+                await Promise.all(bpsInLoadedSourcesDelta.existingToRemove.map(async existingBPToRemove => {
                     await this.removeBreakpoint(existingBPToRemove);
                 }));
 
-                return match.matchesForDesired.map(bpRecipie => this._breakpointRegistry.getStatusOfBPRecipieInLoadedSource(bpRecipie));
+                return bpsInLoadedSourcesDelta.existingMatchesForRequested.map(bpRecipie => this._breakpointRegistry.getStatusOfBPRecipieInLoadedSource(bpRecipie));
             },
             () => {
                 return this._unbindedBreakpointsLogic.setBreakpoints(requestedBPs);

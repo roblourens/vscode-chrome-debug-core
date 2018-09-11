@@ -14,7 +14,7 @@ export class UnbindedBreakpointsLogic {
     private readonly resetBreakpoints = this._communicator.getRequester(Internal.Breakpoints.SetBreakpoints);
 
     public async setBreakpoints(desiredBPs: BPRecipiesInUnbindedSource): Promise<BPRecipieIsUnbinded[]> {
-        this._sourceIdentifierToBPRecipies.set(desiredBPs.resourceIdentifier, desiredBPs);
+        this._sourceIdentifierToBPRecipies.set(desiredBPs.requestedSourceIdentifier, desiredBPs);
         return desiredBPs.breakpoints.map(requestedBP => new BPRecipieIsUnbinded(requestedBP, 'TODO DIEGO'));
     }
 

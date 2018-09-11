@@ -1,6 +1,6 @@
 import { ScriptOrSourceOrIdentifier } from '../locationInResource';
 import { ILoadedSource } from '../loadedSource';
-import { ISourceIdentifier } from '../sourceIdentifier';
+import { IRequestedSourceIdentifier } from '../sourceIdentifier';
 import { BPRecipie } from './bpRecipie';
 import { IResourceIdentifier } from '../resourceIdentifier';
 import { printArray } from '../../collections/printting';
@@ -26,7 +26,7 @@ export class BPRecipiesInLoadedSource extends BPRecipiesCommonLogic<ILoadedSourc
     }
 }
 
-export class BPRecipiesInUnbindedSource extends BPRecipiesCommonLogic<ISourceIdentifier> {
+export class BPRecipiesInUnbindedSource extends BPRecipiesCommonLogic<IRequestedSourceIdentifier> {
     public tryGettingBPsInLoadedSource<R>(ifSuccesfulDo: (desiredBPsInLoadedSource: BPRecipiesInLoadedSource) => R, ifFaileDo: () => R): R {
         return this.resource.tryGettingLoadedSource(
             loadedSource => {
@@ -36,7 +36,7 @@ export class BPRecipiesInUnbindedSource extends BPRecipiesCommonLogic<ISourceIde
             ifFaileDo);
     }
 
-    public get resourceIdentifier(): IResourceIdentifier {
+    public get requestedSourceIdentifier(): IResourceIdentifier {
         return this.resource.identifier;
     }
 }

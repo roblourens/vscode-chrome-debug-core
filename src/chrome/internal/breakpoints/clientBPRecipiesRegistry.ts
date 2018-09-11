@@ -1,44 +1,48 @@
-import { ValidatedMap } from '../../collections/validatedMap';
+import { BPRecipiesInUnbindedSource } from './bpRecipies';
 
-import { ILoadedSource } from '../loadedSource';
-
-import { BPRecipiesInLoadedSource } from './bpRecipies';
-
-import { DesiredBPsWithExistingBPsMatch, DesiredBPsWithExistingBPsMatcher } from './matchingLogic';
+import { BPRecipiesDelta, RequestedBPRecipiesFromExistingBPsCalculator } from './matchingLogic';
 import { SetUsingProjection } from '../../collections/setUsingProjection';
-import { BPRecipieInLoadedSource } from './bpRecipie';
+import { BPRecipieInUnbindedSource } from './bpRecipie';
 import { IBPBehavior } from './bpBehavior';
+import { newResourceIdentifierMap, IResourceIdentifier } from '../resourceIdentifier';
+import { IRequestedSourceIdentifier } from '../sourceIdentifier';
 
 export class ClientBPRecipiesRegistry {
-    private readonly _loadedSourceToBreakpoints = new ValidatedMap<ILoadedSource, ExistingBPRecipiesInLoadedSource>();
+    private readonly _requestedSourceIdentifierToCurrentBPRecipies = newResourceIdentifierMap<CurrentBPRecipiesInSource>();
 
-    public registerBPRecipiesInLoadedSource(loadedSource: ILoadedSource, bpRecipies: BPRecipieInLoadedSource[]): void {
-        this._loadedSourceToBreakpoints.set(loadedSource, new ExistingBPRecipiesInLoadedSource(bpRecipies));
+    public updateBPRecipiesAndCalculateDelta(requestedBPRecipies: BPRecipiesInUnbindedSource): BPRecipiesDelta<IRequestedSourceIdentifier> {
+        const bpsDelta = this.calculateBPSDeltaFromExistingBPs(requestedBPRecipies);
+        this.registerCurrentBPRecipies(requestedBPRecipies.resource.identifier, bpsDelta.existingMatchesForRequested);
+        return bpsDelta;
     }
 
-    public matchDesiredBPsWithExistingBPs(desiredBPsInLoadedSource: BPRecipiesInLoadedSource): DesiredBPsWithExistingBPsMatch {
-        const registry = this._loadedSourceToBreakpoints.getOrAdd(desiredBPsInLoadedSource.source, () => new ExistingBPRecipiesInLoadedSource([]));
-        return registry.matchDesiredBPsWithExistingBPs(desiredBPsInLoadedSource);
+    private registerCurrentBPRecipies(requestedSourceIdentifier: IResourceIdentifier, bpRecipies: BPRecipieInUnbindedSource[]): void {
+        this._requestedSourceIdentifierToCurrentBPRecipies.set(requestedSourceIdentifier, new CurrentBPRecipiesInSource(bpRecipies));
+    }
+
+    private calculateBPSDeltaFromExistingBPs(requestedBPRecipies: BPRecipiesInUnbindedSource): BPRecipiesDelta<IRequestedSourceIdentifier> {
+        const registry = this._requestedSourceIdentifierToCurrentBPRecipies.getOrAdd(requestedBPRecipies.requestedSourceIdentifier, () => new CurrentBPRecipiesInSource([]));
+        return registry.calculateBPSDeltaFromExistingBPs(requestedBPRecipies);
     }
 
     public toString(): string {
-        return `Client BP Recipies Registry:\n${this._loadedSourceToBreakpoints}`;
+        return `Client BP Recipies Registry:\n${this._requestedSourceIdentifierToCurrentBPRecipies}`;
     }
 }
 
-export class ExistingBPRecipiesInLoadedSource {
+export class CurrentBPRecipiesInSource {
     private readonly _bpRecipies = new SetUsingProjection(canonicalizeEverythingButSource);
 
     /**
      * Precondition: All the breakpoints are in the same loaded source
      */
-    public matchDesiredBPsWithExistingBPs(desiredBPs: BPRecipiesInLoadedSource): DesiredBPsWithExistingBPsMatch {
-        return new DesiredBPsWithExistingBPsMatcher(desiredBPs, this).match();
+    public calculateBPSDeltaFromExistingBPs(requestedBPRecipies: BPRecipiesInUnbindedSource): BPRecipiesDelta<IRequestedSourceIdentifier> {
+        return new RequestedBPRecipiesFromExistingBPsCalculator(requestedBPRecipies.resource, requestedBPRecipies, this).calculateDelta();
     }
 
     public findMatchingBreakpoint<R>(
-        breakpoint: BPRecipieInLoadedSource,
-        ifFoundDo: (existingEquivalentBreakpoint: BPRecipieInLoadedSource) => R,
+        breakpoint: BPRecipieInUnbindedSource,
+        ifFoundDo: (existingEquivalentBreakpoint: BPRecipieInUnbindedSource) => R,
         ifNotFoundDo: () => R): R {
         const matchingBreakpoint = this._bpRecipies.tryGetting(breakpoint);
         if (matchingBreakpoint !== undefined) {
@@ -48,7 +52,7 @@ export class ExistingBPRecipiesInLoadedSource {
         }
     }
 
-    public allBreakpoints(): BPRecipieInLoadedSource[] {
+    public allBreakpoints(): BPRecipieInUnbindedSource[] {
         // We return a copy to avoid side-effects
         return Array.from(this._bpRecipies);
     }
@@ -61,7 +65,7 @@ export class ExistingBPRecipiesInLoadedSource {
         return `Existing BP Recipies In Loaded Source Registry:\n${this._bpRecipies}`;
     }
 
-    constructor(bpRecipies: BPRecipieInLoadedSource[]) {
+    constructor(bpRecipies: BPRecipieInUnbindedSource[]) {
         this._bpRecipies = new SetUsingProjection(canonicalizeEverythingButSource, bpRecipies);
     }
 }
@@ -75,7 +79,7 @@ function canonicalizeBehavior(behavior: IBPBehavior): string {
     });
 }
 
-export function canonicalizeEverythingButSource(breakpoint: BPRecipieInLoadedSource): string {
+export function canonicalizeEverythingButSource(breakpoint: BPRecipieInUnbindedSource): string {
     // TODO DIEGO: Should we ignore the behavior, to make BP colissions and updates work?
     return JSON.stringify({
         lineNumber: breakpoint.locationInResource.lineNumber,

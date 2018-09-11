@@ -1,4 +1,4 @@
-import { ISourceIdentifier } from '../sourceIdentifier';
+import { IRequestedSourceIdentifier } from '../sourceIdentifier';
 import { LocationInResource, ScriptOrSourceOrIdentifierOrUrlRegexp, LocationInUrl, LocationInUrlRegexp } from '../locationInResource';
 import { ILoadedSource } from '../loadedSource';
 import { IScript } from '../script';
@@ -60,10 +60,10 @@ abstract class MappedBreakpointRecipieCommonLogic<TResource extends ScriptOrSour
     }
 }
 
-export class BreakpointRecipieInUnbindedSource<BehaviorRecipie extends IBPBehavior = IBPBehavior> extends UnamppedBreakpointRecipieCommonLogic<ISourceIdentifier, BehaviorRecipie> implements IBPRecipie<ISourceIdentifier, BehaviorRecipie> {
+export class BPRecipieInUnbindedSource<BehaviorRecipie extends IBPBehavior = IBPBehavior> extends UnamppedBreakpointRecipieCommonLogic<IRequestedSourceIdentifier, BehaviorRecipie> implements IBPRecipie<IRequestedSourceIdentifier, BehaviorRecipie> {
     public tryGettingBreakpointInLoadedSource<R>(
         whenSuccesfulDo: (breakpointInLoadedSource: BPRecipieInLoadedSource) => R,
-        whenFailedDo: (breakpointInUnbindedSource: BreakpointRecipieInUnbindedSource) => R): R {
+        whenFailedDo: (breakpointInUnbindedSource: BPRecipieInUnbindedSource) => R): R {
         return this.locationInResource.tryGettingLocationInLoadedSource(
             locationInLoadedSource => whenSuccesfulDo(new BPRecipieInLoadedSource(locationInLoadedSource, this.behavior)),
             () => whenFailedDo(this));
@@ -77,10 +77,10 @@ export class BreakpointRecipieInUnbindedSource<BehaviorRecipie extends IBPBehavi
 }
 
 export type IBreakpointRecipieInLoadedSource = IBPRecipie<ILoadedSource>;
-export type IBreakpointRecipieInUnbindedSource = IBPRecipie<ISourceIdentifier>;
+export type IBreakpointRecipieInUnbindedSource = IBPRecipie<IRequestedSourceIdentifier>;
 
 export type BPRecipie<TResource extends ScriptOrSourceOrIdentifierOrUrlRegexp> =
-    TResource extends ISourceIdentifier ? BreakpointRecipieInUnbindedSource :
+    TResource extends IRequestedSourceIdentifier ? BPRecipieInUnbindedSource :
     TResource extends ILoadedSource ? BPRecipieInLoadedSource :
     TResource extends IScript ? BreakpointRecipieInScript :
     TResource extends IResourceIdentifier ? BreakpointRecipieInUrl :

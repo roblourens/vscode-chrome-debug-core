@@ -1,6 +1,6 @@
 import * as Validation from '../../validation';
 import { IScript } from './script';
-import { ISourceIdentifier } from './sourceIdentifier';
+import { IRequestedSourceIdentifier } from './sourceIdentifier';
 import { parseResourceIdentifier, IResourceIdentifier } from './resourceIdentifier';
 import { ILoadedSource } from './loadedSource';
 import { URLRegexp } from './breakpoints/bpRecipie';
@@ -26,7 +26,7 @@ export class ZeroBasedLocation {
 }
 
 export type ScriptOrSource = IScript | ILoadedSource;
-export type ScriptOrSourceOrIdentifier = ScriptOrSource | ISourceIdentifier;
+export type ScriptOrSourceOrIdentifier = ScriptOrSource | IRequestedSourceIdentifier;
 export type ScriptOrSourceOrIdentifierOrUrlRegexp = ScriptOrSourceOrIdentifier | IResourceIdentifier | URLRegexp | IResourceIdentifier<CDTPScriptUrl>;
 
 interface ILocationInResource<T extends ScriptOrSourceOrIdentifierOrUrlRegexp> {
@@ -38,7 +38,7 @@ interface ILocationInResource<T extends ScriptOrSourceOrIdentifierOrUrlRegexp> {
 
 export type LocationInResource<T extends ScriptOrSourceOrIdentifierOrUrlRegexp> =
     T extends IScript ? LocationInScript :
-    T extends ISourceIdentifier ? LocationInUnbindedSource :
+    T extends IRequestedSourceIdentifier ? LocationInUnbindedSource :
     T extends ILoadedSource ? LocationInLoadedSource :
     T extends IResourceIdentifier ? ILocationInResource<IResourceIdentifier> :
     T extends IResourceIdentifier<CDTPScriptUrl> ? ILocationInResource<IResourceIdentifier<CDTPScriptUrl>> :
@@ -63,8 +63,8 @@ abstract class LocationInResourceCommonLogic<T extends ScriptOrSourceOrIdentifie
         public readonly location: NonNullable<ZeroBasedLocation>) { }
 }
 
-export class LocationInUnbindedSource extends LocationInResourceCommonLogic<ISourceIdentifier> implements ILocationInResource<ISourceIdentifier> {
-    public get identifier(): ISourceIdentifier {
+export class LocationInUnbindedSource extends LocationInResourceCommonLogic<IRequestedSourceIdentifier> implements ILocationInResource<IRequestedSourceIdentifier> {
+    public get identifier(): IRequestedSourceIdentifier {
         return this.resource;
     }
 
