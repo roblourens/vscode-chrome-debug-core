@@ -20,14 +20,18 @@ interface IPositionInScript {
 
 export class SourcesMapper implements ISourcesMapper {
     public getSourceLocation(scriptLocation: IPositionInScript): IPositionInSource | null {
-        const { source, line, column } = this._sourceMap.authoredPositionFor(scriptLocation.line, scriptLocation.column || 0);
-        return source && line ? { source, line: line as LineNumber, column: column as ColumnNumber } : null;
+        const mappedPosition = this._sourceMap.authoredPositionFor(scriptLocation.line, scriptLocation.column || 0);
+        return mappedPosition && mappedPosition.source && mappedPosition.line
+            ? { source: mappedPosition.source, line: mappedPosition.line as LineNumber, column: mappedPosition.column as ColumnNumber }
+            : null;
     }
 
     public getScriptLocation(sourcePosition: IPositionInSource): IPositionInScript | null {
-        const { line, column } = this._sourceMap.generatedPositionFor(sourcePosition.source,
+        const mappedPosition = this._sourceMap.generatedPositionFor(sourcePosition.source,
             sourcePosition.line, sourcePosition.column || 0);
-        return line ? { line: line as LineNumber, column: column as ColumnNumber } : null;
+        return mappedPosition && mappedPosition.line
+            ? { line: mappedPosition.line as LineNumber, column: mappedPosition.column as ColumnNumber }
+            : null;
     }
 
     public get sources(): string[] {
