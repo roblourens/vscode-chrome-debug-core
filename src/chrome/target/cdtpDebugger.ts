@@ -34,12 +34,15 @@ export class CDTPDebugger extends CDTPDiagnosticsModule<Crdp.DebuggerApi> {
 
     public onPaused(listener: (params: PausedEvent) => void): void {
         return this.api.on('paused', async params => {
-            listener({
-                reason: params.reason, data: params.data, hitBreakpoints: params.hitBreakpoints,
-                asyncStackTrace: params.asyncStackTrace && await this._crdpToInternal.toStackTraceCodeFlow(params.asyncStackTrace),
-                asyncStackTraceId: params.asyncStackTraceId, asyncCallStackTraceId: params.asyncCallStackTraceId,
-                callFrames: await asyncMap(params.callFrames, (callFrame, index) => this._crdpToInternal.toCallFrame(index, callFrame))
-            });
+            if (params.callFrames.length === 0) {
+                throw new Error(`Expected a pause event to have at least a single call frame: ${JSON.stringify(params)}`);
+            }
+
+            const callFrames = await asyncMap(params.callFrames, (callFrame, index) => this._crdpToInternal.toCallFrame(index, callFrame));
+            listener(new PausedEvent(callFrames, params.reason, params.data,
+                this._crdpToInternal.getBPsFromIDs(params.hitBreakpoints),
+                params.asyncStackTrace && await this._crdpToInternal.toStackTraceCodeFlow(params.asyncStackTrace),
+                params.asyncStackTraceId, params.asyncCallStackTraceId));
         });
     }
 

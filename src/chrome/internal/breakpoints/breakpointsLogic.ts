@@ -1,6 +1,6 @@
 import { BPRecipie, IBPRecipie } from './bpRecipie';
 import { INewSetBreakpointResult } from '../../target/requests';
-import { Crdp, ITelemetryPropertyCollector } from '../../..';
+import { ITelemetryPropertyCollector } from '../../..';
 import { IScript } from '../scripts/script';
 import { PromiseDefer, promiseDefer } from '../../../utils';
 import { PausedEvent } from '../../target/events';
@@ -23,10 +23,10 @@ import { BPRInLoadedSourceLogic } from './bprInLoadedSourceLogic';
 import { BPsWhileLoadingLogic, BPsWhileLoadingLogicDependencies } from './bpsWhileLoadingLogic';
 import { RemoveProperty } from '../../../typeUtils';
 
-interface IHitConditionBreakpoint {
-    numHits: number;
-    shouldPause: (numHits: number) => boolean;
-}
+// interface IHitConditionBreakpoint {
+//     numHits: number;
+//     shouldPause: (numHits: number) => boolean;
+// }
 
 export interface IOnPausedResult {
     didPause: boolean;
@@ -39,7 +39,7 @@ export interface BreakpointsLogicDependencies extends RemoveProperty<UnbindedBPL
 
 export class BreakpointsLogic {
     private _committedBreakpointsByUrl = newResourceIdentifierMap<INewSetBreakpointResult[]>();
-    private _hitConditionBreakpointsById: Map<Crdp.Debugger.BreakpointId, IHitConditionBreakpoint>;
+    // private _hitConditionBreakpointsById: Map<Crdp.Debugger.BreakpointId, IHitConditionBreakpoint>;
 
     // Promises so ScriptPaused events can wait for ScriptParsed events to finish resolving breakpoints
     private _scriptIdToBreakpointsAreResolvedDefer = new Map<IScript, PromiseDefer<void>>();
@@ -79,20 +79,21 @@ export class BreakpointsLogic {
             }
         }
 
-        // Did we hit a hit condition breakpoint?
-        for (let hitBp of notification.hitBreakpoints) {
-            if (this._hitConditionBreakpointsById.has(hitBp)) {
-                // Increment the hit count and check whether to pause
-                const hitConditionBp = this._hitConditionBreakpointsById.get(hitBp);
-                hitConditionBp.numHits++;
-                // Only resume if we didn't break for some user action (step, pause button)
-                if (!hitConditionBp.shouldPause(hitConditionBp.numHits)) {
-                    this.targetDebuggerResume()
-                        .catch(() => { });
-                    return { didPause: false };
-                }
-            }
-        }
+        // DIEGO TODO: Implement this
+        // // Did we hit a hit condition breakpoint?
+        // for (let hitBp of notification.hitBreakpoints) {
+        //     if (this._hitConditionBreakpointsById.has(hitBp)) {
+        //         // Increment the hit count and check whether to pause
+        //         const hitConditionBp = this._hitConditionBreakpointsById.get(hitBp);
+        //         hitConditionBp.numHits++;
+        //         // Only resume if we didn't break for some user action (step, pause button)
+        //         if (!hitConditionBp.shouldPause(hitConditionBp.numHits)) {
+        //             this.targetDebuggerResume()
+        //                 .catch(() => { });
+        //             return { didPause: false };
+        //         }
+        //     }
+        // }
 
         return { didPause: false };
     }
@@ -161,17 +162,30 @@ export class BreakpointsLogic {
             sendClientBPStatusChanged: _dependencies.sendClientBPStatusChanged,
             notifyAllBPsAreBinded: () => _bpsWhileLoadingLogic.disableIfNeccesary()
         }),
-        private readonly _bpsWhileLoadingLogic = new BPsWhileLoadingLogic({
+        private readonly _bpsWhileLoadingLogic = new BPsWhileLoadingLogic(_breakpointRegistry, {
             setInstrumentationBreakpoint: _dependencies.setInstrumentationBreakpoint,
             removeInstrumentationBreakpoint: _dependencies.removeInstrumentationBreakpoint,
-            waitUntilUnbindedBPsAreSet: source => _unbindedBreakpointsLogic.waitUntilBPsAreSet(source)
+            waitUntilUnbindedBPsAreSet: source => _unbindedBreakpointsLogic.waitUntilBPsAreSet(source),
+            notifyPausedOnBreakpoint: _dependencies.notifyPausedOnBreakpoint,
+            resumeProgram: _dependencies.resumeProgram
         }),
         private readonly _bprInLoadedSourceLogic = new BPRInLoadedSourceLogic(_communicator, _breakpointRegistry, _dependencies.doesTargetSupportColumnBreakpoints)) {
-        this._hitConditionBreakpointsById = new Map<Crdp.Debugger.BreakpointId, IHitConditionBreakpoint>();
+        // this._hitConditionBreakpointsById = new Map<Crdp.Debugger.BreakpointId, IHitConditionBreakpoint>();
         BreakpointsLogic.RegisterHandlers(this._communicator, this);
 
         this._communicator.subscribe(Target.Debugger.OnScriptParsed, scriptParsed =>
             asyncMap(scriptParsed.script.allSources, source => this._unbindedBreakpointsLogic.onLoadedSourceIsAvailable(source)));
+        this._communicator.subscribe(Target.Debugger.OnPaused, paused => {
+            if (this.isInstrumentationPause(paused)) {
+                this._bpsWhileLoadingLogic.onPausingOnScriptFirstStatement(paused);
+            }
+        });
+    }
+
+    private isInstrumentationPause(notification: PausedEvent): boolean {
+        return (notification.reason === 'EventListener' && notification.data.eventName === 'instrumentation:scriptFirstStatement') ||
+            (notification.reason === 'ambiguous' && Array.isArray(notification.data.reasons) &&
+                notification.data.reasons.every((r: any) => r.reason === 'EventListener' && r.auxData.eventName === 'instrumentation:scriptFirstStatement'));
     }
 
     public static RegisterHandlers(communicator: Communicator, breakpointsLogic: BreakpointsLogic) {

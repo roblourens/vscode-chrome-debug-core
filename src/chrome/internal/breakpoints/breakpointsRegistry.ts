@@ -2,7 +2,7 @@ import { IBPRecipieStatus, BPRecipieIsBinded, BPRecipieIsUnbinded } from './bpRe
 import { IBreakpoint } from './breakpoint';
 import { ValidatedMultiMap } from '../../collections/validatedMultiMap';
 import { BPRecipie, IBPRecipie } from './bpRecipie';
-import { ScriptOrSourceOrIdentifierOrUrlRegexp } from '../locations/locationInResource';
+import { ScriptOrSourceOrIdentifierOrUrlRegexp, LocationInScript } from '../locations/locationInResource';
 
 export class BreakpointsRegistry {
     // TODO DIEGO: Figure out how to handle if two breakpoint rules set a breakpoint in the same location so it ends up being the same breakpoint id
@@ -24,6 +24,20 @@ export class BreakpointsRegistry {
         } else {
             return new BPRecipieIsUnbinded(bpRecipie, 'TODO DIEGO');
         }
+    }
+
+    public tryGettingBreakpointAtLocation(locationInScript: LocationInScript): IBreakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>[] {
+        // TODO DIEGO: Figure out if we need a faster algorithm for this
+        const matchinbBps = [];
+        for (const bps of this._unmappedRecipieToBreakpoints.values()) {
+            for (const bp of bps) {
+                if (bp.actualLocation.isSameAs(locationInScript)) {
+                    matchinbBps.push(bp);
+                }
+            }
+        }
+
+        return matchinbBps;
     }
 
     public toString(): string {

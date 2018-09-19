@@ -15,6 +15,7 @@ import { Scope } from '../internal/stackTraces/scopes';
 import { LineNumber, ColumnNumber } from '../internal/locations/subtypes';
 import { IResourceIdentifier, ResourceName } from '../internal/sources/resourceIdentifier';
 import { SourcesMapper, NoSourceMapping } from '../internal/scripts/sourcesMapper';
+import { adaptToSinglIntoToMulti } from '../../utils';
 
 export type CDTPResource = IScript | URLRegexp | IResourceIdentifier<CDTPScriptUrl>;
 
@@ -34,6 +35,8 @@ interface BreakpointClass<TResource extends ScriptOrSourceOrIdentifierOrUrlRegex
 }
 
 export class TargetToInternal {
+    public getBPsFromIDs = adaptToSinglIntoToMulti(this.getBPFromID);
+
     public toBPRecipie(breakpointId: Crdp.Debugger.BreakpointId): IBPRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp> {
         return this._breakpointIdRegistry.getRecipieByBreakpointId(breakpointId);
     }
@@ -200,6 +203,10 @@ export class TargetToInternal {
 
     private async getScriptLocation(crdpScriptLocation: HasScriptLocation): Promise<LocationInScript> {
         return new LocationInScript(await this.getScript(crdpScriptLocation), this.getLocation(crdpScriptLocation));
+    }
+
+    public getBPFromID(hitBreakpoint: Crdp.Debugger.BreakpointId): IBPRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp> {
+        return this._breakpointIdRegistry.getRecipieByBreakpointId(hitBreakpoint);
     }
 
     constructor(

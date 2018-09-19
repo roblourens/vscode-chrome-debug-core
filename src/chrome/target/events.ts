@@ -2,9 +2,10 @@ import { IScript } from '../internal/scripts/script';
 
 import { Crdp } from '../..';
 
-import { ScriptOrSource } from '../internal/locations/locationInResource';
+import { ScriptOrSource, ScriptOrSourceOrIdentifierOrUrlRegexp } from '../internal/locations/locationInResource';
 import { CodeFlowStackTrace } from '../internal/stackTraces/stackTrace';
 import { CallFrame } from '../internal/stackTraces/callFrame';
+import { IBPRecipie } from '../internal/breakpoints/bpRecipie';
 
 export type integer = number;
 
@@ -27,11 +28,22 @@ export interface ScriptParsedEvent {
 }
 
 export class PausedEvent {
+    public cloneButWithHitBreakpoints(hitBreakpoints: IBPRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp>[]): PausedEvent {
+        return new PausedEvent(
+            this.callFrames,
+            this.reason,
+            this.data,
+            hitBreakpoints,
+            this.asyncStackTrace,
+            this.asyncCallStackTraceId,
+            this.asyncStackTraceId);
+    }
+
     constructor(
         public readonly callFrames: NonNullable<CallFrame<IScript>[]>,
         public readonly reason: ('XHR' | 'DOM' | 'EventListener' | 'exception' | 'assert' | 'debugCommand' | 'promiseRejection' | 'OOM' | 'other' | 'ambiguous'),
         public readonly data?: any,
-        public hitBreakpoints?: string[], // TODO DIEGO: Make this readonly
+        public readonly hitBreakpoints?: IBPRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp>[], // TODO DIEGO: Make this readonly
         public readonly asyncStackTrace?: CodeFlowStackTrace<IScript>,
         public readonly asyncStackTraceId?: Crdp.Runtime.StackTraceId,
         public readonly asyncCallStackTraceId?: Crdp.Runtime.StackTraceId) { }

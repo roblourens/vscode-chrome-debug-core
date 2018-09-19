@@ -17,6 +17,11 @@ export class ZeroBasedLocation {
             : `${this.lineNumber}`;
     }
 
+    public isSameAs(location: ZeroBasedLocation): boolean {
+        return this.lineNumber === location.lineNumber
+        && this.columnNumber === location.columnNumber;
+    }
+
     constructor(
         public readonly lineNumber: LineNumber,
         public readonly columnNumber?: ColumnNumber) {
@@ -129,6 +134,11 @@ export class LocationInScript extends LocationInResourceCommonLogic<IScript> imp
         } else {
             throw new Error(`Can't convert a location in a script without an URL (${this}) into a location in a URL`);
         }
+    }
+
+    public isSameAs(locationInScript: LocationInScript): boolean {
+        return this.script === locationInScript.script &&
+        this.location.isSameAs(locationInScript.location);
     }
 
     public toString(): string {

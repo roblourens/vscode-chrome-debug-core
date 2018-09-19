@@ -50,6 +50,7 @@ export function registerCDTPDiagnosticsPublishersAndHandlers(communicator: Commu
     // Notifications
     cdtpDiagnostics.Debugger.onBreakpointResolved(communicator.getPublisher(Debugger.OnAsyncBreakpointResolved));
     cdtpDiagnostics.Debugger.onScriptParsed(communicator.getPublisher(Debugger.OnScriptParsed));
+    cdtpDiagnostics.Debugger.onPaused(communicator.getPublisher(Debugger.OnPaused));
 
     // Requests
     communicator.registerHandler(Debugger.GetPossibleBreakpoints, rangeInScript => cdtpDiagnostics.Debugger.getPossibleBreakpoints(rangeInScript));

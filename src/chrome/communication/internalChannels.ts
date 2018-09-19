@@ -7,10 +7,12 @@ import { ScriptOrSourceOrIdentifierOrUrlRegexp } from '../internal/locations/loc
 import { ConditionalBreak, AlwaysBreak } from '../internal/breakpoints/bpBehavior';
 import { IBreakpoint } from '../internal/breakpoints/breakpoint';
 import { registerChannels } from './channel';
+import { PausedEvent } from '../target/events';
 
 const _breakpoints = {
     // Notifications
     OnUnbounBPRecipieIsNowBound: new NotificationChannelIdentifier<BPRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp>>(),
+    OnPausedOnBreakpoint: new NotificationChannelIdentifier<PausedEvent>(),
 
     // Requests
     UpdateBreakpointsForFile: new RequestChannelIdentifier<BPRecipiesInUnbindedSource, Promise<IBPRecipieStatus[]>>(),

@@ -145,9 +145,9 @@ export class BreakOnLoadHelper {
         // If there is a breakpoint which is not a stopOnEntry breakpoint, we appear as if we hit that one
         // This is particularly done for cases when we end up with a user breakpoint and a stopOnEntry breakpoint on the same line
         for (let bp of hitBreakpoints) {
-            let regexAndFileNames = this._stopOnEntryBreakpointIdToRequestedFileName.get(bp);
+            let regexAndFileNames = {} as UrlRegexAndFileSet; // this._stopOnEntryBreakpointIdToRequestedFileName.get(bp);
             if (!regexAndFileNames) {
-                notification.hitBreakpoints = [bp];
+                // notification.hitBreakpoints = [bp];
                 allStopOnEntryBreakpoints = false;
             } else {
                 const normalizedMappedUrl = mappedUrl;
@@ -157,7 +157,7 @@ export class BreakOnLoadHelper {
 
                     if (regexAndFileNames.fileSet.size === 0) {
                         logger.log(`Stop on entry breakpoint hit for last remaining file. Removing: ${bp} created for: ${normalizedMappedUrl}`);
-                        await this.removeBreakpointById(bp);
+                        // await this.removeBreakpointById(bp);
                         assert(this._stopOnEntryRegexToBreakpointId.delete(regexAndFileNames.urlRegex), `Expected to delete break-on-load information associated with regexp: ${regexAndFileNames.urlRegex}`);
                     } else {
                         logger.log(`Stop on entry breakpoint hit but still has remaining files. Keeping: ${bp} that was hit for: ${normalizedMappedUrl} because it's still needed for: ${Array.from(regexAndFileNames.fileSet.entries()).join(', ')}`);
@@ -275,12 +275,6 @@ export class BreakOnLoadHelper {
         // let result = await this._chromeDebugAdapter.chrome.Debugger.setBreakpointByUrl({ urlRegex, lineNumber: 0, columnNumber: 0 });
         // return result;
         return Promise.reject(new Error('Not yet implemented'));
-    }
-
-    // Removes a breakpoint by it's chrome-crdp-id
-    private async removeBreakpointById(_breakpointId: string): Promise<void> {
-        // DIEGO TODO: Re-enable this code
-        // return await this._chromeDebugAdapter.chrome.Debugger.removeBreakpoint({breakpointId: breakpointId });
     }
 
     /**

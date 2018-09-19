@@ -4,7 +4,7 @@ import { RequestChannelIdentifier } from './requestsCommunicator';
 import { BPRecipieInScript, BPRecipieInUrl, BPRecipie, BPRecipieInUrlRegexp, URLRegexp } from '../internal/breakpoints/bpRecipie';
 import { AlwaysBreak, ConditionalBreak } from '../internal/breakpoints/bpBehavior';
 import { Breakpoint } from '../internal/breakpoints/breakpoint';
-import { ScriptParsedEvent } from '../target/events';
+import { ScriptParsedEvent, PausedEvent } from '../target/events';
 import { IScript } from '../internal/scripts/script';
 import { IRequestedSourceIdentifier } from '../internal/sources/sourceIdentifier';
 import { registerChannels } from './channel';
@@ -15,6 +15,7 @@ const _debugger = {
     // Notifications
     OnAsyncBreakpointResolved: new NotificationChannelIdentifier<Breakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>>(),
     OnScriptParsed: new NotificationChannelIdentifier<ScriptParsedEvent>(),
+    OnPaused: new NotificationChannelIdentifier<PausedEvent>(),
 
     // Requests
     GetPossibleBreakpoints: new RequestChannelIdentifier<RangeInScript, Promise<LocationInScript[]>>(),

@@ -47,6 +47,8 @@ export class ChromeDebugAdapter implements IDebugAdapter {
         const sendClientBPStatusChanged = communicator.getRequester(Client.EventSender.SendBPStatusChanged);
         const setInstrumentationBreakpoint = communicator.getRequester(Target.Debugger.SetInstrumentationBreakpoint);
         const removeInstrumentationBreakpoint = communicator.getRequester(Target.Debugger.RemoveInstrumentationBreakpoint);
+        const resumeProgram = communicator.getRequester(Target.Debugger.Resume);
+        const notifyOfPausedOnBreakpoint = communicator.getPublisher(Internal.Breakpoints.OnPausedOnBreakpoint);
 
         const sourceMapTransformer = new (args.sourceMapTransformer || EagerSourceMapTransformer)(args.enableSourceMapCaching);
         const pathTransformer = new (args.pathTransformer || RemotePathTransformer)();
@@ -65,6 +67,8 @@ export class ChromeDebugAdapter implements IDebugAdapter {
             setInstrumentationBreakpoint: setInstrumentationBreakpoint,
             removeInstrumentationBreakpoint: removeInstrumentationBreakpoint,
             doesTargetSupportColumnBreakpoints: doesTargetSupportColumnBreakpoints,
+            resumeProgram: resumeProgram,
+            notifyPausedOnBreakpoint: notifyOfPausedOnBreakpoint
         });
 
         this._sourcesLogic = new SourcesLogic(chromeDiagnostics, this._scriptsLogic);
@@ -86,7 +90,7 @@ export class ChromeDebugAdapter implements IDebugAdapter {
             this._scriptsLogic, this._sourcesLogic, chromeConnection, chromeDiagnostics,
             this._skipFilesLogic, smartStepLogic, eventSender, this._breakpointsLogic, this);
 
-            doesTargetSupportColumnBreakpoints.then(() => this._chromeDebugAdapter.sendInitializedEvent()); // Do not wait for this. This will finish after we get the first script loaded event
+        doesTargetSupportColumnBreakpoints.then(() => this._chromeDebugAdapter.sendInitializedEvent()); // Do not wait for this. This will finish after we get the first script loaded event
     }
 
     public get events(): StepProgressEventsEmitter {
