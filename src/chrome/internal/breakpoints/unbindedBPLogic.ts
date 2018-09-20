@@ -29,7 +29,8 @@ export class UnbindedBPLogic {
         if (bpRecipies !== undefined) {
             return this.getBPsAreSetDefer(loadedSource.identifier).promise;
         } else {
-            return Promise.resolve();
+            const defer = this._sourcePathToBPsAreSetDefer.tryGetting(loadedSource.identifier);
+            return Promise.resolve(defer && defer.promise);
         }
     }
 
