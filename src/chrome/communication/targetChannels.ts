@@ -16,6 +16,7 @@ const _debugger = {
     OnAsyncBreakpointResolved: new NotificationChannelIdentifier<Breakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>>(),
     OnScriptParsed: new NotificationChannelIdentifier<ScriptParsedEvent>(),
     OnPaused: new NotificationChannelIdentifier<PausedEvent>(),
+    OnPausedDueToInstrumentation: new NotificationChannelIdentifier<PausedEvent>(),
 
     // Requests
     GetPossibleBreakpoints: new RequestChannelIdentifier<RangeInScript, Promise<LocationInScript[]>>(),

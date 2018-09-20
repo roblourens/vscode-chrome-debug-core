@@ -175,17 +175,9 @@ export class BreakpointsLogic {
 
         this._communicator.subscribe(Target.Debugger.OnScriptParsed, scriptParsed =>
             asyncMap(scriptParsed.script.allSources, source => this._unbindedBreakpointsLogic.onLoadedSourceIsAvailable(source)));
-        this._communicator.subscribe(Target.Debugger.OnPaused, paused => {
-            if (this.isInstrumentationPause(paused)) {
-                this._bpsWhileLoadingLogic.onPausingOnScriptFirstStatement(paused);
-            }
+        this._communicator.subscribe(Target.Debugger.OnPausedDueToInstrumentation, paused => {
+            this._bpsWhileLoadingLogic.onPausingOnScriptFirstStatement(paused);
         });
-    }
-
-    private isInstrumentationPause(notification: PausedEvent): boolean {
-        return (notification.reason === 'EventListener' && notification.data.eventName === 'instrumentation:scriptFirstStatement') ||
-            (notification.reason === 'ambiguous' && Array.isArray(notification.data.reasons) &&
-                notification.data.reasons.every((r: any) => r.reason === 'EventListener' && r.auxData.eventName === 'instrumentation:scriptFirstStatement'));
     }
 
     public static RegisterHandlers(communicator: Communicator, breakpointsLogic: BreakpointsLogic) {

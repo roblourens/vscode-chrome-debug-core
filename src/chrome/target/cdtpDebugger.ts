@@ -12,15 +12,18 @@ import { Breakpoint, BreakpointInScript, BreakpointInUrl, BreakpointInUrlRegexp 
 import { asyncMap } from '../collections/async';
 import { CallFrame } from '../internal/stackTraces/callFrame';
 import { RangeInScript } from '../internal/locations/rangeInScript';
+import { Listeners } from '../communication/listeners';
 
 export type ScriptParsedListener = (params: ScriptParsedEvent) => void;
 
 export class CDTPDebugger extends CDTPDiagnosticsModule<Crdp.DebuggerApi> {
-    private _onScriptParsedListeners: ScriptParsedListener[] = [];
+    private _onScriptParsedListeners = new Listeners<ScriptParsedEvent, void>();
     private _firstScriptWasParsed = utils.promiseDefer<Crdp.Runtime.ScriptId>();
+    private _onPausedListeners = new Listeners<PausedEvent, void>();
+    private _onPausedDueToInstrumentationListeners = new Listeners<PausedEvent, void>();
 
     public onScriptParsed(listener: ScriptParsedListener): void {
-        this._onScriptParsedListeners.push(listener);
+        this._onScriptParsedListeners.add(listener);
     }
 
     public onBreakpointResolved(listener: (breakpoint: Breakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>) => void): void {
@@ -32,18 +35,18 @@ export class CDTPDebugger extends CDTPDiagnosticsModule<Crdp.DebuggerApi> {
         });
     }
 
-    public onPaused(listener: (params: PausedEvent) => void): void {
-        return this.api.on('paused', async params => {
-            if (params.callFrames.length === 0) {
-                throw new Error(`Expected a pause event to have at least a single call frame: ${JSON.stringify(params)}`);
-            }
+    private isInstrumentationPause(notification: Crdp.Debugger.PausedEvent): boolean {
+        return (notification.reason === 'EventListener' && notification.data.eventName.startsWith('instrumentation:')) ||
+            (notification.reason === 'ambiguous' && Array.isArray(notification.data.reasons) &&
+                notification.data.reasons.every((r: any) => r.reason === 'EventListener' && r.auxData.eventName.startsWith('instrumentation:')));
+    }
 
-            const callFrames = await asyncMap(params.callFrames, (callFrame, index) => this._crdpToInternal.toCallFrame(index, callFrame));
-            listener(new PausedEvent(callFrames, params.reason, params.data,
-                this._crdpToInternal.getBPsFromIDs(params.hitBreakpoints),
-                params.asyncStackTrace && await this._crdpToInternal.toStackTraceCodeFlow(params.asyncStackTrace),
-                params.asyncStackTraceId, params.asyncCallStackTraceId));
-        });
+    public onPaused(listener: (params: PausedEvent) => void): void {
+        this._onPausedListeners.add(listener);
+    }
+
+    public onPausedDueToInstrumentation(listener: (params: PausedEvent) => void): void {
+        this._onPausedDueToInstrumentationListeners.add(listener);
     }
 
     public onResumed(listener: () => void): void {
@@ -188,10 +191,25 @@ export class CDTPDebugger extends CDTPDiagnosticsModule<Crdp.DebuggerApi> {
 
             await this._crdpToInternal.createAndRegisterScript(params);
 
-            this._onScriptParsedListeners.forEach(async listener => {
-                listener(await this._crdpToInternal.toScriptParsedEvent(params));
-            });
+            this._onScriptParsedListeners.call(await this._crdpToInternal.toScriptParsedEvent(params));
+        });
 
+        return this.api.on('paused', async params => {
+            if (params.callFrames.length === 0) {
+                throw new Error(`Expected a pause event to have at least a single call frame: ${JSON.stringify(params)}`);
+            }
+
+            const callFrames = await asyncMap(params.callFrames, (callFrame, index) => this._crdpToInternal.toCallFrame(index, callFrame));
+            const internalPaused = new PausedEvent(callFrames, params.reason, params.data,
+                this._crdpToInternal.getBPsFromIDs(params.hitBreakpoints),
+                params.asyncStackTrace && await this._crdpToInternal.toStackTraceCodeFlow(params.asyncStackTrace),
+                params.asyncStackTraceId, params.asyncCallStackTraceId);
+
+            if (this.isInstrumentationPause(params)) {
+                this._onPausedDueToInstrumentationListeners.call(internalPaused);
+            } else {
+                this._onPausedListeners.call(internalPaused);
+            }
         });
     }
 

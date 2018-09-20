@@ -97,10 +97,8 @@ export class BreakOnLoadHelper {
         return false;
     }
 
-    private isInstrumentationPause(notification: PausedEvent): boolean {
-        return (notification.reason === 'EventListener' && notification.data.eventName === 'instrumentation:scriptFirstStatement') ||
-            (notification.reason === 'ambiguous' && Array.isArray(notification.data.reasons) &&
-                notification.data.reasons.every((r: any) => r.reason === 'EventListener' && r.auxData.eventName === 'instrumentation:scriptFirstStatement'));
+    isInstrumentationPause(_notification: PausedEvent): any {
+        throw new Error('Method not implemented.');
     }
 
     /**

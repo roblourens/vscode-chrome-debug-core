@@ -35,7 +35,7 @@ interface BreakpointClass<TResource extends ScriptOrSourceOrIdentifierOrUrlRegex
 }
 
 export class TargetToInternal {
-    public getBPsFromIDs = adaptToSinglIntoToMulti(this.getBPFromID);
+    public getBPsFromIDs = adaptToSinglIntoToMulti(this, this.getBPFromID);
 
     public toBPRecipie(breakpointId: Crdp.Debugger.BreakpointId): IBPRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp> {
         return this._breakpointIdRegistry.getRecipieByBreakpointId(breakpointId);

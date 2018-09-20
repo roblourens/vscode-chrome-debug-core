@@ -1,7 +1,7 @@
 import { ValidatedMap } from '../collections/validatedMap';
-import { asyncMap } from '../collections/async';
 import { ChannelIdentifier } from './channelIdentifier';
 import { getChannelName } from './channel';
+import { Listeners } from './listeners';
 
 export type NotificationListener<Notification> = (notification: Notification) => Promise<void> | void;
 export type PublisherFunction<Notification> = (notification: Notification) => Promise<void>;
@@ -16,7 +16,7 @@ export class NotificationChannelIdentifier<_Notification> implements ChannelIden
 }
 
 class NotificationChannel<Notification> {
-    public readonly listeners: NotificationListener<Notification>[] = [];
+    public readonly listeners = new Listeners<Notification, Promise<void> | void>();
     public readonly publisher: Publisher<Notification> = new Publisher<Notification>(this);
 }
 
@@ -24,7 +24,7 @@ export class Publisher<Notification> {
     constructor(private readonly notificationChannel: NotificationChannel<Notification>) { }
 
     public async publish(notification: Notification): Promise<void> {
-        await asyncMap(this.notificationChannel.listeners, listener => listener(notification));
+        await Promise.all(this.notificationChannel.listeners.call(notification));
     }
 }
 
@@ -37,7 +37,7 @@ export class NotificationsCommunicator {
     }
 
     public subscribe<Notification>(notificationChannelIdentifier: NotificationChannelIdentifier<Notification>, listener: (notification: Notification) => void): void {
-        this.getChannel(notificationChannelIdentifier).listeners.push(listener);
+        this.getChannel(notificationChannelIdentifier).listeners.add(listener);
     }
 
     private getChannel<Notification>(notificationChannelIdentifier: NotificationChannelIdentifier<Notification>): NotificationChannel<Notification> {

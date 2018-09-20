@@ -641,8 +641,8 @@ export function makeUnique<T>(elements: T[]): T[] {
     return Array.from(new Set(elements));
 }
 
-export function adaptToSinglIntoToMulti<T, R>(toSingle: (single: T) => R): (multi: T[]) => R[] {
-    return (multi: T[]) => multi.map(single => toSingle(single));
+export function adaptToSinglIntoToMulti<T, R>(thisObject: object, toSingle: (single: T) => R): (multi: T[]) => R[] {
+    return (multi: T[]) => multi.map(single => toSingle.call(thisObject, single));
 }
 
 export function asyncAdaptToSinglIntoToMulti<T, R>(toSingle: (single: T) => Promise<R>): (multi: T[]) => Promise<R[]> {
