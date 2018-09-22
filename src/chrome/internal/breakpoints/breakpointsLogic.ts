@@ -12,11 +12,11 @@ import { BreakpointsRegistry } from './breakpointsRegistry';
 import { Communicator } from '../../communication/communicator';
 import { Internal } from '../../communication/internalChannels';
 import { BPRecipieInLoadedSourceLogic, BPRInLoadedSourceLogicDependencies } from './bpRecipieInLoadedSourceLogic';
-import { PauseScriptLoadsToSetBPs, BPsWhileLoadingLogicDependencies } from './pauseScriptLoadsToSetBPs';
 import { RemoveProperty } from '../../../typeUtils';
 import { combine } from '../../utils/combine';
 import { ILoadedSource } from '../sources/loadedSource';
 import { BPStatusChangedParameters } from '../../client/eventSender';
+import { PauseScriptLoadsToSetBPs, BPsWhileLoadingLogicDependencies } from './pauseScriptLoadsToSetBPs';
 
 // interface IHitConditionBreakpoint {
 //     numHits: number;

@@ -2,6 +2,7 @@ import { asyncMap } from '../../collections/async';
 import { PausedEvent } from '../../target/events';
 import { BreakpointsRegistry } from './breakpointsRegistry';
 import { ILoadedSource } from '../sources/loadedSource';
+import { IFeature } from '../features/feature';
 
 export interface BPsWhileLoadingLogicDependencies {
     setInstrumentationBreakpoint(nativeEventName: string): Promise<void>;
@@ -12,7 +13,7 @@ export interface BPsWhileLoadingLogicDependencies {
     onPausingOnScriptFirstStatement(listener: (paused: PausedEvent) => Promise<void> | void): void;
 }
 
-export class PauseScriptLoadsToSetBPs {
+export class PauseScriptLoadsToSetBPs implements IFeature {
     private _isEnabled = false;
 
     private async onPausingOnScriptFirstStatement(paused: PausedEvent): Promise<void> {
@@ -41,6 +42,10 @@ export class PauseScriptLoadsToSetBPs {
         }
     }
 
+    public install(): void {
+        this._dependencies.onPausingOnScriptFirstStatement(params => this.onPausingOnScriptFirstStatement(params));
+    }
+
     private async startPausingOnScriptFirstStatement(): Promise<void> {
         return this._dependencies.setInstrumentationBreakpoint('scriptFirstStatement');
     }
@@ -52,6 +57,5 @@ export class PauseScriptLoadsToSetBPs {
     constructor(
         private readonly _dependencies: BPsWhileLoadingLogicDependencies,
         private readonly _breakpointsRegistry: BreakpointsRegistry) {
-        this._dependencies.onPausingOnScriptFirstStatement(params => this.onPausingOnScriptFirstStatement(params));
     }
 }
