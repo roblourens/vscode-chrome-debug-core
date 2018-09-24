@@ -2,7 +2,7 @@ import { ISourceResolver } from '../sources/sourceResolver';
 import { Location, ScriptOrSourceOrIdentifierOrUrlRegexp, LocationInUrl, LocationInUrlRegexp, LocationInScript } from '../locations/location';
 import { ILoadedSource } from '../sources/loadedSource';
 import { IScript } from '../scripts/script';
-import { IBPActionWhenHit } from './bpActionWhenHit';
+import { IBPActionWhenHit, AlwaysBreak } from './bpActionWhenHit';
 import { utils } from '../../..';
 import { IResourceIdentifier } from '../sources/resourceIdentifier';
 
@@ -13,7 +13,7 @@ export interface IBPRecipie<TResource extends ScriptOrSourceOrIdentifierOrUrlReg
     readonly unmappedBpRecipie: IBPRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp>; // Original bpRecipie before any mapping was done
 }
 
-abstract class BreakpointRecipieCommonLogic<TResource extends ScriptOrSourceOrIdentifierOrUrlRegexp, TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit> {
+abstract class BPRecipieCommonLogic<TResource extends ScriptOrSourceOrIdentifierOrUrlRegexp, TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit> {
     public abstract get bpActionWhenHit(): TBPActionWhenHit;
 
     constructor(
@@ -24,8 +24,8 @@ abstract class BreakpointRecipieCommonLogic<TResource extends ScriptOrSourceOrId
     }
 }
 
-abstract class UnamppedBreakpointRecipieCommonLogic<TResource extends ScriptOrSourceOrIdentifierOrUrlRegexp, TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit>
-    extends BreakpointRecipieCommonLogic<TResource, TBPActionWhenHit> {
+abstract class UnamppedBPRecipieCommonLogic<TResource extends ScriptOrSourceOrIdentifierOrUrlRegexp, TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit>
+    extends BPRecipieCommonLogic<TResource, TBPActionWhenHit> {
 
     public get unmappedBpRecipie(): IBPRecipie<TResource, TBPActionWhenHit> {
         return this;
@@ -38,7 +38,7 @@ abstract class UnamppedBreakpointRecipieCommonLogic<TResource extends ScriptOrSo
     }
 }
 
-abstract class MappedBreakpointRecipieCommonLogic<TResource extends ScriptOrSourceOrIdentifierOrUrlRegexp, TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit> {
+abstract class MappedBPRecipieCommonLogic<TResource extends ScriptOrSourceOrIdentifierOrUrlRegexp, TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit> {
     public get bpActionWhenHit(): TBPActionWhenHit {
         return this.unmappedBpRecipie.bpActionWhenHit;
     }
@@ -52,14 +52,18 @@ abstract class MappedBreakpointRecipieCommonLogic<TResource extends ScriptOrSour
 }
 
 export class BPRecipieInLoadedSource<TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit>
-    extends MappedBreakpointRecipieCommonLogic<ILoadedSource, TBPActionWhenHit> implements IBPRecipie<ILoadedSource, TBPActionWhenHit> {
+    extends MappedBPRecipieCommonLogic<ILoadedSource, TBPActionWhenHit> implements IBPRecipie<ILoadedSource, TBPActionWhenHit> {
 
     public asBPInScriptRecipie(): BPRecipieInScript<TBPActionWhenHit> {
         return new BPRecipieInScript<TBPActionWhenHit>(this.unmappedBpRecipie, this.location.asLocationInScript());
     }
 }
 
-export class BPRecipieInUnresolvedSource<TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit> extends UnamppedBreakpointRecipieCommonLogic<ISourceResolver, TBPActionWhenHit> implements IBPRecipie<ISourceResolver, TBPActionWhenHit> {
+export class BPRecipieInUnresolvedSource<TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit> extends UnamppedBPRecipieCommonLogic<ISourceResolver, TBPActionWhenHit> implements IBPRecipie<ISourceResolver, TBPActionWhenHit> {
+    public withAlwaysBreakAction(): BPRecipieInUnresolvedSource<AlwaysBreak> {
+        return new BPRecipieInUnresolvedSource<AlwaysBreak>(this.location, new AlwaysBreak());
+    }
+
     public tryGettingBreakpointInLoadedSource<R>(
         whenSuccesfulDo: (breakpointInLoadedSource: BPRecipieInLoadedSource) => R,
         whenFailedDo: (breakpointInUnbindedSource: BPRecipieInUnresolvedSource) => R): R {
@@ -91,7 +95,7 @@ export type BPRecipie<TResource extends ScriptOrSourceOrIdentifierOrUrlRegexp> =
     never;
 
 export class BPRecipieInScript<TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit>
-    extends MappedBreakpointRecipieCommonLogic<IScript, TBPActionWhenHit> implements IBPRecipie<IScript, TBPActionWhenHit> {
+    extends MappedBPRecipieCommonLogic<IScript, TBPActionWhenHit> implements IBPRecipie<IScript, TBPActionWhenHit> {
 
     public atLocation(newLocation: LocationInScript): BPRecipieInScript<TBPActionWhenHit> {
         return new BPRecipieInScript<TBPActionWhenHit>(this.unmappedBpRecipie, newLocation);
@@ -111,11 +115,11 @@ export class BPRecipieInScript<TBPActionWhenHit extends IBPActionWhenHit = IBPAc
 }
 
 export class BPRecipieInUrl<TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit>
-    extends MappedBreakpointRecipieCommonLogic<IResourceIdentifier, TBPActionWhenHit> implements IBPRecipie<IResourceIdentifier, TBPActionWhenHit> {
+    extends MappedBPRecipieCommonLogic<IResourceIdentifier, TBPActionWhenHit> implements IBPRecipie<IResourceIdentifier, TBPActionWhenHit> {
 }
 
 export class BPRecipieInUrlRegexp<TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit>
-    extends MappedBreakpointRecipieCommonLogic<URLRegexp, TBPActionWhenHit> implements IBPRecipie<URLRegexp, TBPActionWhenHit> {
+    extends MappedBPRecipieCommonLogic<URLRegexp, TBPActionWhenHit> implements IBPRecipie<URLRegexp, TBPActionWhenHit> {
 }
 
 export class URLRegexp {

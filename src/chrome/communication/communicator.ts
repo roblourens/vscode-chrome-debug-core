@@ -5,11 +5,11 @@ export class Communicator {
     private readonly _notificationsCommunicator = new NotificationsCommunicator();
     private readonly _requestsCommunicator = new RequestsCommunicator();
 
-    public getPublisher<Notification>(notificationChannelIdentifier: NotificationChannelIdentifier<Notification>): PublisherFunction<Notification> {
+    public getPublisher<Notification, Response>(notificationChannelIdentifier: NotificationChannelIdentifier<Notification, Response>): PublisherFunction<Notification, Response> {
         return this._notificationsCommunicator.getPublisher(notificationChannelIdentifier);
     }
 
-    public getSubscriber<Notification>(notificationChannelIdentifier: NotificationChannelIdentifier<Notification>): SubscriberFunction<Notification> {
+    public getSubscriber<Notification, Response>(notificationChannelIdentifier: NotificationChannelIdentifier<Notification, Response>): SubscriberFunction<Notification, Response> {
         return this._notificationsCommunicator.getSubscriber(notificationChannelIdentifier);
     }
 

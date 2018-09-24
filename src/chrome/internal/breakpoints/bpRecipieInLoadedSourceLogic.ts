@@ -9,6 +9,8 @@ import { RangeInScript } from '../locations/rangeInScript';
 import { BreakpointsRegistry } from './breakpointsRegistry';
 import { IScript } from '../scripts/script';
 import { IResourceIdentifier } from '../sources/resourceIdentifier';
+import { PausedEvent } from '../../target/events';
+import { ShouldPauseForUser } from '../features/pauseProgramWhenNeeded';
 
 export interface BPRInLoadedSourceLogicDependencies {
     setBreakpoint(params: BPRecipieInScript<AlwaysBreak | ConditionalBreak>): Promise<Breakpoint<IScript>>;
@@ -21,6 +23,15 @@ export interface BPRInLoadedSourceLogicDependencies {
 
 export class BPRecipieInLoadedSourceLogic {
     private readonly doesTargetSupportColumnBreakpointsCached: Promise<boolean>;
+
+    public onShouldPauseForUser(paused: PausedEvent): ShouldPauseForUser {
+        if (paused.hitBreakpoints && paused.hitBreakpoints.length > 0) {
+            // TODO DIEGO: Improve this to consider breakpoints where we shouldn't pause
+            return ShouldPauseForUser.NeedsToPause;
+        } else {
+            return ShouldPauseForUser.Abstained;
+        }
+    }
 
     public async addBreakpoint(bpRecipie: BPRecipieInLoadedSource<ConditionalBreak | AlwaysBreak>): Promise<IBreakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>[]> {
         const bpInScriptRecipie = bpRecipie.asBPInScriptRecipie();

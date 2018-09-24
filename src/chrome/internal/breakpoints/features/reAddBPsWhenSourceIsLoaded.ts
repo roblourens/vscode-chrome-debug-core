@@ -1,25 +1,30 @@
-import { BPRecipiesInUnresolvedSource } from './bpRecipies';
-import { ILoadedSource } from '../sources/loadedSource';
-import { asyncMap } from '../../collections/async';
-import { BPRecipieIsUnbinded, BPRecipieIsBinded } from './bpRecipieStatus';
-import { newResourceIdentifierMap, IResourceIdentifier } from '../sources/resourceIdentifier';
-import { BPRecipieInLoadedSource } from './bpRecipie';
-import { ConditionalBreak, AlwaysBreak } from './bpActionWhenHit';
-import { IBreakpoint } from './breakpoint';
-import { ScriptOrSourceOrIdentifierOrUrlRegexp } from '../locations/location';
-import { BPStatusChangedParameters } from '../../client/eventSender';
-import { PromiseDefer, promiseDefer } from '../../../utils';
+import { BPRecipiesInUnresolvedSource } from '../bpRecipies';
+import { ILoadedSource } from '../../sources/loadedSource';
+import { asyncMap } from '../../../collections/async';
+import { BPRecipieIsUnbinded, BPRecipieIsBinded } from '../bpRecipieStatus';
+import { newResourceIdentifierMap, IResourceIdentifier } from '../../sources/resourceIdentifier';
+import { BPRecipieInLoadedSource } from '../bpRecipie';
+import { ConditionalBreak, AlwaysBreak } from '../bpActionWhenHit';
+import { IBreakpoint } from '../breakpoint';
+import { ScriptOrSourceOrIdentifierOrUrlRegexp } from '../../locations/location';
+import { BPStatusChangedParameters } from '../../../client/eventSender';
+import { PromiseDefer, promiseDefer } from '../../../../utils';
+import { IFeature } from '../../features/feature';
 
-export interface UnbindedBPLogicDependencies {
-    addBreakpointForLoadedSource(bpRecipie: BPRecipieInLoadedSource<ConditionalBreak | AlwaysBreak>): Promise<IBreakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>[]>;
-    sendClientBPStatusChanged(statusChanges: BPStatusChangedParameters): Promise<void>;
-    notifyAllBPsAreBinded(): void;
+export interface ReAddBPsWhenSourceIsLoadedDependencies {
     onLoadedSourceIsAvailable(listener: (source: ILoadedSource) => Promise<void>): void;
+    addBreakpointForLoadedSource(bpRecipie: BPRecipieInLoadedSource<ConditionalBreak | AlwaysBreak>): Promise<IBreakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>[]>;
+    notifyNoPendingBPs(): void;
+    sendClientBPStatusChanged(statusChanges: BPStatusChangedParameters): Promise<void>;
 }
 
-export class UnbindedBPLogic {
+export class ReAddBPsWhenSourceIsLoaded implements IFeature {
     private readonly _sourcePathToBPRecipies = newResourceIdentifierMap<BPRecipiesInUnresolvedSource>();
     private readonly _sourcePathToBPsAreSetDefer = newResourceIdentifierMap<PromiseDefer<void>>();
+
+    public install(): void {
+        this._dependencies.onLoadedSourceIsAvailable(source => this.onLoadedSourceIsAvailable(source));
+    }
 
     public replaceBPsForSourceWith(requestedBPs: BPRecipiesInUnresolvedSource): void {
         this._sourcePathToBPRecipies.set(requestedBPs.requestedSourcePath, requestedBPs);
@@ -39,7 +44,7 @@ export class UnbindedBPLogic {
         return this._sourcePathToBPsAreSetDefer.getOrAdd(identifier, () => promiseDefer<void>());
     }
 
-    public async onLoadedSourceIsAvailable(source: ILoadedSource): Promise<void> {
+    private async onLoadedSourceIsAvailable(source: ILoadedSource): Promise<void> {
         const unbindBPRecipies = this._sourcePathToBPRecipies.tryGetting(source.identifier);
 
         if (unbindBPRecipies !== undefined) {
@@ -74,16 +79,14 @@ export class UnbindedBPLogic {
             }
 
             if (this._sourcePathToBPRecipies.size === 0) {
-                this._dependencies.notifyAllBPsAreBinded();
+                this._dependencies.notifyNoPendingBPs();
             }
         }
     }
 
     public toString(): string {
-        return `Unbinded BPs logic { Paths to BP recipies: ${this._sourcePathToBPRecipies}}`;
+        return `{ BPs to re-add when source is laoded: ${this._sourcePathToBPRecipies}}`;
     }
 
-    constructor(private readonly _dependencies: UnbindedBPLogicDependencies) {
-        this._dependencies.onLoadedSourceIsAvailable(source => this.onLoadedSourceIsAvailable(source));
-    }
+    constructor(private readonly _dependencies: ReAddBPsWhenSourceIsLoadedDependencies) {}
 }

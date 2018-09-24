@@ -7,6 +7,7 @@ import { LocationInLoadedSource } from '../internal/locations/location';
 import { Communicator } from '../communication/communicator';
 import { Client } from '../communication/clientChannels';
 import { IBPRecipieStatus } from '../internal/breakpoints/bpRecipieStatus';
+import { IFormattedExceptionLineDescription } from '../internal/formattedExceptionParser';
 
 export interface OutputParameters {
     readonly output: NonNullable<string>;
@@ -23,6 +24,12 @@ export interface SourceWasLoadedParameters {
 export interface BPStatusChangedParameters {
     readonly reason: string;
     readonly bpRecipieStatus: IBPRecipieStatus;
+}
+
+export interface ExceptionThrownParameters {
+    readonly exceptionStackTrace: IFormattedExceptionLineDescription[];
+    readonly category: string;
+    readonly location?: LocationInLoadedSource;
 }
 
 export class EventSender {
@@ -55,6 +62,14 @@ export class EventSender {
         this._session.sendEvent(event);
     }
 
+    public async sendExceptionThrown(params: ExceptionThrownParameters): Promise<void> {
+        return this.sendOutput({
+            output: this._internalToClient.toExceptionStackTracePrintted(params.exceptionStackTrace),
+            category: params.category,
+            location: params.location
+        });
+    }
+
     public static createWithHandlers(communicator: Communicator, session: ISession, internalToClient: InternalToClient): EventSender {
         const eventSender = new EventSender(session, internalToClient);
         communicator.registerHandler(Client.EventSender.SendOutput, (params: OutputParameters) => eventSender.sendOutput(params));
@@ -63,5 +78,5 @@ export class EventSender {
         return eventSender;
     }
 
-    constructor(private readonly _session: ISession, private readonly _internalToClient: InternalToClient) {}
+    constructor(private readonly _session: ISession, private readonly _internalToClient: InternalToClient) { }
 }

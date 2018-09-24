@@ -1,7 +1,7 @@
 import {
     IDebugAdapter, ITelemetryPropertyCollector, PromiseOrNot, ILaunchRequestArgs, IAttachRequestArgs, IThreadsResponseBody,
     ISetBreakpointsResponseBody, IStackTraceResponseBody, IScopesResponseBody, IVariablesResponseBody, ISourceResponseBody,
-    IEvaluateResponseBody, LineColTransformer, ICommonRequestArgs
+    IEvaluateResponseBody, LineColTransformer, ICommonRequestArgs, IExceptionInfoResponseBody
 } from '../..';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { ChromeDebugLogic } from '../chromeDebugAdapter';
@@ -16,7 +16,7 @@ import { StepProgressEventsEmitter } from '../../executionTimingsReporter';
 import { ClientToInternal } from './clientToInternal';
 import { InternalToClient } from './internalToClient';
 import { IGetLoadedSourcesResponseBody } from '../../debugAdapterInterfaces';
-import { StackTracesLogic } from '../internal/stackTraces/stackTracesLogic';
+import { StackTracesLogic, StackTraceDependencies } from '../internal/stackTraces/stackTracesLogic';
 import { SkipFilesLogic } from '../internal/features/skipFiles';
 import { SmartStepLogic } from '../internal/features/smartStep';
 import { EventSender } from './eventSender';
@@ -29,6 +29,9 @@ import { Internal } from '../communication/internalChannels';
 import { Client } from '../communication/clientChannels';
 import { asyncMap } from '../collections/async';
 import { ILoadedSource } from '../internal/sources/loadedSource';
+import { Stepping, SteppingDependencies } from '../internal/stepping/stepping';
+import * as errors from '../../errors';
+import { PauseOnException, PauseOnExceptionDependencies } from '../internal/features/pauseOnException';
 
 export class ChromeDebugAdapter implements IDebugAdapter {
     protected readonly _chromeDebugAdapter: ChromeDebugLogic;
@@ -40,6 +43,7 @@ export class ChromeDebugAdapter implements IDebugAdapter {
     private readonly _stackTraceLogic: StackTracesLogic;
     private readonly _skipFilesLogic: SkipFilesLogic;
     protected readonly _breakpointsLogic: BreakpointsLogic;
+    private readonly _pauseOnException: PauseOnException;
 
     constructor(args: IChromeDebugAdapterOpts, originalSession: ChromeDebugSession) {
         const communicator = new Communicator();
@@ -48,8 +52,6 @@ export class ChromeDebugAdapter implements IDebugAdapter {
         const sendClientBPStatusChanged = communicator.getRequester(Client.EventSender.SendBPStatusChanged);
         const setInstrumentationBreakpoint = communicator.getRequester(Target.Debugger.SetInstrumentationBreakpoint);
         const removeInstrumentationBreakpoint = communicator.getRequester(Target.Debugger.RemoveInstrumentationBreakpoint);
-        const resumeProgram = communicator.getRequester(Target.Debugger.Resume);
-        const notifyOfPausedOnBreakpoint = communicator.getPublisher(Internal.Breakpoints.OnPausedOnBreakpoint);
 
         const sourceMapTransformer = new (args.sourceMapTransformer || EagerSourceMapTransformer)(args.enableSourceMapCaching);
         const pathTransformer = new (args.pathTransformer || RemotePathTransformer)();
@@ -68,26 +70,30 @@ export class ChromeDebugAdapter implements IDebugAdapter {
             });
         };
 
-        const dependencies: BreakpointsLogicDependencies = {
+        const dependencies: BreakpointsLogicDependencies & PauseOnExceptionDependencies & SteppingDependencies & StackTraceDependencies = {
             addBreakpointForLoadedSource: addBreakpointForLoadedSource,
             sendClientBPStatusChanged: sendClientBPStatusChanged,
             setInstrumentationBreakpoint: setInstrumentationBreakpoint,
             removeInstrumentationBreakpoint: removeInstrumentationBreakpoint,
             doesTargetSupportColumnBreakpoints: doesTargetSupportColumnBreakpoints,
-            resumeProgram: resumeProgram,
-            notifyPausedOnBreakpoint: notifyOfPausedOnBreakpoint,
             sendBPStatusChanged: communicator.getRequester(Client.EventSender.SendBPStatusChanged),
             getPossibleBreakpoints: communicator.getRequester(Target.Debugger.GetPossibleBreakpoints),
             onAsyncBreakpointResolved: communicator.getSubscriber(Target.Debugger.OnAsyncBreakpointResolved),
-            onPausingOnScriptFirstStatement: communicator.getSubscriber(Target.Debugger.OnPausedDueToInstrumentation),
+            onShouldPauseForUser: communicator.getSubscriber(Internal.OnShouldPauseForUser),
             removeBreakpoint: communicator.getRequester(Target.Debugger.RemoveBreakpoint),
             setBreakpoint: communicator.getRequester(Target.Debugger.SetBreakpoint),
             setBreakpointByUrl: communicator.getRequester(Target.Debugger.SetBreakpointByUrl),
             setBreakpointByUrlRegexp: communicator.getRequester(Target.Debugger.SetBreakpointByUrlRegexp),
-            onLoadedSourceIsAvailable: onLoadedSourceIsAvailable
+            onResumed: communicator.getSubscriber(Target.Debugger.OnResumed),
+            onLoadedSourceIsAvailable: onLoadedSourceIsAvailable,
+            pauseProgramOnAsyncCall: communicator.getRequester(Target.Debugger.PauseOnAsyncCall),
+            getScriptsByUrl: url => this._scriptsLogic.getScriptsByPath(url)
         };
 
         this._breakpointsLogic = BreakpointsLogic.createWithHandlers(communicator, dependencies);
+
+        new Stepping(dependencies).install();
+        this._pauseOnException = new PauseOnException(dependencies).install();
 
         this._sourcesLogic = new SourcesLogic(chromeDiagnostics, this._scriptsLogic);
         const handlesRegistry = new HandlesRegistry();
@@ -102,7 +108,7 @@ export class ChromeDebugAdapter implements IDebugAdapter {
         this._skipFilesLogic = new SkipFilesLogic(this._scriptsLogic, chromeDiagnostics,
             this._stackTraceLogic, sourceMapTransformer, pathTransformer);
         const smartStepLogic = new SmartStepLogic(pathTransformer, sourceMapTransformer, false);
-        this._stackTraceLogic = new StackTracesLogic(chromeDiagnostics, this._skipFilesLogic, smartStepLogic);
+        this._stackTraceLogic = new StackTracesLogic(dependencies, this._skipFilesLogic, smartStepLogic);
 
         this._chromeDebugAdapter = new ChromeDebugLogic(this._lineColTransformer, sourceMapTransformer, pathTransformer, session,
             this._scriptsLogic, this._sourcesLogic, chromeConnection, chromeDiagnostics,
@@ -237,5 +243,13 @@ export class ChromeDebugAdapter implements IDebugAdapter {
 
     public commonArgs(args: ICommonRequestArgs): void {
         return this._chromeDebugAdapter.commonArgs(args);
+    }
+
+    public async exceptionInfo(args: DebugProtocol.ExceptionInfoArguments): Promise<IExceptionInfoResponseBody> {
+        if (args.threadId !== ChromeDebugLogic.THREAD_ID) {
+            throw errors.invalidThread(args.threadId);
+        }
+
+        return this._internalToVsCode.toExceptionInfo(await this._pauseOnException.latestExceptionInfo());
     }
 }

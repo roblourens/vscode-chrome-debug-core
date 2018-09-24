@@ -8,6 +8,7 @@ import { ConditionalBreak, AlwaysBreak } from '../internal/breakpoints/bpActionW
 import { IBreakpoint } from '../internal/breakpoints/breakpoint';
 import { registerChannels } from './channel';
 import { PausedEvent } from '../target/events';
+import { ShouldPauseForUser } from '../internal/features/pauseProgramWhenNeeded';
 
 const _breakpoints = {
     // Notifications
@@ -22,6 +23,7 @@ const _breakpoints = {
 const Breakpoints: Readonly<typeof _breakpoints> = _breakpoints;
 
 const _Internal = {
+    OnShouldPauseForUser: new NotificationChannelIdentifier<PausedEvent, ShouldPauseForUser>(),
     Breakpoints
 };
 

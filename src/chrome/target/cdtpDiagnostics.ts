@@ -50,8 +50,9 @@ export function registerCDTPDiagnosticsPublishersAndHandlers(communicator: Commu
     // Notifications
     cdtpDiagnostics.Debugger.onBreakpointResolved(communicator.getPublisher(Debugger.OnAsyncBreakpointResolved));
     cdtpDiagnostics.Debugger.onScriptParsed(communicator.getPublisher(Debugger.OnScriptParsed));
-    cdtpDiagnostics.Debugger.onPaused(communicator.getPublisher(Debugger.OnPaused));
-    cdtpDiagnostics.Debugger.onPausedDueToInstrumentation(communicator.getPublisher(Debugger.OnPausedDueToInstrumentation));
+    const laa = communicator.getPublisher(Debugger.OnResumed);
+    cdtpDiagnostics.Debugger.onResumed(laa);
+    cdtpDiagnostics.Debugger.onPaused(communicator.getPublisher(Debugger.OnPaused2));
 
     // Requests
     communicator.registerHandler(Debugger.GetPossibleBreakpoints, rangeInScript => cdtpDiagnostics.Debugger.getPossibleBreakpoints(rangeInScript));
@@ -63,4 +64,6 @@ export function registerCDTPDiagnosticsPublishersAndHandlers(communicator: Commu
     communicator.registerHandler(Debugger.SupportsColumnBreakpoints, () => cdtpDiagnostics.Debugger.supportsColumnBreakpoints());
     communicator.registerHandler(Debugger.SetInstrumentationBreakpoint, eventName => cdtpDiagnostics.DOMDebugger.setInstrumentationBreakpoint({ eventName }));
     communicator.registerHandler(Debugger.RemoveInstrumentationBreakpoint, eventName => cdtpDiagnostics.DOMDebugger.removeInstrumentationBreakpoint({ eventName }));
+    communicator.registerHandler(Debugger.PauseOnAsyncCall,
+        (parentStackTraceId: Crdp.Runtime.StackTraceId) => cdtpDiagnostics.Debugger.pauseOnAsyncCall({ parentStackTraceId }));
 }

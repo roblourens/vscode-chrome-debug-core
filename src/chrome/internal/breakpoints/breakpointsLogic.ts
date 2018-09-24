@@ -1,10 +1,9 @@
 import { IBPRecipie } from './bpRecipie';
 import { ITelemetryPropertyCollector } from '../../..';
-import { PausedEvent } from '../../target/events';
-import { ScriptOrSourceOrIdentifierOrUrlRegexp } from '../locations/location';
+import { ScriptOrSourceOrIdentifierOrUrlRegexp, LocationInScript } from '../locations/location';
 import { BPRecipiesInUnresolvedSource } from './bpRecipies';
 import { Breakpoint } from './breakpoint';
-import { UnbindedBPLogic, UnbindedBPLogicDependencies } from './unbindedBPLogic';
+import { ReAddBPsWhenSourceIsLoaded, ReAddBPsWhenSourceIsLoadedDependencies } from './features/reAddBPsWhenSourceIsLoaded';
 import { asyncMap } from '../../collections/async';
 import { IBPRecipieStatus } from './bpRecipieStatus';
 import { ClientCurrentBPRecipiesRegistry } from './clientCurrentBPRecipiesRegistry';
@@ -13,57 +12,41 @@ import { Communicator } from '../../communication/communicator';
 import { Internal } from '../../communication/internalChannels';
 import { BPRecipieInLoadedSourceLogic, BPRInLoadedSourceLogicDependencies } from './bpRecipieInLoadedSourceLogic';
 import { RemoveProperty } from '../../../typeUtils';
-import { combine } from '../../utils/combine';
+import { combineProperties } from '../../utils/combine';
 import { ILoadedSource } from '../sources/loadedSource';
 import { BPStatusChangedParameters } from '../../client/eventSender';
-import { PauseScriptLoadsToSetBPs, BPsWhileLoadingLogicDependencies } from './pauseScriptLoadsToSetBPs';
-
-// interface IHitConditionBreakpoint {
-//     numHits: number;
-//     shouldPause: (numHits: number) => boolean;
-// }
+import { PauseScriptLoadsToSetBPs, PauseScriptLoadsToSetBPsDependencies } from './features/pauseScriptLoadsToSetBPs';
 
 export interface IOnPausedResult {
     didPause: boolean;
 }
 
 export interface InternalDependencies extends
-    UnbindedBPLogicDependencies,
-    BPsWhileLoadingLogicDependencies,
+    ReAddBPsWhenSourceIsLoadedDependencies,
+    PauseScriptLoadsToSetBPsDependencies,
     BPRInLoadedSourceLogicDependencies {
     sendBPStatusChanged(params: BPStatusChangedParameters): Promise<void>;
 
     onAsyncBreakpointResolved(listener: (params: Breakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>) => void): void;
 }
 
-export type BreakpointsLogicDependencies = RemoveProperty<InternalDependencies, 'waitUntilUnbindedBPsAreSet' | 'notifyAllBPsAreBinded'>;
+export type BreakpointsLogicDependencies = RemoveProperty<InternalDependencies,
+    'waitUntilUnbindedBPsAreSet' |
+    'notifyAllBPsAreBinded' |
+    'tryGettingBreakpointAtLocation'>;
 
 export class BreakpointsLogic {
     private readonly _clientBreakpointsRegistry = new ClientCurrentBPRecipiesRegistry();
     private readonly _breakpointRegistry: BreakpointsRegistry;
-    private readonly _unbindedBreakpointsLogic: UnbindedBPLogic;
+    private readonly _unbindedBreakpointsLogic: ReAddBPsWhenSourceIsLoaded;
     private readonly _bpsWhileLoadingLogic: PauseScriptLoadsToSetBPs;
     private readonly _bprInLoadedSourceLogic: BPRecipieInLoadedSourceLogic;
 
-    public async onPaused(_notification: PausedEvent): Promise<IOnPausedResult> {
-        // DIEGO TODO: Implement this
-        // // Did we hit a hit condition breakpoint?
-        // for (let hitBp of notification.hitBreakpoints) {
-        //     if (this._hitConditionBreakpointsById.has(hitBp)) {
-        //         // Increment the hit count and check whether to pause
-        //         const hitConditionBp = this._hitConditionBreakpointsById.get(hitBp);
-        //         hitConditionBp.numHits++;
-        //         // Only resume if we didn't break for some user action (step, pause button)
-        //         if (!hitConditionBp.shouldPause(hitConditionBp.numHits)) {
-        //             this.targetDebuggerResume()
-        //                 .catch(() => { });
-        //             return { didPause: false };
-        //         }
-        //     }
-        // }
-
-        return { didPause: false };
-    }
+    private readonly subObjectsSelfDependencies = {
+        notifyAllBPsAreBinded: () => this._bpsWhileLoadingLogic.disableIfNeccesary(),
+        waitUntilUnbindedBPsAreSet: (source: ILoadedSource) => this._unbindedBreakpointsLogic.waitUntilBPsAreSet(source),
+        tryGettingBreakpointAtLocation: (l: LocationInScript) => this._breakpointRegistry.tryGettingBreakpointAtLocation(l)
+    };
 
     protected onAsyncBreakpointResolved(breakpoint: Breakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>): void {
         this._breakpointRegistry.registerBreakpointAsBinded(breakpoint);
@@ -113,14 +96,11 @@ export class BreakpointsLogic {
     }
 
     constructor(private readonly _dependencies: BreakpointsLogicDependencies) {
-        const internalDependencies = combine(this._dependencies, {
-            notifyAllBPsAreBinded: () => this._bpsWhileLoadingLogic.disableIfNeccesary(),
-            waitUntilUnbindedBPsAreSet: (source: ILoadedSource) => this._unbindedBreakpointsLogic.waitUntilBPsAreSet(source)
-        });
+        const internalDependencies = combineProperties(this._dependencies, this.subObjectsSelfDependencies);
 
         this._breakpointRegistry = new BreakpointsRegistry();
-        this._unbindedBreakpointsLogic = new UnbindedBPLogic(internalDependencies);
-        this._bpsWhileLoadingLogic = new PauseScriptLoadsToSetBPs(internalDependencies, this._breakpointRegistry);
+        this._unbindedBreakpointsLogic = new ReAddBPsWhenSourceIsLoaded(internalDependencies);
+        this._bpsWhileLoadingLogic = new PauseScriptLoadsToSetBPs(internalDependencies);
         this._bprInLoadedSourceLogic = new BPRecipieInLoadedSourceLogic(internalDependencies, this._breakpointRegistry);
 
         this._dependencies.onAsyncBreakpointResolved(breakpoint => this.onAsyncBreakpointResolved(breakpoint));

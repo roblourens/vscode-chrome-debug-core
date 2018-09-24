@@ -1,5 +1,5 @@
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { utils, LineColTransformer } from '../..';
+import { utils, LineColTransformer, IExceptionInfoResponseBody } from '../..';
 import * as pathModule from 'path';
 import { asyncAdaptToSinglIntoToMulti } from '../../utils';
 import { ILoadedSource, ILoadedSourceTreeNode } from '../internal/sources/loadedSource';
@@ -10,6 +10,8 @@ import { IBPRecipieStatus } from '../internal/breakpoints/bpRecipieStatus';
 import { IBPRecipie } from '../internal/breakpoints/bpRecipie';
 import { HandlesRegistry } from './handlesRegistry';
 import { FramePresentationOrLabel, StackTraceLabel } from '../internal/stackTraces/stackTracePresentation';
+import { IExceptionInformation } from '../internal/features/pauseOnException';
+import { IFormattedExceptionLineDescription } from '../internal/formattedExceptionParser';
 
 interface ClientLocationInSource {
     source: DebugProtocol.Source;
@@ -92,6 +94,32 @@ export class InternalToClient {
 
     public toBreakpointId(recipie: IBPRecipie<ILoadedSource<string>>): number {
         return this._handlesRegistry.breakpoints.getIdByObject(recipie);
+    }
+
+    public isZeroBased(): boolean {
+        const objWithLine = { line: 0 };
+        this._lineColTransformer.convertDebuggerLocationToClient(objWithLine);
+        return objWithLine.line === 0;
+    }
+
+    public toExceptionInfo(info: IExceptionInformation): IExceptionInfoResponseBody {
+        return {
+            exceptionId: info.exceptionId,
+            description: info.description,
+            breakMode: info.breakMode,
+            details: {
+                message: info.details.message,
+                formattedDescription: info.details.formattedDescription,
+                stackTrace: this.toExceptionStackTracePrintted(info.details.stackTrace),
+                typeName: info.details.typeName,
+            }
+        };
+    }
+
+    public toExceptionStackTracePrintted(formattedExceptionLines: IFormattedExceptionLineDescription[]): string {
+        const stackTraceLines = formattedExceptionLines.map(line => line.generateDescription(this.isZeroBased()));
+        const stackTracePrintted = stackTraceLines.join('\n') + '\n';
+        return stackTracePrintted;
     }
 
     constructor(

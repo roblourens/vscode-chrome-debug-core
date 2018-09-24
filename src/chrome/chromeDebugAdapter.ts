@@ -8,7 +8,7 @@ import { InitializedEvent, TerminatedEvent, ContinuedEvent, OutputEvent, Logger,
 import {
     ICommonRequestArgs, ILaunchRequestArgs, IAttachRequestArgs, IScopesResponseBody, IVariablesResponseBody,
     IThreadsResponseBody, IEvaluateResponseBody, ISetVariableResponseBody,
-    ICompletionsResponseBody, IExceptionInfoResponseBody, TimeTravelRuntime, IRestartRequestArgs, IInitializeRequestArgs } from '../debugAdapterInterfaces';
+    ICompletionsResponseBody, TimeTravelRuntime, IRestartRequestArgs, IInitializeRequestArgs } from '../debugAdapterInterfaces';
 import { ChromeConnection } from './chromeConnection';
 import * as ChromeUtils from './chromeUtils';
 import { Protocol as Crdp } from 'devtools-protocol';
@@ -45,12 +45,14 @@ import { SmartStepLogic } from './internal/features/smartStep';
 import { SkipFilesLogic } from './internal/features/skipFiles';
 import { EventSender } from './client/eventSender';
 import { SourcesLogic } from './internal/sources/sourcesLogic';
-import { IOnPausedResult, parseResourceIdentifier } from '..';
+import { parseResourceIdentifier } from '..';
 import { BreakpointsLogic } from './internal/breakpoints/breakpointsLogic';
 import { ICallFrame } from './internal/stackTraces/callFrame';
 import { CodeFlowStackTrace } from './internal/stackTraces/stackTrace';
 import { newResourceIdentifierMap, IResourceIdentifier } from './internal/sources/resourceIdentifier';
 import { ISourceResolver } from './internal/sources/sourceResolver';
+import { ShouldPauseForUser } from './internal/features/pauseProgramWhenNeeded';
+import { FormattedExceptionParser } from './internal/formattedExceptionParser';
 
 export class ChromeDebugAdapter extends ChromeDebugAdapterClass {
     /** These methods are called by the ChromeDebugAdapter subclass in chrome-debug. We need to redirect them like this
@@ -71,10 +73,6 @@ export class ChromeDebugAdapter extends ChromeDebugAdapterClass {
     protected onResumed(): void {
         return this._chromeDebugAdapter.onResumed();
     }
-    protected onPaused(notification: PausedEvent, expectingStopReason: any): Promise<IOnPausedResult> {
-        return this._chromeDebugAdapter.onPaused(notification, expectingStopReason);
-    }
-
     protected terminateSession(reason: string, restart?: IRestartRequestArgs): Promise<void> {
         return this._chromeDebugAdapter.terminateSession(reason, restart);
     }
@@ -171,7 +169,7 @@ export class ChromeDebugLogic {
     public static EVAL_ROOT = '<eval>';
 
     private static SCRIPTS_COMMAND = '.scripts';
-    private static THREAD_ID = 1;
+    public static THREAD_ID = 1;
     private static ASYNC_CALL_STACK_DEPTH = 4;
 
     public _session: ISession;
@@ -200,8 +198,6 @@ export class ChromeDebugLogic {
     private _currentStep = Promise.resolve();
     private _currentLogMessage = Promise.resolve();
     privaRejectExceptionFilterEnabled = false;
-
-    private _lastPauseState: { expecting: ReasonType; event: PausedEvent };
 
     private _batchTelemetryReporter: BatchTelemetryReporter;
 
@@ -233,7 +229,6 @@ export class ChromeDebugLogic {
         private readonly _eventSender: EventSender,
         private readonly _breakpointsLogic: BreakpointsLogic,
         private readonly _subclass: ChromeDebugAdapterClass) {
-        this._skipFilesLogic.reprocessPausedEvent = () => this.reprocessPausedEvent;
         telemetry.setupEventHandler(e => session.sendEvent(e));
         this._batchTelemetryReporter = new BatchTelemetryReporter(telemetry);
         this._session = session;
@@ -494,19 +489,6 @@ export class ChromeDebugLogic {
      * Hook up all connection events
      */
     public hookConnectionEvents(): void {
-        this.chrome.Debugger.onPaused(params => {
-            /* __GDPR__
-               'target/notification/onPaused' : {
-                  '${include}': [
-                      '${IExecutionResultTelemetryProperties}',
-                      '${DebugCommonProperties}'
-                    ]
-               }
-             */
-            this.runAndMeasureProcessingTime('target/notification/onPaused', async () => {
-                await this.onPaused(params);
-            });
-        });
         this.chrome.Debugger.onResumed(() => this.onResumed());
         this.chrome.Debugger.onScriptParsed(params => {
             /* __GDPR__
@@ -530,7 +512,7 @@ export class ChromeDebugLogic {
         this._chromeConnection.onClose(() => this.terminateSession('websocket closed'));
     }
 
-    private async runAndMeasureProcessingTime(notificationName: string, procedure: () => Promise<void>): Promise<void> {
+    private async runAndMeasureProcessingTime<Result>(notificationName: string, procedure: () => Promise<Result>): Promise<Result> {
         const startTime = Date.now();
         const startTimeMark = process.hrtime();
         let properties: IExecutionResultTelemetryProperties = {
@@ -538,19 +520,20 @@ export class ChromeDebugLogic {
         };
 
         try {
-            await procedure();
+            return await procedure();
             properties.successful = 'true';
         } catch (e) {
             properties.successful = 'false';
             properties.exceptionType = 'firstChance';
             utils.fillErrorDetails(properties, e);
+            throw e;
+        } finally {
+            const elapsedTime = utils.calculateElapsedTime(startTimeMark);
+            properties.timeTakenInMilliseconds = elapsedTime.toString();
+
+            // Callers set GDPR annotation
+            this._batchTelemetryReporter.reportEvent(notificationName, properties);
         }
-
-        const elapsedTime = utils.calculateElapsedTime(startTimeMark);
-        properties.timeTakenInMilliseconds = elapsedTime.toString();
-
-        // Callers set GDPR annotation
-        this._batchTelemetryReporter.reportEvent(notificationName, properties);
     }
 
     /**
@@ -660,40 +643,6 @@ export class ChromeDebugLogic {
         });
     }
 
-    /* __GDPR__
-        "ClientRequest/exceptionInfo" : {
-            "${include}": [
-                "${IExecutionResultTelemetryProperties}",
-                "${DebugCommonProperties}"
-            ]
-        }
-    */
-    public async exceptionInfo(args: DebugProtocol.ExceptionInfoArguments): Promise<IExceptionInfoResponseBody> {
-        if (args.threadId !== ChromeDebugLogic.THREAD_ID) {
-            throw errors.invalidThread(args.threadId);
-        }
-
-        if (this._exception) {
-            const isError = this._exception.subtype === 'error';
-            const message = isError ? utils.firstLine(this._exception.description) : (this._exception.description || this._exception.value);
-            const formattedMessage = message && message.replace(/\*/g, '\\*');
-            const response: IExceptionInfoResponseBody = {
-                exceptionId: this._exception.className || this._exception.type || 'Error',
-                breakMode: 'unhandled',
-                details: {
-                    stackTrace: this._exception.description && await this.mapFormattedException(this._exception.description),
-                    message,
-                    formattedDescription: formattedMessage, // VS workaround - see https://github.com/Microsoft/client/issues/34259
-                    typeName: this._exception.subtype || this._exception.type
-                }
-            };
-
-            return response;
-        } else {
-            throw errors.noStoredException();
-        }
-    }
-
     public onResumed(): void {
         if (this._expectingResumedEvent) {
             this._expectingResumedEvent = false;
@@ -704,23 +653,6 @@ export class ChromeDebugLogic {
             let resumedEvent = new ContinuedEvent(ChromeDebugLogic.THREAD_ID);
             this._session.sendEvent(resumedEvent);
         }
-    }
-
-    /* __GDPR__
-        "ClientRequest/toggleSmartStep" : {
-            "${include}": [
-                "${IExecutionResultTelemetryProperties}",
-                "${DebugCommonProperties}"
-            ]
-        }
-    */
-    public async toggleSmartStep(): Promise<void> {
-        this._smartStepLogic.toggleEnabled();
-        this.reprocessPausedEvent();
-    }
-
-    public reprocessPausedEvent(): void {
-        this.onPaused(this._lastPauseState.event, this._lastPauseState.expecting);
     }
 
     public onConsoleAPICalled(event: ConsoleAPICalledEvent): void {
@@ -784,15 +716,15 @@ export class ChromeDebugLogic {
                 if (objs.length === 1 && objs[0].type === 'string') {
                     let msg: string = objs[0].value;
                     if (isError) {
-                        msg = await this.mapFormattedException(msg);
+                        const stackTrace = await new FormattedExceptionParser({ getScriptsByUrl: url => this.getScriptByUrl(url)}, msg).parse();
+                        this._eventSender.sendExceptionThrown({exceptionStackTrace: stackTrace, category, location });
+                    } else {
+                        if (!msg.endsWith(clearConsoleCode)) {
+                            // If this string will clear the console, don't append a \n
+                            msg += '\n';
+                        }
+                        this._eventSender.sendOutput({output: msg, category, location });
                     }
-
-                    if (!msg.endsWith(clearConsoleCode)) {
-                        // If this string will clear the console, don't append a \n
-                        msg += '\n';
-                    }
-
-                    this._eventSender.sendOutput({output: msg, category, location });
                 } else {
                     const variablesReference = this._variableHandles.create(new variables.LoggedObjects(objs), 'repl');
                     this._eventSender.sendOutput({output: 'output', category, variablesReference, location });
@@ -809,7 +741,7 @@ export class ChromeDebugLogic {
 
         return this._currentLogMessage = this._currentLogMessage.then(async () => {
             const formattedException = formatExceptionDetails(params.exceptionDetails);
-            const exceptionStr = await this.mapFormattedException(formattedException);
+            const exceptionStackTrace = await new FormattedExceptionParser({ getScriptsByUrl: url => this.getScriptByUrl(url)}, formattedException).parse();
 
             let location: LocationInLoadedSource = null;
             const stackTrace = params.exceptionDetails.stackTrace;
@@ -817,42 +749,9 @@ export class ChromeDebugLogic {
                 location = stackTrace.codeFlowFrames[0].location.asLocationInLoadedSource();
             }
 
-            this._eventSender.sendOutput({ output: exceptionStr + '\n', category: 'stderr',  location });
+            this._eventSender.sendExceptionThrown({exceptionStackTrace: exceptionStackTrace, category: 'stderr', location });
         })
             .catch(err => logger.error(err.toString()));
-    }
-
-    // We parse stack trace from `formattedException`, source map it and return a new string
-    protected async mapFormattedException(formattedException: string): Promise<string> {
-        const exceptionLines = formattedException.split(/\r?\n/);
-
-        for (let i = 0, len = exceptionLines.length; i < len; ++i) {
-            const line = exceptionLines[i];
-            const matches = line.match(/^\s+at (.*?)\s*\(?([^ ]+):(\d+):(\d+)\)?$/);
-
-            if (!matches) continue;
-            const linePath = parseResourceIdentifier(matches[2]);
-            const lineNum = parseInt(matches[3], 10);
-            const adjustedLineNum = lineNum - 1;
-            const columnNum = parseInt(matches[4], 10);
-            const clientPath = this._pathTransformer.getClientPathFromTargetPath(linePath);
-            const mapped = await this._sourceMapTransformer.mapToAuthored((clientPath || linePath).canonicalized, adjustedLineNum, columnNum);
-
-            if (mapped && mapped.source && utils.isNumber(mapped.line) && utils.isNumber(mapped.column) && utils.existsSync(mapped.source)) {
-                this._lineColTransformer.mappedExceptionStack(mapped);
-                exceptionLines[i] = exceptionLines[i].replace(
-                    `${linePath}:${lineNum}:${columnNum}`,
-                    `${mapped.source}:${mapped.line}:${mapped.column}`);
-            } else if (clientPath && clientPath !== linePath) {
-                const location = { line: adjustedLineNum, column: columnNum };
-                this._lineColTransformer.mappedExceptionStack(location);
-                exceptionLines[i] = exceptionLines[i].replace(
-                    `${linePath}:${lineNum}:${columnNum}`,
-                    `${clientPath}:${location.line}:${location.column}`);
-            }
-        }
-
-        return exceptionLines.join('\n');
     }
 
     /**
@@ -1862,16 +1761,9 @@ export class ChromeDebugLogic {
         return this._sourcesLogic.createSourceResolver(path);
     }
 
-    public async onPaused(notification: PausedEvent, expectingStopReason = this._expectingStopReason): Promise<IOnPausedResult> {
-        if (notification.asyncCallStackTraceId) {
-            await this.chrome.Debugger.pauseOnAsyncCall({ parentStackTraceId: notification.asyncCallStackTraceId });
-            await this.chrome.Debugger.resume();
-            return { didPause: false };
-        }
-
+    public async onShouldPauseForUser(notification: PausedEvent, expectingStopReason = this._expectingStopReason): Promise<ShouldPauseForUser> {
         this._variableHandles.onPaused();
         this._exception = undefined;
-        this._lastPauseState = { event: notification, expecting: expectingStopReason };
 
         // We can tell when we've broken on an exception. Otherwise if hitBreakpoints is set, assume we hit a
         // breakpoint. If not set, assume it was a step. We can't tell the difference between step and 'break on anything'.
@@ -1885,15 +1777,10 @@ export class ChromeDebugLogic {
 
             // After processing smartStep and so on, check whether we are paused on a promise rejection, and should continue past it
             if (this._promiseRejectExceptionFilterEnabled && !this._pauseOnPromiseRejections) {
-                this.chrome.Debugger.resume()
-                    .catch(() => { });
-                return { didPause: false };
-            }
+                    return ShouldPauseForUser.Abstained;
+                }
 
             this._exception = notification.data;
-        } else if (notification.hitBreakpoints && notification.hitBreakpoints.length) {
-            reason = 'breakpoint';
-            this._breakpointsLogic.onPaused(notification);
         } else if (expectingStopReason) {
             // If this was a step, check whether to smart step
             reason = expectingStopReason;
@@ -1907,7 +1794,7 @@ export class ChromeDebugLogic {
         if (shouldSmartStep) {
             this._smartStepCount++;
             await this.stepIn(false);
-            return { didPause: false };
+            return ShouldPauseForUser.Abstained;
         } else {
             if (this._smartStepCount > 0) {
                 logger.log(`SmartStep: Skipped ${this._smartStepCount} steps`);
@@ -1922,8 +1809,8 @@ export class ChromeDebugLogic {
             await utils.promiseTimeout(this._currentStep, /*timeoutMs=*/300)
                 .then(sendStoppedEvent, sendStoppedEvent);
 
-            return { didPause: true };
-        }
+                return ShouldPauseForUser.NeedsToPause;
+            }
     }
 
 }

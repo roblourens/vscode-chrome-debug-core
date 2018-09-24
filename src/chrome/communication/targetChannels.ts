@@ -10,13 +10,14 @@ import { ISourceResolver } from '../internal/sources/sourceResolver';
 import { registerChannels } from './channel';
 import { RangeInScript } from '../internal/locations/rangeInScript';
 import { IResourceIdentifier } from '../internal/sources/resourceIdentifier';
+import { Crdp } from '../..';
 
 const _debugger = {
     // Notifications
     OnAsyncBreakpointResolved: new NotificationChannelIdentifier<Breakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>>(),
     OnScriptParsed: new NotificationChannelIdentifier<ScriptParsedEvent>(),
-    OnPaused: new NotificationChannelIdentifier<PausedEvent>(),
-    OnPausedDueToInstrumentation: new NotificationChannelIdentifier<PausedEvent>(),
+    OnPaused2: new NotificationChannelIdentifier<PausedEvent, void>(),
+    OnResumed: new NotificationChannelIdentifier<void, void>(),
 
     // Requests
     GetPossibleBreakpoints: new RequestChannelIdentifier<RangeInScript, Promise<LocationInScript[]>>(),
@@ -28,6 +29,7 @@ const _debugger = {
     SupportsColumnBreakpoints: new RequestChannelIdentifier<void, Promise<boolean>>(),
     SetInstrumentationBreakpoint: new RequestChannelIdentifier<string, Promise<void>>(),
     RemoveInstrumentationBreakpoint: new RequestChannelIdentifier<string, Promise<void>>(),
+    PauseOnAsyncCall: new RequestChannelIdentifier<Crdp.Runtime.StackTraceId, Promise<void>>(),
 };
 
 const Debugger: Readonly<typeof _debugger> = _debugger;

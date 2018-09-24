@@ -4,7 +4,6 @@ import * as path from 'path';
 
 import * as nls from 'vscode-nls';
 import { PausedEvent } from '../../target/events';
-import { CDTPDiagnostics } from '../../target/cdtpDiagnostics';
 import { SkipFilesLogic } from '../features/skipFiles';
 import { SmartStepLogic } from '../features/smartStep';
 import { StackTracePresentation, FramePresentationOrLabel, StackTraceLabel } from './stackTracePresentation';
@@ -15,9 +14,16 @@ import { CodeFlowFrame, ICallFrame, ScriptCallFrame, LoadedSourceCallFrame } fro
 import { LocationInLoadedSource } from '../locations/location';
 import { CallFramePresentation, CallFramePresentationHint, SourcePresentationHint } from './callFramePresentation';
 import { FormattedName } from './callFrameName';
+import { IFeature } from '../features/feature';
+import { ShouldPauseForUser } from '../features/pauseProgramWhenNeeded';
 const localize = nls.loadMessageBundle();
 
-export class StackTracesLogic {
+export interface StackTraceDependencies {
+    onShouldPauseForUser(listener: (params: PausedEvent) => Promise<ShouldPauseForUser>): void;
+    onResumed(listener: () => void): void;
+}
+
+export class StackTracesLogic implements IFeature {
     private _currentPauseEvent: PausedEvent | null = null;
 
     public onResumed(): any {
@@ -26,13 +32,6 @@ export class StackTracesLogic {
 
     public onPaused(pausedEvent: PausedEvent): any {
         this._currentPauseEvent = pausedEvent;
-    }
-
-    constructor(chromeDiagnostics: CDTPDiagnostics,
-        private readonly _skipFilesLogic: SkipFilesLogic,
-        private readonly _smartStepLogic: SmartStepLogic) {
-        chromeDiagnostics.Debugger.onPaused(params => this.onPaused(params));
-        chromeDiagnostics.Debugger.onResumed(() => this.onResumed());
     }
 
     public async stackTrace(args: DebugProtocol.StackTraceArguments): Promise<StackTracePresentation> {
@@ -117,5 +116,16 @@ export class StackTracesLogic {
         const callFrame = new LoadedSourceCallFrame(frame, codeFlow);
 
         return new CallFramePresentation<ILoadedSource>(callFrame, additionalPresentationDetails, presentationHint);
+    }
+
+    public install(): void {
+        this._dependencies.onShouldPauseForUser(params => this.onPaused(params));
+        this._dependencies.onResumed(() => this.onResumed());
+    }
+
+    constructor(
+        private readonly _dependencies: StackTraceDependencies,
+        private readonly _skipFilesLogic: SkipFilesLogic,
+        private readonly _smartStepLogic: SmartStepLogic) {
     }
 }

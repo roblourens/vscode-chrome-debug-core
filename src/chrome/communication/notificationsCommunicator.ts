@@ -3,12 +3,18 @@ import { ChannelIdentifier } from './channelIdentifier';
 import { getChannelName } from './channel';
 import { Listeners } from './listeners';
 
-export type NotificationListener<Notification> = (notification: Notification) => Promise<void> | void;
-export type PublisherFunction<Notification> = (notification: Notification) => Promise<void>;
-export type SubscriberFunction<Notification> = (listener: NotificationListener<Notification>) => void;
+type ResponsesArray<T> = T extends void
+    ? void
+    : T[];
+
+export type NotificationListener<Notification, Response> = (notification: Notification) => Promise<Response> | Response;
+export type PublisherFunction<Notification, Response> = Notification extends void
+    ? () => Promise<ResponsesArray<Response>>
+    : (notification: Notification) => Promise<ResponsesArray<Response>>;
+export type SubscriberFunction<Notification, Response> = (listener: NotificationListener<Notification, Response>) => void;
 
 // We need the template parameter to force the Communicator to be "strongly typed" from the client perspective
-export class NotificationChannelIdentifier<_Notification> implements ChannelIdentifier {
+export class NotificationChannelIdentifier<_Notification, _Response = void> implements ChannelIdentifier {
     [Symbol.toStringTag]: 'NotificationChannelIdentifier' = 'NotificationChannelIdentifier';
 
     constructor(public readonly identifierSymbol: Symbol = Symbol()) { }
@@ -18,37 +24,37 @@ export class NotificationChannelIdentifier<_Notification> implements ChannelIden
     }
 }
 
-class NotificationChannel<Notification> {
-    public readonly listeners = new Listeners<Notification, Promise<void> | void>();
-    public readonly publisher: Publisher<Notification> = new Publisher<Notification>(this);
+class NotificationChannel<Notification, Response> {
+    public readonly listeners = new Listeners<Notification, Promise<Response> | Response>();
+    public readonly publisher: Publisher<Notification, Response> = new Publisher<Notification, Response>(this);
 }
 
-export class Publisher<Notification> {
-    constructor(private readonly notificationChannel: NotificationChannel<Notification>) { }
+export class Publisher<Notification, Response> {
+    constructor(private readonly notificationChannel: NotificationChannel<Notification, Response>) { }
 
-    public async publish(notification: Notification): Promise<void> {
-        await Promise.all(this.notificationChannel.listeners.call(notification));
+    public async publish(notification: Notification): Promise<Response[]> {
+        return await Promise.all(this.notificationChannel.listeners.call(notification));
     }
 }
 
 export class NotificationsCommunicator {
-    private readonly _identifierToChannel = new ValidatedMap<NotificationChannelIdentifier<any>, NotificationChannel<any>>();
+    private readonly _identifierToChannel = new ValidatedMap<NotificationChannelIdentifier<any, any>, NotificationChannel<any, any>>();
 
-    public getPublisher<Notification>(notificationChannelIdentifier: NotificationChannelIdentifier<Notification>): PublisherFunction<Notification> {
+    public getPublisher<Notification, Response>(notificationChannelIdentifier: NotificationChannelIdentifier<Notification, Response>): PublisherFunction<Notification, Response> {
         const publisher = this.getChannel(notificationChannelIdentifier).publisher;
-        return notification => publisher.publish(notification);
+        return (notification => publisher.publish(notification)) as PublisherFunction<Notification, Response>;
     }
 
-    public getSubscriber<Notification>(notificationChannelIdentifier: NotificationChannelIdentifier<Notification>): SubscriberFunction<Notification> {
+    public getSubscriber<Notification, Response>(notificationChannelIdentifier: NotificationChannelIdentifier<Notification, Response>): SubscriberFunction<Notification, Response> {
         const channelListeners = this.getChannel(notificationChannelIdentifier).listeners;
         return listener => channelListeners.add(listener);
     }
 
-    public subscribe<Notification>(notificationChannelIdentifier: NotificationChannelIdentifier<Notification>, listener: (notification: Notification) => void): void {
+    public subscribe<Notification, Response>(notificationChannelIdentifier: NotificationChannelIdentifier<Notification, Response>, listener: (notification: Notification) => Response): void {
         this.getChannel(notificationChannelIdentifier).listeners.add(listener);
     }
 
-    private getChannel<Notification>(notificationChannelIdentifier: NotificationChannelIdentifier<Notification>): NotificationChannel<Notification> {
-        return this._identifierToChannel.getOrAdd(notificationChannelIdentifier, () => new NotificationChannel<Notification>());
+    private getChannel<Notification, Response>(notificationChannelIdentifier: NotificationChannelIdentifier<Notification, Response>): NotificationChannel<Notification, Response> {
+        return this._identifierToChannel.getOrAdd(notificationChannelIdentifier, () => new NotificationChannel<Notification, Response>());
     }
 }

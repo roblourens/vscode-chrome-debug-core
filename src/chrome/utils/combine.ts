@@ -1,7 +1,7 @@
 import { ValidatedMap } from '../collections/validatedMap';
 
 export function combine<T1, T2>(object1: T1, object2: T2): T1 & T2;
-export function combine(...objects: object[]) {
+export function combine(...objects: object[]): any {
     const keyToObject = new ValidatedMap<PropertyKey, object>();
     for (const object of objects) {
         for (const key in object) {
@@ -19,4 +19,9 @@ export function combine(...objects: object[]) {
             return choosenReceiver[key].bind(choosenReceiver);
         }
     });
+}
+
+export function combineProperties<T1, T2>(object1: T1, object2: T2): T1 & T2;
+export function combineProperties(...objects: object[]): any {
+    return Object.assign({}, ...objects);
 }
