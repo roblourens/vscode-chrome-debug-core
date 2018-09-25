@@ -87,6 +87,7 @@ export class ChromeDebugAdapter implements IDebugAdapter {
             onResumed: communicator.getSubscriber(Target.Debugger.OnResumed),
             onLoadedSourceIsAvailable: onLoadedSourceIsAvailable,
             pauseProgramOnAsyncCall: communicator.getRequester(Target.Debugger.PauseOnAsyncCall),
+            notifyNoPendingBPs: communicator.getPublisher(Internal.Breakpoints.OnNoPendingBreakpoints),
             getScriptsByUrl: url => this._scriptsLogic.getScriptsByPath(url)
         };
 
@@ -107,7 +108,7 @@ export class ChromeDebugAdapter implements IDebugAdapter {
 
         this._skipFilesLogic = new SkipFilesLogic(this._scriptsLogic, chromeDiagnostics,
             this._stackTraceLogic, sourceMapTransformer, pathTransformer);
-        const smartStepLogic = new SmartStepLogic(pathTransformer, sourceMapTransformer, false);
+        const smartStepLogic = new SmartStepLogic(dependencies, pathTransformer, sourceMapTransformer, false);
         this._stackTraceLogic = new StackTracesLogic(dependencies, this._skipFilesLogic, smartStepLogic);
 
         this._chromeDebugAdapter = new ChromeDebugLogic(this._lineColTransformer, sourceMapTransformer, pathTransformer, session,
@@ -181,6 +182,13 @@ export class ChromeDebugAdapter implements IDebugAdapter {
 
     public pause(): PromiseOrNot<void> {
         return this._chromeDebugAdapter.pause();
+    }
+
+    public async restartFrame(callFrame: ICallFrame<IScript>): Promise<void> {
+        if (!callFrame) {
+            return utils.errP(errors.noRestartFrame);
+        }
+        return this._chromeDebugAdapter.restartFrame();
     }
 
     public async stackTrace(args: DebugProtocol.StackTraceArguments, _?: ITelemetryPropertyCollector, _2?: number): Promise<IStackTraceResponseBody> {

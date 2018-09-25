@@ -2,6 +2,8 @@ import { BasePathTransformer } from '../../../transformers/basePathTransformer';
 import { BaseSourceMapTransformer } from '../../../transformers/baseSourceMapTransformer';
 import { IScript } from '../scripts/script';
 import { ICallFrame } from '../stackTraces/callFrame';
+import { PausedEvent } from '../../target/events';
+import { ShouldPauseForUser } from './pauseProgramWhenNeeded';
 
 export interface SmartStepLogicDependencies {
 
@@ -23,6 +25,10 @@ export class SmartStepLogic {
     public async toggleSmartStep(): Promise<void> {
         this.toggleEnabled();
         this.reprocessPausedEvent();
+    }
+
+    public async onShouldPauseForUser(notification: PausedEvent): Promise<ShouldPauseForUser> {
+        return ShouldPauseForUser.Abstained;
     }
 
     public reprocessPausedEvent(): void {

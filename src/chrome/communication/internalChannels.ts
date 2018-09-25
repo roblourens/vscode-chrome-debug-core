@@ -14,6 +14,7 @@ const _breakpoints = {
     // Notifications
     OnUnbounBPRecipieIsNowBound: new NotificationChannelIdentifier<BPRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp>>(),
     OnPausedOnBreakpoint: new NotificationChannelIdentifier<PausedEvent>(),
+    OnNoPendingBreakpoints: new NotificationChannelIdentifier<void>(),
 
     // Requests
     UpdateBreakpointsForFile: new RequestChannelIdentifier<BPRecipiesInUnresolvedSource, Promise<IBPRecipieStatus[]>>(),

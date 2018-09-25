@@ -813,123 +813,6 @@ export class ChromeDebugLogic {
             .then(() => { });
     }
 
-    /* __GDPR__
-        "ClientRequest/continue" : {
-            "${include}": [
-                "${IExecutionResultTelemetryProperties}",
-                "${DebugCommonProperties}"
-            ]
-        }
-    */
-    /**
-     * internal -> suppress telemetry
-     */
-    public continue(internal = false): Promise<void> {
-        /* __GDPR__
-           "continueRequest" : {
-              "${include}": [ "${DebugCommonProperties}" ]
-           }
-         */
-        if (!internal) telemetry.reportEvent('continueRequest');
-        if (!this.chrome) {
-            return utils.errP(errors.runtimeNotConnectedMsg);
-        }
-
-        this._expectingResumedEvent = true;
-        return this._currentStep = this.chrome.Debugger.resume()
-            .then(() => { /* make void */ },
-                () => { });
-    }
-
-    /* __GDPR__
-        "ClientRequest/next" : {
-            "${include}": [
-                "${IExecutionResultTelemetryProperties}",
-                "${DebugCommonProperties}"
-            ]
-        }
-    */
-    public next(): Promise<void> {
-        if (!this.chrome) {
-            return utils.errP(errors.runtimeNotConnectedMsg);
-        }
-
-        /* __GDPR__
-           "nextRequest" : {
-               "${include}": [ "${DebugCommonProperties}" ]
-           }
-         */
-        telemetry.reportEvent('nextRequest');
-        this._expectingStopReason = 'step';
-        this._expectingResumedEvent = true;
-        return this._currentStep = this.chrome.Debugger.stepOver()
-            .then(() => { /* make void */ },
-                () => { });
-    }
-
-    /* __GDPR__
-        "ClientRequest/stepIn" : {
-            "${include}": [
-                "${IExecutionResultTelemetryProperties}",
-                "${DebugCommonProperties}"
-            ]
-        }
-    */
-    public stepIn(userInitiated = true): Promise<void> {
-        if (!this.chrome) {
-            return utils.errP(errors.runtimeNotConnectedMsg);
-        }
-
-        if (userInitiated) {
-            /* __GDPR__
-               "stepInRequest" : {
-                  "${include}": [ "${DebugCommonProperties}" ]
-               }
-             */
-            telemetry.reportEvent('stepInRequest');
-        }
-
-        this._expectingStopReason = 'step';
-        this._expectingResumedEvent = true;
-        return this._currentStep = this.chrome.Debugger.stepInto({ breakOnAsyncCall: true })
-            .then(() => { /* make void */ },
-                () => { });
-    }
-
-    /* __GDPR__
-        "ClientRequest/stepOut" : {
-            "${include}": [
-                "${IExecutionResultTelemetryProperties}",
-                "${DebugCommonProperties}"
-            ]
-        }
-    */
-    public stepOut(): Promise<void> {
-        if (!this.chrome) {
-            return utils.errP(errors.runtimeNotConnectedMsg);
-        }
-
-        /* __GDPR__
-           "stepOutRequest" : {
-              "${include}": [ "${DebugCommonProperties}" ]
-           }
-         */
-        telemetry.reportEvent('stepOutRequest');
-        this._expectingStopReason = 'step';
-        this._expectingResumedEvent = true;
-        return this._currentStep = this.chrome.Debugger.stepOut()
-            .then(() => { /* make void */ },
-                () => { });
-    }
-
-    /* __GDPR__
-        "ClientRequest/stepBack" : {
-            "${include}": [
-                "${IExecutionResultTelemetryProperties}",
-                "${DebugCommonProperties}"
-            ]
-        }
-    */
     public stepBack(): Promise<void> {
         return (<TimeTravelRuntime>this._chromeConnection.api).TimeTravel.stepBack()
             .then(() => { /* make void */ },
@@ -950,29 +833,6 @@ export class ChromeDebugLogic {
                 () => { });
     }
 
-    /* __GDPR__
-        "ClientRequest/pause" : {
-            "${include}": [
-                "${IExecutionResultTelemetryProperties}",
-                "${DebugCommonProperties}"
-            ]
-        }
-    */
-    public pause(): Promise<void> {
-        if (!this.chrome) {
-            return utils.errP(errors.runtimeNotConnectedMsg);
-        }
-
-        /* __GDPR__
-           "pauseRequest" : {
-              "${include}": [ "${DebugCommonProperties}" ]
-           }
-         */
-        telemetry.reportEvent('pauseRequest');
-        this._expectingStopReason = 'pause';
-        return this._currentStep = this.chrome.Debugger.pause()
-            .then(() => { });
-    }
 
     public getReadonlyOrigin(): string {
         // To override
@@ -1488,24 +1348,6 @@ export class ChromeDebugLogic {
             variablesReference: 0,
             evaluateName: ChromeUtils.getEvaluateName(parentEvaluateName, name)
         };
-    }
-
-    /* __GDPR__
-        "ClientRequest/restartFrame" : {
-            "${include}": [
-                "${IExecutionResultTelemetryProperties}",
-                "${DebugCommonProperties}"
-            ]
-        }
-    */
-    public async restartFrame(callFrame: ICallFrame<IScript>): Promise<void> {
-        if (!callFrame) {
-            return utils.errP(errors.noRestartFrame);
-        }
-
-        await this.chrome.Debugger.restartFrame(callFrame);
-        this._expectingStopReason = 'frame_entry';
-        return this.chrome.Debugger.stepInto({});
     }
 
     /* __GDPR__
