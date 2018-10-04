@@ -11,8 +11,27 @@ import { HandlesRegistry } from './handlesRegistry';
 import { FramePresentationOrLabel } from '../internal/stackTraces/stackTracePresentation';
 import { LineNumber, ColumnNumber } from '../internal/locations/subtypes';
 import { parseResourceIdentifier } from '../internal/sources/resourceIdentifier';
+import { PauseOnExceptionsStrategy, PauseOnAllExceptions, PauseOnUnhandledExceptions, DoNotPauseOnAnyExceptions, PauseOnAllRejections, DoNotPauseOnAnyRejections, PauseOnPromiseRejectionsStrategy } from '../internal/exceptions/strategies';
 
 export class ClientToInternal {
+    public toPauseOnExceptionsStrategy(exceptionFilters: string[]): PauseOnExceptionsStrategy {
+        if (exceptionFilters.indexOf('all') >= 0) {
+            return new PauseOnAllExceptions();
+        } else if (exceptionFilters.indexOf('uncaught') >= 0) {
+            return new PauseOnUnhandledExceptions();
+        } else {
+            return new DoNotPauseOnAnyExceptions();
+        }
+    }
+
+    public toPauseOnPromiseRejectionsStrategy(exceptionFilters: string[]): PauseOnPromiseRejectionsStrategy {
+        if (exceptionFilters.indexOf('promise_reject') >= 0) {
+            return new PauseOnAllRejections();
+        } else {
+            return new DoNotPauseOnAnyRejections();
+        }
+    }
+
     // V1 reseted the frames on an onPaused event. Figure out if that is the right thing to do
     public getCallFrameById(frameId: number): FramePresentationOrLabel<ILoadedSource> {
         return this._handlesRegistry.frames.getObjectById(frameId);

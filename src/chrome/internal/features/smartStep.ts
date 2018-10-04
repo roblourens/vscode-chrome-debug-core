@@ -3,13 +3,30 @@ import { BaseSourceMapTransformer } from '../../../transformers/baseSourceMapTra
 import { IScript } from '../scripts/script';
 import { ICallFrame } from '../stackTraces/callFrame';
 import { PausedEvent } from '../../target/events';
-import { ShouldPauseForUser } from './pauseProgramWhenNeeded';
+import { PossibleAction, NoInformation, PossibleActionCommonLogic, ActionRelevance, InformationAboutPausedProvider } from './takeProperActionOnPausedEvent';
+import { logger } from 'vscode-debugadapter';
+import { IFeature } from './feature';
 
 export interface SmartStepLogicDependencies {
-
+    askForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
 }
 
-export class SmartStepLogic {
+export interface ShouldStepInToAvoidSkippedSourceDependencies {
+    stepIntoDebugee(): Promise<void>;
+}
+export class ShouldStepInToAvoidSkippedSource extends PossibleActionCommonLogic {
+    public readonly relevance = ActionRelevance.OverrideOtherActions;
+
+    private readonly  _dependencies: ShouldStepInToAvoidSkippedSourceDependencies;
+
+    public async execute(): Promise<void> {
+        return this._dependencies.stepIntoDebugee();
+    }
+}
+
+export class SmartStepLogic implements IFeature {
+    private _smartStepCount = 0;
+
     public isEnabled(): boolean {
         return this._isEnabled;
     }
@@ -24,15 +41,24 @@ export class SmartStepLogic {
 
     public async toggleSmartStep(): Promise<void> {
         this.toggleEnabled();
-        this.reprocessPausedEvent();
+        this.stepInIfOnSkippedSource();
     }
 
-    public async onShouldPauseForUser(notification: PausedEvent): Promise<ShouldPauseForUser> {
-        return ShouldPauseForUser.Abstained;
+    public async askForInformationAboutPaused(notification: PausedEvent): Promise<PossibleAction> {
+        if (this.isEnabled() && await this.shouldSkip(notification.callFrames[0])) {
+            this._smartStepCount++;
+            return new ShouldStepInToAvoidSkippedSource();
+        } else {
+            if (this._smartStepCount > 0) {
+                logger.log(`SmartStep: Skipped ${this._smartStepCount} steps`);
+                this._smartStepCount = 0;
+            }
+            return new NoInformation();
+        }
     }
 
-    public reprocessPausedEvent(): void {
-        this.onPaused(this._lastPauseState.event, this._lastPauseState.expecting);
+    public stepInIfOnSkippedSource(): void {
+        throw new Error('Not implemented TODO DIEGO');
     }
 
     public async shouldSkip(frame: ICallFrame<IScript>): Promise<boolean> {
@@ -50,6 +76,10 @@ export class SmartStepLogic {
         }
 
         return false;
+    }
+
+    public install(): void {
+        this._dependencies.askForInformationAboutPaused(paused => this.askForInformationAboutPaused(paused));
     }
 
     constructor(

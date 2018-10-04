@@ -4,15 +4,33 @@ import { ILoadedSource } from '../../sources/loadedSource';
 import { IFeature } from '../../features/feature';
 import { LocationInScript, ScriptOrSourceOrIdentifierOrUrlRegexp } from '../../locations/location';
 import { IBreakpoint } from '../breakpoint';
-import { ShouldPauseForUser } from '../../features/pauseProgramWhenNeeded';
+import { PossibleAction, ActionRelevance, NoInformation, NotifyStoppedCommonLogic, NotifyStoppedDependencies, ResumeCommonLogic, ResumeDependencies } from '../../features/takeProperActionOnPausedEvent';
+import { ReasonType } from '../../../stoppedEvent';
 
-export interface PauseScriptLoadsToSetBPsDependencies {
+export interface PauseScriptLoadsToSetBPsDependencies extends NotifyStoppedDependencies, ResumeDependencies {
     setInstrumentationBreakpoint(nativeEventName: string): Promise<void>;
     removeInstrumentationBreakpoint(nativeEventName: string): Promise<void>;
-    onShouldPauseForUser(listener: (paused: PausedEvent) => Promise<ShouldPauseForUser> | ShouldPauseForUser): void;
+    askForInformationAboutPaused(listener: (paused: PausedEvent) => Promise<PossibleAction> | PossibleAction): void;
     waitUntilUnbindedBPsAreSet(loadedSource: ILoadedSource): Promise<void>;
 
     tryGettingBreakpointAtLocation(locationInScript: LocationInScript): IBreakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>[];
+}
+
+export class HitStillPendingBreakpoint extends NotifyStoppedCommonLogic {
+    public readonly relevance = ActionRelevance.NormalAction;
+    protected reason: ReasonType = 'breakpoint';
+
+    constructor(protected readonly _dependencies: NotifyStoppedDependencies) {
+        super();
+    }
+}
+
+export class PausedWhileLoadingScriptToResolveBreakpoints extends ResumeCommonLogic {
+    public readonly relevance = ActionRelevance.FallbackAction;
+
+    constructor(protected readonly _dependencies: ResumeDependencies) {
+        super();
+    }
 }
 
 export class PauseScriptLoadsToSetBPs implements IFeature {
@@ -32,10 +50,10 @@ export class PauseScriptLoadsToSetBPs implements IFeature {
     }
 
     public install(): void {
-        this._dependencies.onShouldPauseForUser(params => this.onShouldPauseForUser(params));
+        this._dependencies.askForInformationAboutPaused(params => this.askForInformationAboutPaused(params));
     }
 
-    private async onShouldPauseForUser(paused: PausedEvent): Promise<ShouldPauseForUser> {
+    private async askForInformationAboutPaused(paused: PausedEvent): Promise<PossibleAction> {
         if (this.isInstrumentationPause(paused)) {
             await asyncMap(paused.callFrames[0].location.script.allSources, async source => {
                 await this._dependencies.waitUntilUnbindedBPsAreSet(source);
@@ -43,12 +61,12 @@ export class PauseScriptLoadsToSetBPs implements IFeature {
 
             const breakpoints = this._dependencies.tryGettingBreakpointAtLocation(paused.callFrames[0].location);
             if (breakpoints.length > 0) {
-                return ShouldPauseForUser.NeedsToPause;
+                return new HitStillPendingBreakpoint(this._dependencies);
             } else {
-                return ShouldPauseForUser.ShouldConsiderResuming;
+                return new PausedWhileLoadingScriptToResolveBreakpoints(this._dependencies);
             }
         } else {
-            return ShouldPauseForUser.Abstained;
+            return new NoInformation();
         }
     }
 

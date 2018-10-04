@@ -5,7 +5,7 @@
 import { DebugProtocol } from 'vscode-debugprotocol';
 
 import { IDebugTransformer, ISetBreakpointsResponseBody, IScopesResponseBody, IStackTraceResponseBody } from '../debugAdapterInterfaces';
-import { ISession } from '../chrome/client/delayMessagesUntilInitializedSession';
+import { ISession } from '../chrome/client/session';
 
 /**
  * Converts from 1 based lines/cols on the client side to 0 based lines/cols on the target side

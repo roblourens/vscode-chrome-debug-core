@@ -10,4 +10,8 @@ export class Listeners<Args, Result> {
     public call(args: Args): Result[] {
         return this._listeners.map(listener => listener(args));
     }
+
+    public hasListeners(): boolean {
+        return this._listeners.length > 0;
+    }
 }

@@ -13,6 +13,8 @@ import { asyncMap } from '../collections/async';
 import { ICallFrame } from '../internal/stackTraces/callFrame';
 import { RangeInScript } from '../internal/locations/rangeInScript';
 import { Listeners } from '../communication/listeners';
+import { PauseOnExceptionsStrategy, PauseOnAllExceptions, PauseOnUnhandledExceptions, DoNotPauseOnAnyExceptions } from '../internal/exceptions/strategies';
+import { PromiseOrNot } from '../utils/promises';
 
 export type ScriptParsedListener = (params: ScriptParsedEvent) => void;
 
@@ -112,8 +114,20 @@ export class CDTPDebugger extends CDTPDiagnosticsModule<Crdp.DebuggerApi> {
         return Promise.all(response.locations.map(cdtpLocation => this._crdpToInternal.toBreakpointInUrlRegexp(bpRecipie, cdtpLocation)));
     }
 
-    public setPauseOnExceptions(params: Crdp.Debugger.SetPauseOnExceptionsRequest): Promise<void> {
-        return this.api.setPauseOnExceptions(params);
+    public setPauseOnExceptions(strategy: PauseOnExceptionsStrategy): Promise<void> {
+        let state: 'none' | 'uncaught' | 'all';
+
+        if (strategy instanceof PauseOnAllExceptions) {
+            state = 'all';
+        } else if (strategy instanceof PauseOnUnhandledExceptions) {
+            state = 'uncaught';
+        } else if (strategy instanceof DoNotPauseOnAnyExceptions) {
+            state = 'none';
+        } else {
+            throw new Error(`Can't pause on exception using an unknown strategy ${strategy}`);
+        }
+
+        return this.api.setPauseOnExceptions({ state });
     }
 
     public stepOver(): Promise<void> {
@@ -194,7 +208,7 @@ export class CDTPDebugger extends CDTPDiagnosticsModule<Crdp.DebuggerApi> {
         this._onScriptParsedListeners.add(listener);
     }
 
-    public onPaused(listener: (params: PausedEvent) => Promise<void>): void {
+    public onPaused(listener: (params: PausedEvent) => PromiseOrNot<void>): void {
         this.api.on('paused', async params => {
             if (params.callFrames.length === 0) {
                 throw new Error(`Expected a pause event to have at least a single call frame: ${JSON.stringify(params)}`);

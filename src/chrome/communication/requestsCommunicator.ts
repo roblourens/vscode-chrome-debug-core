@@ -1,13 +1,14 @@
 import { ValidatedMap } from '../collections/validatedMap';
 import { ChannelIdentifier } from './channelIdentifier';
 import { getChannelName } from './channel';
+import { PromiseOrNot } from '../utils/promises';
 
 export type RequestHandlerCallback<Request, Response> =
     Request extends void
-    ? () => Response :
+    ? () => Promise<Response> :
     NonVoidRequestHandler<Request, Response>;
 
-export type NonVoidRequestHandler<Request, Response> = (request: Request) => Response;
+export type NonVoidRequestHandler<Request, Response> = (request: Request) => Promise<Response>;
 
 // We need the template parameter to force the Communicator to be "strongly typed" from the client perspective
 export class RequestChannelIdentifier<_Request, _Response> implements ChannelIdentifier {
@@ -22,7 +23,7 @@ export class RequestChannelIdentifier<_Request, _Response> implements ChannelIde
 
 interface RequestHandler<Request, Response> {
     isRegistered(): boolean;
-    call(request: Request): Response;
+    call(request: Request): Promise<Response>;
 }
 
 class NoRegisteredRequestHandler<Request, Response> implements RequestHandler<Request, Response> {
@@ -30,7 +31,7 @@ class NoRegisteredRequestHandler<Request, Response> implements RequestHandler<Re
         return false;
     }
 
-    public call(request: Request): Response {
+    public call(request: Request): Promise<Response> {
         throw new Error(`Can't execute request <${request}> because no handler has yet registered to handle requests for channel <${this._channel}>`);
     }
 
@@ -42,7 +43,7 @@ class RegisteredRequestHandler<Request, Response> implements RequestHandler<Requ
         return true;
     }
 
-    public call(request: Request): Response {
+    public call(request: Request): Promise<Response> {
         return (this._callback as NonVoidRequestHandler<Request, Response>)(request);
     }
 
@@ -63,7 +64,7 @@ class RequestChannel<Request, Response> {
 export class Requester<Request, Response> {
     constructor(private readonly _requestChannel: RequestChannel<Request, Response>) { }
 
-    public request(request: Request): Response {
+    public request(request: Request): Promise<Response> {
         return this._requestChannel.handler.call(request);
     }
 }
@@ -72,7 +73,7 @@ export class RequestsCommunicator {
     private readonly _identifierToChannel = new ValidatedMap<RequestChannelIdentifier<any, any>, RequestChannel<any, any>>();
 
     public registerHandler<Request, Response>(requestChannelIdentifier: RequestChannelIdentifier<Request, Response>,
-        handler: (request: Request) => Response): void {
+        handler: (request: Request) => PromiseOrNot<Response>): void {
         const existingHandler = this.getChannel(requestChannelIdentifier).handler;
         if (!existingHandler.isRegistered()) {
             this.getChannel(requestChannelIdentifier).handler = new RegisteredRequestHandler(handler as RequestHandlerCallback<Request, Response>);

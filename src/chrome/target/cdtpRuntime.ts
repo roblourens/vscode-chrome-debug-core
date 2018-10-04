@@ -3,20 +3,31 @@ import { CDTPDiagnosticsModule } from './cdtpDiagnosticsModule';
 import { ExceptionThrownEvent, ConsoleAPICalledEvent } from './events';
 import { TargetToInternal } from './targetToInternal';
 import { InternalToTarget } from './internalToTarget';
+import { IExecutionContext } from '../internal/scripts/executionContext';
 
 type RuntimeListener = ((params: Crdp.Runtime.ConsoleAPICalledEvent) => void)
-| ((params: Crdp.Runtime.ExceptionThrownEvent) => void)
-| ((params: Crdp.Runtime.ExecutionContextCreatedEvent) => void)
-| (() => void);
+    | ((params: Crdp.Runtime.ExceptionThrownEvent) => void)
+    | ((params: Crdp.Runtime.ExecutionContextCreatedEvent) => void)
+    | (() => void);
 
 export class CDTPRuntime extends CDTPDiagnosticsModule<Crdp.RuntimeApi> {
     public on(event: 'consoleAPICalled', listener: (params: Crdp.Runtime.ConsoleAPICalledEvent) => void): void;
     public on(event: 'exceptionThrown', listener: (params: Crdp.Runtime.ExceptionThrownEvent) => void): void;
     public on(event: 'executionContextsCleared', listener: () => void): void;
-    public on(event: 'executionContextDestroyed', listener: (params: Crdp.Runtime.ExecutionContextDestroyedEvent) => void): void;
-    public on(event: 'executionContextCreated', listener: (params: Crdp.Runtime.ExecutionContextCreatedEvent) => void): void;
-    public on(event: 'consoleAPICalled' | 'exceptionThrown' | 'executionContextsCleared' | 'executionContextDestroyed' | 'executionContextCreated', listener: RuntimeListener): void {
+    public on(event: 'consoleAPICalled' | 'exceptionThrown' | 'executionContextsCleared', listener: RuntimeListener): void {
         return this.api.on(event as any, listener as any);
+    }
+
+    public onExecutionContextDestroyed(listener: (executionContext: IExecutionContext) => void): void {
+        return this.api.on('executionContextDestroyed', async params => {
+            return listener(this._crdpToInternal.markExecutionContextAsDestroyed(params.executionContextId));
+        });
+    }
+
+    public onExecutionContextCreated(listener: (executionContext: IExecutionContext) => void): void {
+        return this.api.on('executionContextCreated', async params => {
+            return listener(this._crdpToInternal.toNewExecutionContext(params.context.id));
+        });
     }
 
     public onExceptionThrown(listener: (params: ExceptionThrownEvent) => void): void {

@@ -15,11 +15,11 @@ import { LocationInLoadedSource } from '../locations/location';
 import { CallFramePresentation, CallFramePresentationHint, SourcePresentationHint } from './callFramePresentation';
 import { FormattedName } from './callFrameName';
 import { IFeature } from '../features/feature';
-import { ShouldPauseForUser } from '../features/pauseProgramWhenNeeded';
+import { PossibleAction } from '../features/takeProperActionOnPausedEvent';
 const localize = nls.loadMessageBundle();
 
 export interface StackTraceDependencies {
-    onShouldPauseForUser(listener: (params: PausedEvent) => Promise<ShouldPauseForUser>): void;
+    askForInformationAboutPaused(listener: (params: PausedEvent) => Promise<PossibleAction>): void;
     onResumed(listener: () => void): void;
 }
 
@@ -118,9 +118,10 @@ export class StackTracesLogic implements IFeature {
         return new CallFramePresentation<ILoadedSource>(callFrame, additionalPresentationDetails, presentationHint);
     }
 
-    public install(): void {
-        this._dependencies.onShouldPauseForUser(params => this.onPaused(params));
+    public install(): StackTracesLogic {
+        this._dependencies.askForInformationAboutPaused(params => this.onPaused(params));
         this._dependencies.onResumed(() => this.onResumed());
+        return this;
     }
 
     constructor(

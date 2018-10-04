@@ -1,6 +1,7 @@
 import { IScript } from '../scripts/script';
 import { CDTPScriptUrl } from './resourceIdentifierSubtypes';
 import { IResourceIdentifier, parseResourceIdentifier, ResourceName } from './resourceIdentifier';
+import { determineOrderingOfStrings } from '../../collections/utilities';
 
 export interface ILoadedSource<TString = string> {
     readonly script: IScript;
@@ -90,16 +91,6 @@ export class SourceOfCompiled extends LoadedSourceWithURLCommonLogic implements 
 export interface ILoadedSourceTreeNode {
     readonly mainSource: ILoadedSource;
     readonly relatedSources: ILoadedSourceTreeNode[];
-}
-
-function determineOrderingOfStrings(left: string, right: string): number {
-    if (left < right) {
-        return -1;
-    } else if (left > right) {
-        return 1;
-    } else {
-        return 0;
-    }
 }
 
 export function determineOrderingOfLoadedSources(left: ILoadedSource, right: ILoadedSource): number {

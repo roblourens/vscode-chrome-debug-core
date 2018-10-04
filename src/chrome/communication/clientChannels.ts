@@ -1,4 +1,4 @@
-import { OutputParameters, SourceWasLoadedParameters, BPStatusChangedParameters } from '../client/eventSender';
+import { OutputParameters, SourceWasLoadedParameters, BPStatusChangedParameters, DebugeeIsStoppedParameters } from '../client/eventSender';
 import { RequestChannelIdentifier } from './requestsCommunicator';
 import { registerChannels } from './channel';
 
@@ -8,8 +8,9 @@ const _eventSender = {
 
     // Requests
     SendOutput: new RequestChannelIdentifier<OutputParameters, void>(),
-    SendSourceWasLoaded: new RequestChannelIdentifier<SourceWasLoadedParameters, Promise<void>>(),
-    SendBPStatusChanged: new RequestChannelIdentifier<BPStatusChangedParameters, Promise<void>>(),
+    SendSourceWasLoaded: new RequestChannelIdentifier<SourceWasLoadedParameters, void>(),
+    SendBPStatusChanged: new RequestChannelIdentifier<BPStatusChangedParameters, void>(),
+    SendDebugeeIsStopped: new RequestChannelIdentifier<DebugeeIsStoppedParameters, void>(),
 };
 
 const EventSender: Readonly<typeof _eventSender> = _eventSender;

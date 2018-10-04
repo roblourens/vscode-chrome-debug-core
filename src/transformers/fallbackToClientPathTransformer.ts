@@ -5,7 +5,7 @@ import { logger } from 'vscode-debugadapter';
 
 import { UrlPathTransformer } from './urlPathTransformer';
 import * as ChromeUtils from '../chrome/chromeUtils';
-import { ISession } from '../chrome/client/delayMessagesUntilInitializedSession';
+import { ISession } from "../chrome/client/session";
 import { IResourceIdentifier } from '../chrome/internal/sources/resourceIdentifier';
 
 /**

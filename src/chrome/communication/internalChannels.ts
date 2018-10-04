@@ -8,7 +8,7 @@ import { ConditionalBreak, AlwaysBreak } from '../internal/breakpoints/bpActionW
 import { IBreakpoint } from '../internal/breakpoints/breakpoint';
 import { registerChannels } from './channel';
 import { PausedEvent } from '../target/events';
-import { ShouldPauseForUser } from '../internal/features/pauseProgramWhenNeeded';
+import { PossibleAction } from '../internal/features/takeProperActionOnPausedEvent';
 
 const _breakpoints = {
     // Notifications
@@ -16,15 +16,17 @@ const _breakpoints = {
     OnPausedOnBreakpoint: new NotificationChannelIdentifier<PausedEvent>(),
     OnNoPendingBreakpoints: new NotificationChannelIdentifier<void>(),
 
+    AskForInformationAboutPaused: new NotificationChannelIdentifier<PausedEvent, PossibleAction>(),
+
     // Requests
-    UpdateBreakpointsForFile: new RequestChannelIdentifier<BPRecipiesInUnresolvedSource, Promise<IBPRecipieStatus[]>>(),
-    AddBreakpointForLoadedSource: new RequestChannelIdentifier<BPRecipieInLoadedSource<ConditionalBreak | AlwaysBreak>, Promise<IBreakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>[]>>(),
+    UpdateBreakpointsForFile: new RequestChannelIdentifier<BPRecipiesInUnresolvedSource, IBPRecipieStatus[]>(),
+    AddBreakpointForLoadedSource: new RequestChannelIdentifier<BPRecipieInLoadedSource<ConditionalBreak | AlwaysBreak>, IBreakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>[]>(),
 };
 
 const Breakpoints: Readonly<typeof _breakpoints> = _breakpoints;
 
 const _Internal = {
-    OnShouldPauseForUser: new NotificationChannelIdentifier<PausedEvent, ShouldPauseForUser>(),
+    AskForInformationAboutPaused: new NotificationChannelIdentifier<PausedEvent, PossibleAction>(),
     Breakpoints
 };
 

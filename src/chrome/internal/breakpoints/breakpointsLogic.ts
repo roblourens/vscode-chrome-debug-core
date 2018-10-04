@@ -8,7 +8,7 @@ import { asyncMap } from '../../collections/async';
 import { IBPRecipieStatus } from './bpRecipieStatus';
 import { ClientCurrentBPRecipiesRegistry } from './clientCurrentBPRecipiesRegistry';
 import { BreakpointsRegistry } from './breakpointsRegistry';
-import { Communicator } from '../../communication/communicator';
+import { ICommunicator } from '../../communication/communicator';
 import { Internal } from '../../communication/internalChannels';
 import { BPRecipieInLoadedSourceLogic, BPRInLoadedSourceLogicDependencies } from './bpRecipieInLoadedSourceLogic';
 import { RemoveProperty } from '../../../typeUtils';
@@ -106,7 +106,7 @@ export class BreakpointsLogic {
         this._dependencies.onAsyncBreakpointResolved(breakpoint => this.onAsyncBreakpointResolved(breakpoint));
     }
 
-    public static createWithHandlers(communicator: Communicator, dependencies: BreakpointsLogicDependencies) {
+    public static createWithHandlers(communicator: ICommunicator, dependencies: BreakpointsLogicDependencies) {
         const breakpointsLogic = new BreakpointsLogic(dependencies);
         communicator.registerHandler(Internal.Breakpoints.UpdateBreakpointsForFile, requestedBPs => breakpointsLogic.setBreakpoints(requestedBPs));
         communicator.registerHandler(Internal.Breakpoints.AddBreakpointForLoadedSource, requestedBP => breakpointsLogic._bprInLoadedSourceLogic.addBreakpoint(requestedBP));

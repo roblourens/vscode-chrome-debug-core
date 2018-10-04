@@ -10,7 +10,7 @@ import { BreakpointsRegistry } from './breakpointsRegistry';
 import { IScript } from '../scripts/script';
 import { IResourceIdentifier } from '../sources/resourceIdentifier';
 import { PausedEvent } from '../../target/events';
-import { ShouldPauseForUser } from '../features/pauseProgramWhenNeeded';
+import { PossibleAction, NoInformation, PossibleActionCommonLogic, ActionRelevance } from '../features/takeProperActionOnPausedEvent';
 
 export interface BPRInLoadedSourceLogicDependencies {
     setBreakpoint(params: BPRecipieInScript<AlwaysBreak | ConditionalBreak>): Promise<Breakpoint<IScript>>;
@@ -21,15 +21,23 @@ export interface BPRInLoadedSourceLogicDependencies {
     doesTargetSupportColumnBreakpoints(): Promise<boolean>;
 }
 
+export class HitBreakpoint extends PossibleActionCommonLogic {
+    public readonly relevance = ActionRelevance.NormalAction;
+
+    public execute(): Promise<void> {
+        throw new Error('Method not implemented.');
+    }
+}
+
 export class BPRecipieInLoadedSourceLogic {
     private readonly doesTargetSupportColumnBreakpointsCached: Promise<boolean>;
 
-    public onShouldPauseForUser(paused: PausedEvent): ShouldPauseForUser {
+    public askForInformationAboutPaused(paused: PausedEvent): PossibleAction {
         if (paused.hitBreakpoints && paused.hitBreakpoints.length > 0) {
             // TODO DIEGO: Improve this to consider breakpoints where we shouldn't pause
-            return ShouldPauseForUser.NeedsToPause;
+            return new HitBreakpoint();
         } else {
-            return ShouldPauseForUser.Abstained;
+            return new NoInformation();
         }
     }
 

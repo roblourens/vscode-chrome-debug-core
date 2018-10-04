@@ -143,12 +143,12 @@ export class ChromeDebugSession extends LoggingDebugSession implements IObservab
     /**
      * Overload dispatchRequest to the debug adapters' Promise-based methods instead of DebugSession's callback-based methods
      */
-    protected dispatchRequest(request: DebugProtocol.Request): void {
+    public dispatchRequest(request: DebugProtocol.Request): Promise<void> {
         if (AvailableCommands.has(request.command)) {
             const command = request.command as CommandText;
 
         // We want the request to be non-blocking, so we won't await for reportTelemetry
-        this.reportTelemetry(`ClientRequest/${request.command}`, async (reportFailure, telemetryPropertyCollector) => {
+        return this.reportTelemetry(`ClientRequest/${request.command}`, async (reportFailure, telemetryPropertyCollector) => {
             const response: DebugProtocol.Response = new Response(request);
             try {
                 logger.verbose(`From client: ${request.command}(${JSON.stringify(request.arguments) })`);
@@ -328,6 +328,25 @@ export class ChromeDebugSession extends LoggingDebugSession implements IObservab
         }
     }
 
+    public convertClientLineToDebugger(line: number): number {
+        // LineColTransformer uses this protected method from the session
+        return super.convertClientLineToDebugger(line);
+    }
+
+    public convertClientColumnToDebugger(column: number): number {
+        // LineColTransformer uses this protected method from the session
+        return super.convertClientColumnToDebugger(column);
+    }
+
+    public convertDebuggerLineToClient(line: number): number {
+        // LineColTransformer uses this protected method from the session
+        return super.convertDebuggerLineToClient(line);
+    }
+
+    public convertDebuggerColumnToClient(column: number): number {
+        // LineColTransformer uses this protected method from the session
+        return super.convertDebuggerColumnToClient(column);
+    }
 }
 
 function logVersionInfo(): void {

@@ -6,18 +6,17 @@ import { ScriptsRegistry } from '../scripts/scriptsRegistry';
 import { CDTPDiagnostics } from '../../target/cdtpDiagnostics';
 import { StackTracesLogic } from '../stackTraces/stackTracesLogic';
 import { newResourceIdentifierMap, IResourceIdentifier, parseResourceIdentifiers } from '../sources/resourceIdentifier';
+import { IFeature } from './feature';
+import { ScriptParsedEvent } from '../../target/events';
 
-export class SkipFilesLogic {
+export interface ISkipFilesLogicDependencies {
+    onScriptParsed(listener: (scriptEvent: ScriptParsedEvent) => Promise<void>): void;
+}
+
+export class SkipFilesLogic implements IFeature {
     private _blackboxedRegexes: RegExp[] = [];
     private _skipFileStatuses = newResourceIdentifierMap<boolean>();
     public reprocessPausedEvent: () => void; // TODO DIEGO: Do this in a better way
-
-    constructor(
-        private readonly _runtimeScriptsManager: ScriptsRegistry,
-        private readonly _chrome: CDTPDiagnostics,
-        private readonly _stackTracesLogic: StackTracesLogic,
-        private readonly _sourceMapTransformer: BaseSourceMapTransformer,
-        private readonly _pathTransformer: BasePathTransformer) {}
 
     public async doAttach(_launchAttachArgs: ICommonRequestArgs): Promise<void> {
         let patterns: string[] = [];
@@ -157,8 +156,8 @@ export class SkipFilesLogic {
 
         return currentStack.stackFrames.some(frame => {
             return frame.hasCodeFlow()
-            && frame.codeFlow.location.source
-             && frame.codeFlow.location.source.identifier.isEquivalent(args.source);
+                && frame.codeFlow.location.source
+                && frame.codeFlow.location.source.identifier.isEquivalent(args.source);
         });
     }
 
@@ -240,4 +239,23 @@ export class SkipFilesLogic {
     private getScriptByUrl(url: IResourceIdentifier): IScript[] {
         return this._runtimeScriptsManager.getScriptsByPath(url);
     }
+
+    private async onScriptParsed(scriptEvent: ScriptParsedEvent): Promise<void> {
+        const script = scriptEvent.script;
+        const sources = script.sourcesOfCompiled;
+        await this.resolveSkipFiles(script, script.developmentSource.identifier, sources.map(source => source.identifier));
+    }
+
+    public install(): SkipFilesLogic {
+        this._dependencies.onScriptParsed(scriptParsed => this.onScriptParsed(scriptParsed));
+        return this;
+    }
+
+    constructor(
+        private readonly _dependencies: ISkipFilesLogicDependencies,
+        private readonly _runtimeScriptsManager: ScriptsRegistry,
+        private readonly _chrome: CDTPDiagnostics,
+        private readonly _stackTracesLogic: StackTracesLogic,
+        private readonly _sourceMapTransformer: BaseSourceMapTransformer,
+        private readonly _pathTransformer: BasePathTransformer) { }
 }

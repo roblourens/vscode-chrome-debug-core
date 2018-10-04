@@ -31,6 +31,10 @@ export class SourcesLogic {
         return this._sourceTreeNodeLogic.getLoadedSourcesTreeForScript(script);
     }
 
+    public async getScriptText(script: IScript): Promise<string> {
+        return await this._sourceTextLogic.text(script.runtimeSource);
+    }
+
     public async getText(source: ISourceResolver): Promise<string> {
         return await source.tryResolving(
             async loadedSource => await this._sourceTextLogic.text(loadedSource),

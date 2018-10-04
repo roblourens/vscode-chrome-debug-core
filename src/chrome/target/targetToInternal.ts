@@ -16,6 +16,7 @@ import { LineNumber, ColumnNumber } from '../internal/locations/subtypes';
 import { IResourceIdentifier, ResourceName } from '../internal/sources/resourceIdentifier';
 import { SourcesMapper, NoSourceMapping } from '../internal/scripts/sourcesMapper';
 import { adaptToSinglIntoToMulti } from '../../utils';
+import { IExecutionContext } from '../internal/scripts/executionContext';
 
 export type CDTPResource = IScript | URLRegexp | IResourceIdentifier<CDTPScriptUrl>;
 
@@ -37,6 +38,14 @@ interface BreakpointClass<TResource extends ScriptOrSourceOrIdentifierOrUrlRegex
 export class TargetToInternal {
     public getBPsFromIDs = adaptToSinglIntoToMulti(this, this.getBPFromID);
 
+    public toNewExecutionContext(id: Crdp.Runtime.ExecutionContextId): IExecutionContext {
+        return this._scriptsRegistry.registerExecutionContext(id);
+    }
+
+    public markExecutionContextAsDestroyed(id: Crdp.Runtime.ExecutionContextId): IExecutionContext {
+        return this._scriptsRegistry.markExecutionContextAsDestroyed(id);
+    }
+
     public toBPRecipie(breakpointId: Crdp.Debugger.BreakpointId): IBPRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp> {
         return this._breakpointIdRegistry.getRecipieByBreakpointId(breakpointId);
     }
@@ -49,7 +58,7 @@ export class TargetToInternal {
         this._breakpointIdRegistry.registerRecipie(cdtpBreakpointId, bpRecipie);
     }
 
-    public async toBreakpoinInResource<TResource extends ScriptOrSourceOrIdentifierOrUrlRegexp> (classToUse: BreakpointClass<TResource>,
+    public async toBreakpoinInResource<TResource extends ScriptOrSourceOrIdentifierOrUrlRegexp>(classToUse: BreakpointClass<TResource>,
         bpRecipie: BPRecipie<TResource>, actualLocation: Crdp.Debugger.Location): Promise<Breakpoint<TResource>> {
         const breakpoint = new classToUse(bpRecipie, await this.toLocationInScript(actualLocation));
         return breakpoint;

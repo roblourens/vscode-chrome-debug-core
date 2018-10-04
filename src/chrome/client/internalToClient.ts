@@ -10,7 +10,7 @@ import { IBPRecipieStatus } from '../internal/breakpoints/bpRecipieStatus';
 import { IBPRecipie } from '../internal/breakpoints/bpRecipie';
 import { HandlesRegistry } from './handlesRegistry';
 import { FramePresentationOrLabel, StackTraceLabel } from '../internal/stackTraces/stackTracePresentation';
-import { IExceptionInformation } from '../internal/features/pauseOnException';
+import { IExceptionInformation } from '../internal/exceptions/pauseOnException';
 import { IFormattedExceptionLineDescription } from '../internal/formattedExceptionParser';
 
 interface ClientLocationInSource {

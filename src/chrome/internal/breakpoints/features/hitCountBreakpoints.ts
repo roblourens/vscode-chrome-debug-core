@@ -5,9 +5,10 @@ import { BreakOnHitCount } from '../bpActionWhenHit';
 import { ValidatedMap } from '../../../collections/validatedMap';
 import { HitCountConditionParser, HitCountConditionFunction } from '../hitCountConditionParser';
 import { ScriptOrSourceOrIdentifierOrUrlRegexp } from '../../locations/location';
-import { ShouldPauseForUser } from '../../features/pauseProgramWhenNeeded';
+import { PossibleAction, NoInformation, ActionRelevance, NotifyStoppedCommonLogic, NotifyStoppedDependencies } from '../../features/takeProperActionOnPausedEvent';
+import { ReasonType } from '../../../stoppedEvent';
 
-export interface HitCountBreakpointsDependencies {
+export interface HitCountBreakpointsDependencies extends NotifyStoppedDependencies {
     registerAddBPRecipieHandler(handlerRequirements: (bpRecipie: BPRecipieInUnresolvedSource) => boolean,
         handler: (bpRecipie: BPRecipieInUnresolvedSource) => Promise<void>): void;
 
@@ -15,19 +16,30 @@ export interface HitCountBreakpointsDependencies {
     notifyBPWasHit(bpRecipie: BPRecipieInUnresolvedSource): Promise<void>;
     resumeProgram(): Promise<void>;
 
-    onShouldPauseForUser(listener: (params: PausedEvent) => Promise<ShouldPauseForUser>): void;
+    askForInformationAboutPaused(listener: (params: PausedEvent) => Promise<PossibleAction>): void;
 }
 
 class HitCountBPData {
     private _hitCount = 0;
 
-    public notifyBPHit(): ShouldPauseForUser {
-        return this._shouldPauseCondition(this._hitCount++) ? ShouldPauseForUser.NeedsToPause : ShouldPauseForUser.Abstained;
+    public notifyBPHit(): ActionRelevance {
+        return this._shouldPauseCondition(this._hitCount++)
+            ? ActionRelevance.NormalAction
+            : ActionRelevance.Ignored;
     }
 
     constructor(
         public readonly hitBPRecipie: BPRecipieInUnresolvedSource<BreakOnHitCount>,
         private readonly _shouldPauseCondition: HitCountConditionFunction) { }
+}
+
+export class HitAndSatisfiedCountBPCondition extends NotifyStoppedCommonLogic {
+    public readonly relevance = ActionRelevance.NormalAction;
+    protected reason: ReasonType = 'breakpoint';
+
+    constructor(protected readonly _dependencies: NotifyStoppedDependencies) {
+        super();
+    }
 }
 
 export class HitCountBreakpoints implements IFeature {
@@ -37,7 +49,7 @@ export class HitCountBreakpoints implements IFeature {
         this._dependencies.registerAddBPRecipieHandler(
             bpRecipie => bpRecipie.bpActionWhenHit.isBreakOnHitCount(),
             bpRecipie => this.addBPRecipie(bpRecipie as BPRecipieInUnresolvedSource<BreakOnHitCount>));
-        this._dependencies.onShouldPauseForUser(paused => this.onShouldPauseForUser(paused));
+        this._dependencies.askForInformationAboutPaused(paused => this.askForInformationAboutPaused(paused));
     }
 
     private async addBPRecipie(bpRecipie: BPRecipieInUnresolvedSource<BreakOnHitCount>): Promise<void> {
@@ -47,14 +59,14 @@ export class HitCountBreakpoints implements IFeature {
         this.underlyingToBPRecipie.set(underlyingBPRecipie, new HitCountBPData(bpRecipie, shouldPauseCondition));
     }
 
-    public async onShouldPauseForUser(paused: PausedEvent): Promise<ShouldPauseForUser> {
+    public async askForInformationAboutPaused(paused: PausedEvent): Promise<PossibleAction> {
         const hitCountBPData = paused.hitBreakpoints.map(hitBPRecipie =>
             this.underlyingToBPRecipie.tryGetting(hitBPRecipie.unmappedBpRecipie)).filter(bpRecipie => bpRecipie !== undefined);
 
-        const shouldPauses = hitCountBPData.map(data => data.notifyBPHit());
-        return shouldPauses.indexOf(ShouldPauseForUser.NeedsToPause) >= 0
-            ? ShouldPauseForUser.NeedsToPause
-            : ShouldPauseForUser.Abstained;
+        const individualDecisions = hitCountBPData.map(data => data.notifyBPHit());
+        return individualDecisions.indexOf(ActionRelevance.NormalAction) >= 0
+            ? new HitAndSatisfiedCountBPCondition(this._dependencies)
+            : new NoInformation();
     }
 
     constructor(private readonly _dependencies: HitCountBreakpointsDependencies) { }

@@ -11,25 +11,34 @@ import { registerChannels } from './channel';
 import { RangeInScript } from '../internal/locations/rangeInScript';
 import { IResourceIdentifier } from '../internal/sources/resourceIdentifier';
 import { Crdp } from '../..';
+import { ICallFrame } from '../internal/stackTraces/callFrame';
+import { PauseOnExceptionsStrategy } from '../internal/exceptions/strategies';
 
 const _debugger = {
     // Notifications
     OnAsyncBreakpointResolved: new NotificationChannelIdentifier<Breakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>>(),
     OnScriptParsed: new NotificationChannelIdentifier<ScriptParsedEvent>(),
-    OnPaused2: new NotificationChannelIdentifier<PausedEvent, void>(),
+    OnPaused: new NotificationChannelIdentifier<PausedEvent, void>(),
     OnResumed: new NotificationChannelIdentifier<void, void>(),
 
     // Requests
-    GetPossibleBreakpoints: new RequestChannelIdentifier<RangeInScript, Promise<LocationInScript[]>>(),
-    RemoveBreakpoint: new RequestChannelIdentifier<BPRecipie<ISourceResolver>, Promise<void>>(),
-    Resume: new RequestChannelIdentifier<void, Promise<void>>(),
-    SetBreakpoint: new RequestChannelIdentifier<BPRecipieInScript<AlwaysBreak | ConditionalBreak>, Promise<Breakpoint<IScript>>>(),
-    SetBreakpointByUrl: new RequestChannelIdentifier<BPRecipieInUrl<AlwaysBreak | ConditionalBreak>, Promise<Breakpoint<IResourceIdentifier>[]>>(),
-    SetBreakpointByUrlRegexp: new RequestChannelIdentifier<BPRecipieInUrlRegexp<AlwaysBreak | ConditionalBreak>, Promise<Breakpoint<URLRegexp>[]>>(),
-    SupportsColumnBreakpoints: new RequestChannelIdentifier<void, Promise<boolean>>(),
-    SetInstrumentationBreakpoint: new RequestChannelIdentifier<string, Promise<void>>(),
-    RemoveInstrumentationBreakpoint: new RequestChannelIdentifier<string, Promise<void>>(),
-    PauseOnAsyncCall: new RequestChannelIdentifier<Crdp.Runtime.StackTraceId, Promise<void>>(),
+    GetPossibleBreakpoints: new RequestChannelIdentifier<RangeInScript, LocationInScript[]>(),
+    RemoveBreakpoint: new RequestChannelIdentifier<BPRecipie<ISourceResolver>, void>(),
+    Resume: new RequestChannelIdentifier<void, void>(),
+    SetBreakpoint: new RequestChannelIdentifier<BPRecipieInScript<AlwaysBreak | ConditionalBreak>, Breakpoint<IScript>>(),
+    SetBreakpointByUrl: new RequestChannelIdentifier<BPRecipieInUrl<AlwaysBreak | ConditionalBreak>, Breakpoint<IResourceIdentifier>[]>(),
+    SetBreakpointByUrlRegexp: new RequestChannelIdentifier<BPRecipieInUrlRegexp<AlwaysBreak | ConditionalBreak>, Breakpoint<URLRegexp>[]>(),
+    SupportsColumnBreakpoints: new RequestChannelIdentifier<void, boolean>(),
+    SetInstrumentationBreakpoint: new RequestChannelIdentifier<string, void>(),
+    RemoveInstrumentationBreakpoint: new RequestChannelIdentifier<string, void>(),
+    PauseOnAsyncCall: new RequestChannelIdentifier<Crdp.Runtime.StackTraceId, void>(),
+    SetPauseOnExceptions: new RequestChannelIdentifier<PauseOnExceptionsStrategy, void>(),
+
+    StepOver: new RequestChannelIdentifier<void, void>(),
+    StepInto: new RequestChannelIdentifier<Crdp.Debugger.StepIntoRequest, void>(),
+    StepOut: new RequestChannelIdentifier<void, void>(),
+    Pause: new RequestChannelIdentifier<void, void>(),
+    RestartFrame: new RequestChannelIdentifier<ICallFrame<IScript>, Crdp.Debugger.RestartFrameResponse>(),
 };
 
 const Debugger: Readonly<typeof _debugger> = _debugger;
