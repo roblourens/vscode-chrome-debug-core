@@ -80,7 +80,7 @@ export class TakeProperActionOnPausedEvent implements IFeature {
         await new TakeActionBasedOnInformation(this._dependencies, relevantInfoPieces).takeAction();
     }
 
-    public install(): TakeProperActionOnPausedEvent {
+    public install(): this {
         this._dependencies.onPaused(paused => this.onPause(paused));
         return this;
     }

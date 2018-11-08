@@ -35,7 +35,6 @@ import { CDTPDiagnostics } from './target/cdtpDiagnostics';
 import { ISession } from './client/session';
 import { IScript } from './internal/scripts/script';
 
-import { ChromeDebugAdapter as ChromeDebugAdapterClass } from './client/chromeDebugAdapterV2';
 import { EvaluateOnCallFrameRequest } from './target/requests';
 import { PausedEvent, ConsoleAPICalledEvent, ExceptionThrownEvent, LogEntry } from './target/events';
 import { LocationInLoadedSource, ScriptOrSource } from './internal/locations/location';

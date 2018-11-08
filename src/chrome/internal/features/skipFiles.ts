@@ -1,4 +1,4 @@
-import { IToggleSkipFileStatusArgs, ICommonRequestArgs, utils, Crdp, BaseSourceMapTransformer, parseResourceIdentifier } from '../../..';
+import { IToggleSkipFileStatusArgs, utils, Crdp, BaseSourceMapTransformer, parseResourceIdentifier } from '../../..';
 import { logger } from 'vscode-debugadapter/lib/logger';
 import { IScript } from '../scripts/script';
 import { BasePathTransformer } from '../../../transformers/basePathTransformer';
@@ -225,7 +225,7 @@ export class SkipFilesLogic implements IFeature<ISkipFilesConfiguration> {
         await this.resolveSkipFiles(script, script.developmentSource.identifier, sources.map(source => source.identifier));
     }
 
-    public install(_launchAttachArgs: ISkipFilesConfiguration): SkipFilesLogic {
+    public install(_launchAttachArgs: ISkipFilesConfiguration): this {
         this._dependencies.onScriptParsed(scriptParsed => this.onScriptParsed(scriptParsed));
         this.configure(_launchAttachArgs);
         return this;

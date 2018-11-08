@@ -1,42 +1,24 @@
 import {
     ITelemetryPropertyCollector, PromiseOrNot, ILaunchRequestArgs, IAttachRequestArgs, IThreadsResponseBody,
     ISetBreakpointsResponseBody, IStackTraceResponseBody, IScopesResponseBody, IVariablesResponseBody, ISourceResponseBody,
-    IEvaluateResponseBody, LineColTransformer, ICommonRequestArgs, logger, utils, IExceptionInfoResponseBody
+    IEvaluateResponseBody, LineColTransformer, ICommonRequestArgs, utils, IExceptionInfoResponseBody
 } from '../..';
 import * as errors from '../../errors';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { ChromeDebugLogic, ChromeDebugAdapter } from '../chromeDebugAdapter';
-import { IChromeDebugAdapterOpts, ChromeDebugSession } from '../chromeDebugSession';
-import { ChromeConnection } from '../chromeConnection';
-import { CDTPDiagnostics, registerCDTPDiagnosticsPublishersAndHandlers } from '../target/cdtpDiagnostics';
-import { DelayMessagesUntilInitializedSession } from './delayMessagesUntilInitializedSession';
-import { RemotePathTransformer } from '../../transformers/remotePathTransformer';
-import { EagerSourceMapTransformer } from '../../transformers/eagerSourceMapTransformer';
-import { StepProgressEventsEmitter } from '../../executionTimingsReporter';
+import { ChromeDebugLogic } from '../chromeDebugAdapter';
+import { CDTPDiagnostics } from '../target/cdtpDiagnostics';
 import { ClientToInternal } from './clientToInternal';
 import { InternalToClient } from './internalToClient';
 import { IGetLoadedSourcesResponseBody } from '../../debugAdapterInterfaces';
-import { StackTracesLogic, StackTraceDependencies } from '../internal/stackTraces/stackTracesLogic';
-import { SkipFilesLogic, ISkipFilesLogicDependencies } from '../internal/features/skipFiles';
-import { SmartStepLogic } from '../internal/features/smartStep';
-import { EventSender } from './eventSender';
+import { StackTracesLogic } from '../internal/stackTraces/stackTracesLogic';
+import { SkipFilesLogic } from '../internal/features/skipFiles';
 import { SourcesLogic } from '../internal/sources/sourcesLogic';
-import { BreakpointsLogic, BreakpointsLogicDependencies } from '../internal/breakpoints/breakpointsLogic';
-import { Communicator, LoggingCommunicator } from '../communication/communicator';
-import { HandlesRegistry } from './handlesRegistry';
+import { BreakpointsLogic } from '../internal/breakpoints/breakpointsLogic';
 import { ChromeDebugAdapterState } from './chromeDebugAdapterState';
-import { ExecutionLogger } from '../logging/executionLogger';
-import { Internal } from '../communication/internalChannels';
-import { Client } from '../communication/clientChannels';
-import { Target } from '../communication/targetChannels';
 import { CDTPScriptsRegistry } from '../target/cdtpScriptsRegistry';
-import { DoNotPauseWhileSteppingSession } from './doNotPauseWhileSteppingSession';
-import { ILoadedSource } from '../internal/sources/loadedSource';
-import { asyncMap } from '../collections/async';
-import { PauseOnExceptionDependencies, PauseOnExceptionOrRejection } from '../internal/exceptions/pauseOnException';
-import { SteppingDependencies, Stepping } from '../internal/stepping/stepping';
-import { TakeProperActionOnPausedEventDependencies, TakeProperActionOnPausedEvent } from '../internal/features/takeProperActionOnPausedEvent';
-import { IDotScriptCommandDependencies, DotScriptCommand } from '../internal/sources/features/dotScriptsCommand';
+import { PauseOnExceptionOrRejection } from '../internal/exceptions/pauseOnException';
+import { Stepping } from '../internal/stepping/stepping';
+import { DotScriptCommand } from '../internal/sources/features/dotScriptsCommand';
 import { ICallFrame } from '../internal/stackTraces/callFrame';
 import { IScript } from '../internal/scripts/script';
 
@@ -60,13 +42,11 @@ export class ConnectedCDA implements ChromeDebugAdapterState {
     public static SCRIPTS_COMMAND = '.scripts';
 
     protected readonly _chromeDebugAdapter: ChromeDebugLogic;
-    private readonly _lineColTransformer: LineColTransformer;
     private readonly _sourcesLogic: SourcesLogic;
     protected _scriptsLogic: CDTPScriptsRegistry;
     protected readonly _clientToInternal: ClientToInternal;
     private readonly _internalToVsCode: InternalToClient;
     private readonly _stackTraceLogic: StackTracesLogic;
-    private readonly _skipFilesLogic: SkipFilesLogic;
     protected readonly _breakpointsLogic: BreakpointsLogic;
     public readonly _pauseOnException: PauseOnExceptionOrRejection;
     private readonly _stepping: Stepping;

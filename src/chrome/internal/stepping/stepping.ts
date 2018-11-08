@@ -34,7 +34,7 @@ export class Stepping implements IFeature {
         return this._syncStepping.restartFrame(callFrame);
     }
 
-    public install(): Stepping {
+    public install(): this {
         this._asyncStepping.install();
         return this;
     }

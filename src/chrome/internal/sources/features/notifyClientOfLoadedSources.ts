@@ -16,7 +16,7 @@ export class NotifyClientOfLoadedSources implements IFeature {
     // TODO DIEGO: Ask VS what index do they use internally to verify if the source is the same or a new one
     private _notifiedSourceByUrl = new ValidatedMap<CDTPScriptUrl, IScript>();
 
-    public install(): NotifyClientOfLoadedSources {
+    public install(): this {
         this._dependencies.onScriptParsed(async scriptParsed => this.sendLoadedSourceEvent(scriptParsed.script, 'new'));
         return this;
     }

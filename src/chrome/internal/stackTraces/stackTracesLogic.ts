@@ -125,13 +125,13 @@ export class StackTracesLogic implements IFeature<IStackTracesConfiguration> {
         return new CallFramePresentation<ILoadedSource>(callFrame, additionalPresentationDetails, presentationHint);
     }
 
-    public async install(configuration: IStackTracesConfiguration): Promise<StackTracesLogic> {
+    public async install(configuration: IStackTracesConfiguration): Promise<this> {
         this._dependencies.askForInformationAboutPaused(params => this.onPaused(params));
         this._dependencies.onResumed(() => this.onResumed());
         return await this.configure(configuration);
     }
 
-    private async configure(configuration: IStackTracesConfiguration): Promise<StackTracesLogic> {
+    private async configure(configuration: IStackTracesConfiguration): Promise<this> {
         const maxDepth = configuration.showAsyncStacks ? StackTracesLogic.ASYNC_CALL_STACK_DEPTH : 0;
 
         try {
