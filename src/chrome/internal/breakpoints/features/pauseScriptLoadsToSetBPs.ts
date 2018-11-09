@@ -90,12 +90,12 @@ export class PauseScriptLoadsToSetBPs implements IFeature<PauseScriptLoadsToSetB
                 notification.data.reasons.every((r: any) => r.reason === 'EventListener' && r.auxData.eventName.startsWith('instrumentation:')));
     }
 
-    public async install(configuration: PauseScriptLoadsToSetBPsConfiguration): Promise<PauseScriptLoadsToSetBPs> {
+    public async install(configuration: PauseScriptLoadsToSetBPsConfiguration): Promise<this> {
         this._dependencies.askForInformationAboutPaused(params => this.askForInformationAboutPaused(params));
         return await this.configure(configuration);
     }
 
-    private async configure(configuration: PauseScriptLoadsToSetBPsConfiguration): Promise<PauseScriptLoadsToSetBPs> {
+    private async configure(configuration: PauseScriptLoadsToSetBPsConfiguration): Promise<this> {
         // TODO DIEGO: Figure out exactly when we want to block on the browser version
         // On version 69 Chrome stopped sending an extra event for DOM Instrumentation: See https://bugs.chromium.org/p/chromium/issues/detail?id=882909
         // On Chrome 68 we were relying on that event to make Break on load work on breakpoints on the first line of a file. On Chrome 69 we need an alternative way to make it work.

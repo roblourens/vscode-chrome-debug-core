@@ -1,6 +1,6 @@
 import { StepProgressEventsEmitter } from '../../executionTimingsReporter';
 
-import { utils, ChromeDebugLogic, ICommonRequestArgs, ChromeDebugAdapter, ChromeDebugSession, LineColTransformer } from '../..';
+import { utils, ChromeDebugLogic, ICommonRequestArgs, ChromeDebugSession, LineColTransformer } from '../..';
 
 import { InitializedEvent, logger } from 'vscode-debugadapter';
 import { CDTPDiagnostics, registerCDTPDiagnosticsPublishersAndHandlers } from '../target/cdtpDiagnostics';

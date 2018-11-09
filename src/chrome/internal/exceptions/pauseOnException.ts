@@ -95,7 +95,7 @@ export class PauseOnExceptionOrRejection implements IFeature {
         }
     }
 
-    public install(): PauseOnExceptionOrRejection {
+    public install(): this {
         this._dependencies.askForInformationAboutPaused(paused => this.askForInformationAboutPaused(paused));
         return this;
     }
