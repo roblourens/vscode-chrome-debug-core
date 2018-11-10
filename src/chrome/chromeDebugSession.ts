@@ -17,7 +17,6 @@ import * as utils from '../utils';
 import { ExecutionTimingsReporter, StepProgressEventsEmitter, IObservableEvents, IStepStartedEventsEmitter, IFinishedStartingUpEventsEmitter } from '../executionTimingsReporter';
 import { ChromeDebugAdapter } from './client/chromeDebugAdapterV2';
 import { AvailableCommands, CommandText } from './client/requests';
-import { ConnectedCDA } from './client/chromeDebugAdapterIsConnected';
 
 export interface IChromeDebugAdapterOpts {
     targetFilter?: ITargetFilter;
@@ -65,7 +64,7 @@ function isChromeError(e: RequestHandleError): e is IChromeError {
 export class ChromeDebugSession extends LoggingDebugSession implements IObservableEvents<IStepStartedEventsEmitter & IFinishedStartingUpEventsEmitter> {
     private readonly _readyForUserTimeoutInMilliseconds = 5 * 60 * 1000; // 5 Minutes = 5 * 60 seconds = 5 * 60 * 1000 milliseconds
 
-    private _debugAdapter: IDebugAdapter<ConnectedCDA> & IObservableEvents<IStepStartedEventsEmitter & IFinishedStartingUpEventsEmitter>;
+    private _debugAdapter: IDebugAdapter & IObservableEvents<IStepStartedEventsEmitter & IFinishedStartingUpEventsEmitter>;
     private _extensionName: string;
     public readonly events: StepProgressEventsEmitter;
     private reporter = new ExecutionTimingsReporter();

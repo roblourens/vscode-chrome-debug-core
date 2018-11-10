@@ -158,16 +158,6 @@ export class ChromeConnection implements IObservableEvents<IStepStartedEventsEmi
             });
     }
 
-    public run(): Promise<void> {
-        // This is a CDP version difference which will have to be handled more elegantly with others later...
-        // For now, we need to send both messages and ignore a failing one.
-        return Promise.all([
-            this.api.Runtime.runIfWaitingForDebugger(),
-            (<any>this.api.Runtime).run()
-        ])
-        .then(() => { }, () => { });
-    }
-
     public close(): void {
         this._socket.close();
     }

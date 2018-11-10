@@ -1,11 +1,31 @@
 import { IConnectedDebugAdapter, ITelemetryPropertyCollector, ISetBreakpointsResponseBody, IStackTraceResponseBody, IScopesResponseBody, IVariablesResponseBody, ISourceResponseBody, IEvaluateResponseBody, IGetLoadedSourcesResponseBody } from '../../debugAdapterInterfaces';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { ChromeDebugLogic } from '../..';
+import { ChromeDebugLogic, IUninitializedDebugAdapter, ILaunchRequestArgs, IAttachRequestArgs, IExceptionInfoResponseBody } from '../..';
+import { PromiseOrNot } from '../utils/promises';
 
-export interface ChromeDebugAdapterState extends IConnectedDebugAdapter { }
+export interface ChromeDebugAdapterState extends IUninitializedDebugAdapter, IConnectedDebugAdapter {
+    launch(args: ILaunchRequestArgs, telemetryPropertyCollector?: ITelemetryPropertyCollector, requestSeq?: number): PromiseOrNot<this>;
+    attach(args: IAttachRequestArgs, telemetryPropertyCollector?: ITelemetryPropertyCollector, requestSeq?: number): PromiseOrNot<this>;
+}
 
 export abstract class UnconnectedCDACommonLogic implements ChromeDebugAdapterState {
     public abstract chromeDebugAdapter(): ChromeDebugLogic;
+
+    public restartFrame(_args: DebugProtocol.RestartFrameRequest): Promise<void> {
+        return this.throwNotConnectedError();
+    }
+
+    public exceptionInfo(_args: DebugProtocol.ExceptionInfoArguments): Promise<IExceptionInfoResponseBody> {
+        return this.throwNotConnectedError();
+    }
+
+    public launch(_args: ILaunchRequestArgs, _telemetryPropertyCollector?: ITelemetryPropertyCollector, _requestSeq?: number): PromiseOrNot<this> {
+        return this.throwNotConnectedError();
+    }
+
+    public attach(_args: IAttachRequestArgs, _telemetryPropertyCollector?: ITelemetryPropertyCollector, _requestSeq?: number): PromiseOrNot<this> {
+        return this.throwNotConnectedError();
+    }
 
     public shutdown(): void {
         return this.throwNotConnectedError();

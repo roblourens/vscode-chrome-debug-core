@@ -397,11 +397,11 @@ export class ChromeDebugLogic {
     public install(): ChromeDebugLogic {
         this.chrome.Debugger.onResumed(() => this.onResumed());
         this.chrome.Debugger.onPaused(paused => this.onPaused(paused));
-        this.chrome.Console.on('messageAdded', params => this.onMessageAdded(params));
+        this.chrome.Console.onMessageAdded(params => this.onMessageAdded(params));
         this.chrome.Console.enable();
         this.chrome.Runtime.onConsoleAPICalled(params => this.onConsoleAPICalled(params));
         this.chrome.Runtime.onExceptionThrown(params => this.onExceptionThrown(params));
-        this.chrome.Runtime.on('executionContextsCleared', () => this.clearTargetContext());
+        this.chrome.Runtime.onExecutionContextsCleared(() => this.clearTargetContext());
         this.chrome.Log.onEntryAdded(entry => this.onLogEntryAdded(entry));
 
         this._chromeConnection.onClose(() => this.terminateSession('websocket closed'));

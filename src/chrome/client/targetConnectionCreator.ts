@@ -1,12 +1,8 @@
-import { StepProgressEventsEmitter } from '../../executionTimingsReporter';
-
 import { utils, ChromeDebugLogic, ICommonRequestArgs, ChromeDebugSession, LineColTransformer } from '../..';
 
-import { InitializedEvent, logger } from 'vscode-debugadapter';
+import { logger } from 'vscode-debugadapter';
 import { CDTPDiagnostics, registerCDTPDiagnosticsPublishersAndHandlers } from '../target/cdtpDiagnostics';
 import { ChromeConnection } from '../chromeConnection';
-import { telemetry } from '../../telemetry';
-import { BreakOnLoadHelper } from '../breakOnLoadHelper';
 import { IChromeDebugAdapterOpts } from '../chromeDebugSession';
 import { SourcesLogic } from '../internal/sources/sourcesLogic';
 import { ClientToInternal } from './clientToInternal';
@@ -34,91 +30,27 @@ import { HandlesRegistry } from './handlesRegistry';
 import { EventSender } from './eventSender';
 import { SmartStepLogic } from '../internal/features/smartStep';
 import { IExtensibilityPoints } from '../extensibility/extensibilityPoints';
-
-export class TargetConnectionConfigurator {
-    public readonly events: StepProgressEventsEmitter;
-
-    public async configure(): Promise<void> {
-
-        /* __GDPR__FRAGMENT__
-        "StepNames" : {
-            "Attach.ConfigureDebuggingSession.Internal" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" }
-         }
-        */
-        this.events.emitStepStarted('Attach.ConfigureDebuggingSession.Internal');
-
-        // TODO DIEGO: We need to make sure that we have event listeners at this point
-
-        /* __GDPR__FRAGMENT__
-           "StepNames" : {
-              "Attach.ConfigureDebuggingSession.Target" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" }
-           }
-         */
-        this.events.emitStepStarted('Attach.ConfigureDebuggingSession.Target');
-
-        // Make sure debugging domain is enabled before calling refreshBlackboxPatterns() below
-        await Promise.all(this.runConnection());
-
-        await this.initSupportedDomains();
-
-        doesTargetSupportColumnBreakpoints().then(() => this._chromeDebugAdapter.sendInitializedEvent()); // Do not wait for this. This will finish after we get the first script loaded event
-    }
-
-    /**
-     * Enable clients and run connection
-     */
-    public runConnection(): Promise<void>[] {
-        return [
-            utils.toVoidP(this.chrome.Debugger.enable()),
-            this.chrome.Runtime.enable(),
-            this.chrome.Log.enable()
-                .catch(_e => { }), // Not supported by all runtimes
-            this._chromeConnection.run(),
-        ];
-    }
-
-    private async initSupportedDomains(): Promise<void> {
-        try {
-            const domainResponse = await this.chrome.Schema.getDomains();
-            domainResponse.domains.forEach(domain => this._domains.set(<any>domain.name, domain));
-        } catch (e) {
-            // If getDomains isn't supported for some reason, skip this
-        }
-    }
-
-    /**
-     * This event tells the client to begin sending setBP requests, etc. Some consumers need to override this
-     * to send it at a later time of their choosing.
-     */
-    public async sendInitializedEvent(): Promise<void> {
-        await this._breakpointsLogic.detectColumnBreakpointSupport();
-
-        // Wait to finish loading sourcemaps from the initial scriptParsed events
-        // TODO DIEGO: Why is this neccesary?
-        // if (this._initialSourceMapsP) {
-        //     const initialSourceMapsP = this._initialSourceMapsP;
-        //     this._initialSourceMapsP = null;
-
-        //     await initialSourceMapsP;
-
-        this._session.sendEvent(new InitializedEvent());
-        this.events.emitStepCompleted('NotifyInitialized');
-    }
-
-    constructor(
-        private readonly _chromeConnection: ChromeConnection,
-        private readonly chrome: CDTPDiagnostics, ) { }
-}
+import { SupportedDomains } from '../internal/domains/supportedDomains';
+import { DeleteMeScriptsRegistry } from '../internal/scripts/scriptsRegistry';
 
 export enum ScenarioType {
     Launch,
     Attach
 }
 
-export class ScenarioParametersConfigurator {
-    public configure(): void {
-        const port = this._args.port || 9229;
+export class ModelCreator {
+    public _chromeDebugAdapter: ChromeDebugLogic;
+    public _lineColTransformer: LineColTransformer;
+    public _sourcesLogic: SourcesLogic;
+    public _scriptLogic: DeleteMeScriptsRegistry;
+    public _clientToInternal: ClientToInternal;
+    public _internalToVsCode: InternalToClient;
+    public _stackTraceLogic: StackTracesLogic;
+    public _skipFilesLogic: SkipFilesLogic;
+    public _breakpointsLogic: BreakpointsLogic;
+    public _supportedDomains: SupportedDomains;
 
+    public async create(args: IChromeDebugAdapterOpts, originalSession: ChromeDebugSession, chromeConnection: ChromeConnection): Promise<ConnectedCDA> {
         this._subclass.commonArgs(this._args);
 
         if (this._args.pathMapping) {
@@ -128,38 +60,8 @@ export class ScenarioParametersConfigurator {
         }
 
         this.sourceMapTransformer.launch(this._args);
-    this._pathTransformer.launch(this._args);
+        this._pathTransformer.launch(this._args);
 
-    if(this._args.breakOnLoadStrategy && this._args.breakOnLoadStrategy !== 'off') {
-        this._breakOnLoadHelper = new BreakOnLoadHelper(this, this._args.breakOnLoadStrategy, this._breakpointsLogic);
-        }
-
-if (!this._args.__restart) {
-            telemetry.reportEvent('debugStarted', { request: 'launch', args: Object.keys(this._args) });
-}
-
-        telemetry.reportEvent('debugStarted', { request: this._scenarioType.toString(), args: Object.keys(this._args) });
-    }
-
-    constructor(
-        private readonly _subclass: ChromeDebugAdapter,
-private readonly _chromeConnection: ChromeConnection,
-    private readonly _scenarioType: ScenarioType,
-private readonly _args: ICommonRequestArgs) { }
-}
-
-export class ModelCreator {
-    public _chromeDebugAdapter: ChromeDebugLogic;
-    public _lineColTransformer: LineColTransformer;
-    public _sourcesLogic: SourcesLogic;
-    public _scriptLogic: ScriptsRegistry;
-    public _clientToInternal: ClientToInternal;
-    public _internalToVsCode: InternalToClient;
-    public _stackTraceLogic: StackTracesLogic;
-    public _skipFilesLogic: SkipFilesLogic;
-    public _breakpointsLogic: BreakpointsLogic;
-
-    public async create(args: IChromeDebugAdapterOpts, originalSession: ChromeDebugSession, chromeConnection: ChromeConnection): Promise<ConnectedCDA> {
         const communicator = new LoggingCommunicator(new Communicator(), new ExecutionLogger(logger));
 
         const chromeConnection = new (args.chromeConnection || ChromeConnection)(undefined, args.targetFilter);
@@ -252,6 +154,7 @@ export class ModelCreator {
         new TakeProperActionOnPausedEvent(dependencies).install();
         this._stackTraceLogic = new StackTracesLogic(dependencies, this._skipFilesLogic, smartStepLogic).install();
         this._dotScriptCommand = new DotScriptCommand(dependencies);
+        this._supportedDomains = new SupportedDomains(dependencies).install();
 
         this._chromeDebugAdapter = new ChromeDebugLogic(this._lineColTransformer, sourceMapTransformer, pathTransformer, session,
             this._scriptsLogic, chromeConnection, chromeDiagnostics, smartStepLogic, eventSender).install();

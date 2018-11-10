@@ -1,4 +1,4 @@
-import { ScriptsRegistry } from '../scripts/scriptsRegistry';
+import { DeleteMeScriptsRegistry } from '../scripts/scriptsRegistry';
 import { ILoadedSource, ILoadedSourceTreeNode, determineOrderingOfLoadedSources } from './loadedSource';
 import { IScript } from '../scripts/script';
 
@@ -32,5 +32,5 @@ export class SourcesTreeNodeLogic {
         return { mainSource: source, relatedSources: relatedSources };
     }
 
-    constructor(private readonly _runtimeScriptsManager: ScriptsRegistry) { }
+    constructor(private readonly _runtimeScriptsManager: DeleteMeScriptsRegistry) { }
 }

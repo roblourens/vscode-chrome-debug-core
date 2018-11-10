@@ -19,8 +19,6 @@ import { CDTPScriptsRegistry } from '../target/cdtpScriptsRegistry';
 import { PauseOnExceptionOrRejection } from '../internal/exceptions/pauseOnException';
 import { Stepping } from '../internal/stepping/stepping';
 import { DotScriptCommand } from '../internal/sources/features/dotScriptsCommand';
-import { ICallFrame } from '../internal/stackTraces/callFrame';
-import { IScript } from '../internal/scripts/script';
 
 export interface ConnectedCDADependencies {
     chromeDebugAdapter: ChromeDebugLogic;
@@ -54,10 +52,6 @@ export class ConnectedCDA implements ChromeDebugAdapterState {
 
     constructor(private readonly _dependencies: ConnectedCDADependencies) {
 
-    }
-
-    public get events(): StepProgressEventsEmitter {
-        return this._chromeDebugAdapter.events;
     }
 
     public get chrome(): CDTPDiagnostics {
@@ -117,12 +111,11 @@ export class ConnectedCDA implements ChromeDebugAdapterState {
         return this._stepping.pause();
     }
 
-    public async restartFrame(callFrame: ICallFrame<IScript>): Promise<void> {
-        if (!callFrame) {
-            return utils.errP(errors.noRestartFrame);
+    public async restartFrame(args: DebugProtocol.RestartFrameRequest): Promise<void> {
+        const callFrame = this._clientToInternal.getCallFrameById(args.arguments.frameId);
+        if (callFrame.hasCodeFlow()) {
+            return this._stepping.restartFrame(callFrame.codeFlow);
         }
-
-        return this._stepping.restartFrame(callFrame);
     }
 
     public async stackTrace(args: DebugProtocol.StackTraceArguments, _?: ITelemetryPropertyCollector, _2?: number): Promise<IStackTraceResponseBody> {
@@ -167,7 +160,7 @@ export class ConnectedCDA implements ChromeDebugAdapterState {
         return this._chromeDebugAdapter.threads();
     }
 
-    public async evaluate(args: DebugProtocol.EvaluateArguments, _telemetryPropertyCollector?: ITelemetryPropertyCollector, _requestSeq?: number): PromiseOrNot<IEvaluateResponseBody> {
+    public async evaluate(args: DebugProtocol.EvaluateArguments, _telemetryPropertyCollector?: ITelemetryPropertyCollector, _requestSeq?: number): Promise<IEvaluateResponseBody> {
         if (args.expression.startsWith(ConnectedCDA.SCRIPTS_COMMAND)) {
             const scriptsRest = utils.lstrip(args.expression, ConnectedCDA.SCRIPTS_COMMAND).trim();
             await this._dotScriptCommand.handleScriptsCommand(scriptsRest);
@@ -196,11 +189,11 @@ export class ConnectedCDA implements ChromeDebugAdapterState {
         return this._chromeDebugAdapter.commonArgs(args);
     }
 
-    public launch(_args: ILaunchRequestArgs, _telemetryPropertyCollector?: ITelemetryPropertyCollector, _requestSeq?: number): PromiseOrNot<void> {
-        throw new Error('Method not implemented.');
+    public launch(_args: ILaunchRequestArgs, _telemetryPropertyCollector?: ITelemetryPropertyCollector, _requestSeq?: number): never {
+        throw new Error("Can't launch to a new target while connected to a previous target");
     }
 
-    public attach(_args: IAttachRequestArgs, _telemetryPropertyCollector?: ITelemetryPropertyCollector, _requestSeq?: number): PromiseOrNot<void> {
+    public attach(_args: IAttachRequestArgs, _telemetryPropertyCollector?: ITelemetryPropertyCollector, _requestSeq?: number): never {
         throw new Error("Can't attach to a new target while connected to a previous target");
     }
 

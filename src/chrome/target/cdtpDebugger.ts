@@ -12,32 +12,44 @@ import { Breakpoint, BreakpointInScript, BreakpointInUrl, BreakpointInUrlRegexp 
 import { asyncMap } from '../collections/async';
 import { ICallFrame } from '../internal/stackTraces/callFrame';
 import { RangeInScript } from '../internal/locations/rangeInScript';
-import { Listeners } from '../communication/listeners';
 import { PauseOnExceptionsStrategy, PauseOnAllExceptions, PauseOnUnhandledExceptions, DoNotPauseOnAnyExceptions } from '../internal/exceptions/strategies';
-import { PromiseOrNot } from '../utils/promises';
 
 export type ScriptParsedListener = (params: ScriptParsedEvent) => void;
 
 export class CDTPDebugger extends CDTPEventsEmitterDiagnosticsModule<Crdp.DebuggerApi> {
     private _firstScriptWasParsed = utils.promiseDefer<Crdp.Runtime.ScriptId>();
-    private _onScriptParsedListeners = new Listeners<ScriptParsedEvent, void>();
 
-    public onBreakpointResolved = this.createEventListener('breakpointResolved', this.onBreakpointResolvedTransformation.bind(this));
-
-    public async onBreakpointResolvedTransformation(params: Crdp.Debugger.BreakpointResolvedEvent): Promise<Breakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>> {
+    public readonly onBreakpointResolved = this.addApiListener('breakpointResolved', async (params: Crdp.Debugger.BreakpointResolvedEvent) => {
         const bpRecipie = this._crdpToInternal.toBPRecipie(params.breakpointId);
         const breakpoint = new Breakpoint(bpRecipie,
             await this._crdpToInternal.toLocationInScript(params.location));
         return breakpoint;
-    }
+    });
 
-    public onResumed(listener: () => void): void {
-        return this.api.on('resumed', listener);
-    }
+    public onScriptParsed = this.addApiListener('scriptParsed', async (params: Crdp.Debugger.ScriptParsedEvent) => {
+        // We resolve the promise waiting for the first script parse. This is used to detect column breakpoints support
+        this._firstScriptWasParsed.resolve(params.scriptId);
 
-    public on(event: 'scriptFailedToParse', listener: (params: Crdp.Debugger.ScriptFailedToParseEvent) => void): void {
-        return this.api.on(event, listener);
-    }
+        await this._crdpToInternal.createAndRegisterScript(params);
+
+        return await this._crdpToInternal.toScriptParsedEvent(params);
+    });
+
+    public readonly onPaused = this.addApiListener('paused', async (params: Crdp.Debugger.PausedEvent) => {
+        if (params.callFrames.length === 0) {
+            throw new Error(`Expected a pause event to have at least a single call frame: ${JSON.stringify(params)}`);
+        }
+
+        const callFrames = await asyncMap(params.callFrames, (callFrame, index) => this._crdpToInternal.toCallFrame(index, callFrame));
+        return new PausedEvent(callFrames, params.reason, params.data,
+            this._crdpToInternal.getBPsFromIDs(params.hitBreakpoints),
+            params.asyncStackTrace && await this._crdpToInternal.toStackTraceCodeFlow(params.asyncStackTrace),
+            params.asyncStackTraceId, params.asyncCallStackTraceId);
+    });
+
+    public readonly onResumed = this.addApiListener('resumed', (params: void) => params);
+
+    public readonly onScriptFailedToParse = this.addApiListener('resumed', (params: Crdp.Debugger.ScriptFailedToParseEvent) => params);
 
     public enable(): Promise<Crdp.Debugger.EnableResponse> {
         return this.api.enable();
@@ -178,17 +190,6 @@ export class CDTPDebugger extends CDTPEventsEmitterDiagnosticsModule<Crdp.Debugg
         return this.api.restartFrame({ callFrameId: this._internalToCRDP.getFrameId(frame) });
     }
 
-    protected onApiAvailable(): void {
-        this.api.on('scriptParsed', async params => {
-            // We resolve the promise waiting for the first script parse. This is used to detect column breakpoints support
-            this._firstScriptWasParsed.resolve(params.scriptId);
-
-            await this._crdpToInternal.createAndRegisterScript(params);
-
-            this._onScriptParsedListeners.call(await this._crdpToInternal.toScriptParsedEvent(params));
-        });
-    }
-
     public async supportsColumnBreakpoints(): Promise<boolean> {
         const scriptId = await this._firstScriptWasParsed.promise;
 
@@ -202,26 +203,6 @@ export class CDTPDebugger extends CDTPEventsEmitterDiagnosticsModule<Crdp.Debugg
         } catch (e) {
             return false;
         }
-    }
-
-    public onScriptParsed(listener: ScriptParsedListener): void {
-        this._onScriptParsedListeners.add(listener);
-    }
-
-    public onPaused(listener: (params: PausedEvent) => PromiseOrNot<void>): void {
-        this.api.on('paused', async params => {
-            if (params.callFrames.length === 0) {
-                throw new Error(`Expected a pause event to have at least a single call frame: ${JSON.stringify(params)}`);
-            }
-
-            const callFrames = await asyncMap(params.callFrames, (callFrame, index) => this._crdpToInternal.toCallFrame(index, callFrame));
-            const internalPaused = new PausedEvent(callFrames, params.reason, params.data,
-                this._crdpToInternal.getBPsFromIDs(params.hitBreakpoints),
-                params.asyncStackTrace && await this._crdpToInternal.toStackTraceCodeFlow(params.asyncStackTrace),
-                params.asyncStackTraceId, params.asyncCallStackTraceId);
-
-            listener(internalPaused);
-        });
     }
 
     constructor(

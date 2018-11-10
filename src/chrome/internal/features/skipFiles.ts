@@ -2,7 +2,7 @@ import { IToggleSkipFileStatusArgs, utils, Crdp, BaseSourceMapTransformer, parse
 import { logger } from 'vscode-debugadapter/lib/logger';
 import { IScript } from '../scripts/script';
 import { BasePathTransformer } from '../../../transformers/basePathTransformer';
-import { ScriptsRegistry } from '../scripts/scriptsRegistry';
+import { DeleteMeScriptsRegistry } from '../scripts/scriptsRegistry';
 import { CDTPDiagnostics } from '../../target/cdtpDiagnostics';
 import { StackTracesLogic } from '../stackTraces/stackTracesLogic';
 import { newResourceIdentifierMap, IResourceIdentifier, parseResourceIdentifiers } from '../sources/resourceIdentifier';
@@ -125,6 +125,7 @@ export class SkipFilesLogic implements IFeature<ISkipFilesConfiguration> {
     }
 
     private refreshBlackboxPatterns(): void {
+        // Make sure debugging domain is enabled before calling refreshBlackboxPatterns()
         this._chrome.Debugger.setBlackboxPatterns({
             patterns: this._blackboxedRegexes.map(regex => regex.source)
         }).catch(() => this.warnNoSkipFiles());
@@ -261,7 +262,7 @@ export class SkipFilesLogic implements IFeature<ISkipFilesConfiguration> {
 
     constructor(
         private readonly _dependencies: ISkipFilesLogicDependencies,
-        private readonly _runtimeScriptsManager: ScriptsRegistry,
+        private readonly _runtimeScriptsManager: DeleteMeScriptsRegistry,
         private readonly _chrome: CDTPDiagnostics,
         private readonly _stackTracesLogic: StackTracesLogic,
         private readonly _sourceMapTransformer: BaseSourceMapTransformer,

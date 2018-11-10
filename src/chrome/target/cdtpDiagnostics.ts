@@ -46,6 +46,13 @@ export class CDTPDiagnostics {
 export async function registerCDTPDiagnosticsPublishersAndHandlers(communicator: ICommunicator, cdtpDiagnostics: CDTPDiagnostics): Promise<void> {
     const Debugger = Target.Debugger;
 
+    // Enable domains so we can use the handlers
+    await Promise.all([
+        cdtpDiagnostics.Debugger.enable(),
+        cdtpDiagnostics.Runtime.enable().then(() => cdtpDiagnostics.Runtime.runIfWaitingForDebugger()),
+        cdtpDiagnostics.Log.enable().catch(_exception => { }) // Not supported by all runtimes
+    ]);
+
     // Notifications
     cdtpDiagnostics.Debugger.onBreakpointResolved(communicator.getPublisher(Debugger.OnAsyncBreakpointResolved));
     cdtpDiagnostics.Debugger.onScriptParsed(communicator.getPublisher(Debugger.OnScriptParsed));

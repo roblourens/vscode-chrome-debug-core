@@ -1,12 +1,9 @@
-import { CDTPDiagnosticsModule } from './cdtpDiagnosticsModule';
+import { CDTPDiagnosticsModule, CDTPEventsEmitterDiagnosticsModule } from './cdtpDiagnosticsModule';
 import { Crdp } from '../..';
-import { LogEntry } from './events';
 import { TargetToInternal } from './targetToInternal';
 
-export class CDTPConsole extends CDTPDiagnosticsModule<Crdp.ConsoleApi> {
-    public on(event: 'messageAdded', listener: (params: Crdp.Console.MessageAddedEvent) => void): void {
-        return this.api.on(event, listener);
-    }
+export class CDTPConsole extends CDTPEventsEmitterDiagnosticsModule<Crdp.ConsoleApi> {
+    public readonly onMessageAdded = this.addApiListener('messageAdded', (params: Crdp.Console.MessageAddedEvent) => params);
 
     public enable(): Promise<void> {
         return this.api.enable();
@@ -41,7 +38,9 @@ export class CDTPDOMDebugger extends CDTPDiagnosticsModule<Crdp.DOMDebuggerApi> 
     }
 }
 
-export class CDTPPage extends CDTPDiagnosticsModule<Crdp.PageApi> {
+export class CDTPPage extends CDTPEventsEmitterDiagnosticsModule<Crdp.PageApi> {
+    public readonly onMessageAdded = this.addApiListener('frameNavigated', (params: Crdp.Page.FrameNavigatedEvent) => params);
+
     public enable(): Promise<void> {
         return this.api.enable();
     }
@@ -52,10 +51,6 @@ export class CDTPPage extends CDTPDiagnosticsModule<Crdp.PageApi> {
 
     public reload(params: Crdp.Page.ReloadRequest): Promise<void> {
         return this.api.reload(params);
-    }
-
-    public on(event: 'frameNavigated', listener: (params: Crdp.Page.FrameNavigatedEvent) => void): void {
-        return this.api.on(event, listener);
     }
 
     constructor(protected api: Crdp.PageApi) {
@@ -101,10 +96,8 @@ export class CDTPOverlay extends CDTPDiagnosticsModule<Crdp.OverlayApi> {
     }
 }
 
-export class CDTPLog extends CDTPDiagnosticsModule<Crdp.LogApi> {
-    public onEntryAdded(listener: (entry: LogEntry) => void): void {
-        return this.api.on('entryAdded', async entryAdded => listener(await this._crdpToInternal.toLogEntry(entryAdded.entry)));
-    }
+export class CDTPLog extends CDTPEventsEmitterDiagnosticsModule<Crdp.LogApi> {
+    public readonly onEntryAdded = this.addApiListener('entryAdded', async (params: Crdp.Log.EntryAddedEvent) => await this._crdpToInternal.toLogEntry(params.entry));
 
     public enable(): Promise<void> {
         return this.api.enable();

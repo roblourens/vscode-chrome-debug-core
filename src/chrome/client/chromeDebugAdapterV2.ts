@@ -1,19 +1,15 @@
 import {
     IDebugAdapter, ITelemetryPropertyCollector, PromiseOrNot, ILaunchRequestArgs, IAttachRequestArgs, IThreadsResponseBody,
     ISetBreakpointsResponseBody, IStackTraceResponseBody, IScopesResponseBody, IVariablesResponseBody, ISourceResponseBody,
-    IEvaluateResponseBody, ICommonRequestArgs, IExceptionInfoResponseBody, utils, IGetLoadedSourcesResponseBody
+    IEvaluateResponseBody, IExceptionInfoResponseBody, IGetLoadedSourcesResponseBody
 } from '../..';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { ChromeDebugLogic } from '../chromeDebugAdapter';
 import { IChromeDebugAdapterOpts, ChromeDebugSession } from '../chromeDebugSession';
 import { ChromeConnection } from '../chromeConnection';
-import { CDTPDiagnostics } from '../target/cdtpDiagnostics';
-import { ICallFrame } from '../internal/stackTraces/callFrame';
-import { IScript } from '../internal/scripts/script';
 import { StepProgressEventsEmitter } from '../../executionTimingsReporter';
-import { TargetConnectionConfigurator } from './targetConnectionCreator';
 import { ChromeDebugAdapterState } from './chromeDebugAdapterState';
 import { UnconnectedCDA } from './chromeDebugAdapterIsUnconnected';
+import { ModelCreator } from './targetConnectionCreator';
 
 export class ChromeDebugAdapter implements IDebugAdapter {
     private _state: ChromeDebugAdapterState = new UnconnectedCDA();
@@ -27,22 +23,22 @@ export class ChromeDebugAdapter implements IDebugAdapter {
         return this._state.shutdown();
     }
 
-    public initialize(args: DebugProtocol.InitializeRequestArguments, _?: ITelemetryPropertyCollector, _2?: number): DebugProtocol.Capabilities {
+    public async initialize(args: DebugProtocol.InitializeRequestArguments, _?: ITelemetryPropertyCollector, _2?: number): Promise<DebugProtocol.Capabilities> {
         return this._state.initialize(args);
     }
 
-    public launch(args: ILaunchRequestArgs, _?: ITelemetryPropertyCollector, _2?: number): Promise<void> {
+    public async launch(args: ILaunchRequestArgs, _?: ITelemetryPropertyCollector, _2?: number): Promise<void> {
         const chromeConnection = new (args.chromeConnection || ChromeConnection)(undefined, args.targetFilter);
-        new TargetConnectionCreator(this, chromeConnection, ScenarioType.Launch, this.args);
-        return this._state.launch(args);
+        new ModelCreator(this, chromeConnection, ScenarioType.Launch, this.args).create();
+        this._state = await this._state.launch(args);
     }
 
-    public attach(args: IAttachRequestArgs, _?: ITelemetryPropertyCollector, _2?: number): Promise<void> {
-        return this._state.attach(args);
+    public async attach(args: IAttachRequestArgs, _?: ITelemetryPropertyCollector, _2?: number): Promise<void> {
+        this._state = await this._state.attach(args);
     }
 
-    public disconnect(_: DebugProtocol.DisconnectArguments): PromiseOrNot<void> {
-        return this._state.disconnect();
+    public disconnect(args: DebugProtocol.DisconnectArguments): PromiseOrNot<void> {
+        return this._state.disconnect(args);
     }
 
     public async setBreakpoints(args: DebugProtocol.SetBreakpointsArguments, telemetryPropertyCollector?: ITelemetryPropertyCollector): Promise<ISetBreakpointsResponseBody> {
@@ -77,8 +73,8 @@ export class ChromeDebugAdapter implements IDebugAdapter {
         return this._state.pause();
     }
 
-    public async restartFrame(callFrame: ICallFrame<IScript>): Promise<void> {
-        return this._state.restartFrame(callFrame);
+    public async restartFrame(args: DebugProtocol.RestartFrameRequest): Promise<void> {
+        return this._state.restartFrame(args);
     }
 
     public async stackTrace(args: DebugProtocol.StackTraceArguments, _?: ITelemetryPropertyCollector, _2?: number): Promise<IStackTraceResponseBody> {
@@ -105,8 +101,8 @@ export class ChromeDebugAdapter implements IDebugAdapter {
         return this._state.evaluate(args, _telemetryPropertyCollector);
     }
 
-    public async loadedSources(): Promise<IGetLoadedSourcesResponseBody> {
-        return this._state.loadedSources();
+    public async loadedSources(args: DebugProtocol.LoadedSourcesArguments, telemetryPropertyCollector?: ITelemetryPropertyCollector, requestSeq?: number): Promise<IGetLoadedSourcesResponseBody> {
+        return this._state.loadedSources(args, telemetryPropertyCollector, requestSeq);
     }
 
     public setFunctionBreakpoints(_args: DebugProtocol.SetFunctionBreakpointsArguments, _telemetryPropertyCollector?: ITelemetryPropertyCollector, _requestSeq?: number): PromiseOrNot<DebugProtocol.SetFunctionBreakpointsResponse> {
@@ -115,10 +111,6 @@ export class ChromeDebugAdapter implements IDebugAdapter {
 
     public setVariable(_args: DebugProtocol.SetVariableArguments, _telemetryPropertyCollector?: ITelemetryPropertyCollector, _requestSeq?: number): PromiseOrNot<DebugProtocol.SetVariableResponse> {
         throw new Error('Method not implemented.');
-    }
-
-    public commonArgs(args: ICommonRequestArgs): void {
-        return this.chromeDebugAdapter.commonArgs(args);
     }
 
     public async exceptionInfo(args: DebugProtocol.ExceptionInfoArguments): Promise<IExceptionInfoResponseBody> {

@@ -2,7 +2,7 @@ import { SourceTextLogic } from './sourcesTextLogic';
 import { SourcesTreeNodeLogic } from './sourcesTreeNodeLogic';
 import { SourceResolverLogic } from './sourceResolverLogic';
 import { CDTPDiagnostics } from '../../target/cdtpDiagnostics';
-import { ScriptsRegistry } from '../scripts/scriptsRegistry';
+import { DeleteMeScriptsRegistry } from '../scripts/scriptsRegistry';
 import { ILoadedSource, ILoadedSourceTreeNode } from './loadedSource';
 import { ISourceResolver } from './sourceResolver';
 import { IScript } from '../scripts/script';
@@ -50,7 +50,7 @@ export class SourcesLogic {
 
     constructor(
         chromeDiagnostics: CDTPDiagnostics,
-        scriptsLogic: ScriptsRegistry) {
+        scriptsLogic: DeleteMeScriptsRegistry) {
         this._sourceResolverLogic = new SourceResolverLogic(chromeDiagnostics);
         this._sourceTextLogic = new SourceTextLogic(chromeDiagnostics);
         this._sourceTreeNodeLogic = new SourcesTreeNodeLogic(scriptsLogic);

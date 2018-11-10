@@ -146,8 +146,8 @@ export interface IUninitializedDebugAdapter {
 }
 
 export interface IUnconnectedDebugAdapter {
-    launch(args: ILaunchRequestArgs, telemetryPropertyCollector?: ITelemetryPropertyCollector, requestSeq?: number): PromiseOrNot<IConnectedDebugAdapter>;
-    attach(args: IAttachRequestArgs, telemetryPropertyCollector?: ITelemetryPropertyCollector, requestSeq?: number): PromiseOrNot<IConnectedDebugAdapter>;
+    launch(args: ILaunchRequestArgs, telemetryPropertyCollector?: ITelemetryPropertyCollector, requestSeq?: number): PromiseOrNot<void>;
+    attach(args: IAttachRequestArgs, telemetryPropertyCollector?: ITelemetryPropertyCollector, requestSeq?: number): PromiseOrNot<void>;
 }
 
 /**
@@ -168,6 +168,7 @@ export interface IConnectedDebugAdapter {
     stepIn(): PromiseOrNot<void>;
     stepOut(): PromiseOrNot<void>;
     pause(): PromiseOrNot<void>;
+    restartFrame(args: DebugProtocol.RestartFrameRequest): Promise<void>;
 
     stackTrace(args: DebugProtocol.StackTraceArguments, telemetryPropertyCollector?: ITelemetryPropertyCollector, requestSeq?: number): PromiseOrNot<IStackTraceResponseBody>;
     scopes(args: DebugProtocol.ScopesArguments, telemetryPropertyCollector?: ITelemetryPropertyCollector, requestSeq?: number): PromiseOrNot<IScopesResponseBody>;
@@ -176,6 +177,7 @@ export interface IConnectedDebugAdapter {
     threads(): PromiseOrNot<IThreadsResponseBody>;
     evaluate(args: DebugProtocol.EvaluateArguments, telemetryPropertyCollector?: ITelemetryPropertyCollector, requestSeq?: number): PromiseOrNot<IEvaluateResponseBody>;
 
+    exceptionInfo(args: DebugProtocol.ExceptionInfoArguments): Promise<IExceptionInfoResponseBody>;
     loadedSources(args: DebugProtocol.LoadedSourcesArguments, telemetryPropertyCollector?: ITelemetryPropertyCollector, requestSeq?: number): PromiseOrNot<IGetLoadedSourcesResponseBody>;
 
     setFunctionBreakpoints(args: DebugProtocol.SetFunctionBreakpointsArguments, telemetryPropertyCollector?: ITelemetryPropertyCollector, requestSeq?: number): PromiseOrNot<DebugProtocol.SetFunctionBreakpointsResponse>;
