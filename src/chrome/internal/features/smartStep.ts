@@ -18,7 +18,7 @@ export interface SmartStepLogicDependencies {
     readonly sourceMapTransformer: BaseSourceMapTransformer;
 
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
-    registerForCallFrameAdditionalPresentationDetailsElection(listener: () => Promise<ICallFramePresentationDetails>): void;
+    listenToCallFrameAdditionalPresentationDetailsElection(listener: (locationInLoadedSource: LocationInLoadedSource) => Promise<Vote<ICallFramePresentationDetails>>): void;
 }
 
 export interface SmartStepLogicConfiguration {
@@ -93,7 +93,7 @@ export class SmartStepLogic implements IFeature<SmartStepLogicConfiguration> {
         return false;
     }
 
-    public callFrameAdditionalPresentationDetailsElection(locationInLoadedSource: LocationInLoadedSource): Vote<ICallFramePresentationDetails> {
+    public onCallFrameAdditionalPresentationDetailsElection(locationInLoadedSource: LocationInLoadedSource): Vote<ICallFramePresentationDetails> {
         return this.isEnabled && !locationInLoadedSource.source.isSourceOfCompiled()
             ? new ReturnValue<ICallFramePresentationDetails>({
                 additionalSourceOrigins: [localize('smartStepFeatureName', 'smartStep')],
@@ -104,6 +104,7 @@ export class SmartStepLogic implements IFeature<SmartStepLogicConfiguration> {
 
     public install(configuration: SmartStepLogicConfiguration): this {
         this._dependencies.subscriberForAskForInformationAboutPaused(paused => this.askForInformationAboutPaused(paused));
+        this._dependencies.listenToCallFrameAdditionalPresentationDetailsElection(async locationInLoadedSource => this.onCallFrameAdditionalPresentationDetailsElection(locationInLoadedSource));
         this.configure(configuration);
         return this;
     }

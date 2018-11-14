@@ -1,7 +1,7 @@
 import {
     ITelemetryPropertyCollector, PromiseOrNot, ILaunchRequestArgs, IAttachRequestArgs, IThreadsResponseBody,
     ISetBreakpointsResponseBody, IStackTraceResponseBody, IScopesResponseBody, IVariablesResponseBody, ISourceResponseBody,
-    IEvaluateResponseBody, LineColTransformer, ICommonRequestArgs, utils, IExceptionInfoResponseBody, IDebugAdapterState
+    IEvaluateResponseBody, LineColTransformer, utils, IExceptionInfoResponseBody, IDebugAdapterState
 } from '../../..';
 import * as errors from '../../../errors';
 import { DebugProtocol } from 'vscode-debugprotocol';
@@ -184,10 +184,6 @@ export class ConnectedCDA implements IDebugAdapterState {
 
     public setVariable(_args: DebugProtocol.SetVariableArguments, _telemetryPropertyCollector?: ITelemetryPropertyCollector, _requestSeq?: number): PromiseOrNot<DebugProtocol.SetVariableResponse> {
         throw new Error('Method not implemented.');
-    }
-
-    public commonArgs(args: ICommonRequestArgs): void {
-        return this._chromeDebugAdapter.commonArgs(args);
     }
 
     public async exceptionInfo(args: DebugProtocol.ExceptionInfoArguments): Promise<IExceptionInfoResponseBody> {

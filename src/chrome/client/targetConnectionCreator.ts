@@ -83,7 +83,8 @@ export class DependenciesCreator {
             onPaused: this.communicator.getSubscriber(Target.Debugger.OnPaused),
             onAsyncBreakpointResolved: this.communicator.getSubscriber(Target.Debugger.OnAsyncBreakpointResolved),
             subscriberForAskForInformationAboutPaused: this.communicator.getSubscriber(Internal.AskForInformationAboutPaused),
-            callFrameAdditionalPresentationDetailsElection: this.communicator.getPublisher(Internal.CallFrameAdditionalPresentationDetailsElection),
+            listenToCallFrameAdditionalPresentationDetailsElection: this.communicator.getSubscriber(Internal.CallFrameAdditionalPresentationDetailsElection),
+            publishCallFrameAdditionalPresentationDetailsElection: this.communicator.getPublisher(Internal.CallFrameAdditionalPresentationDetailsElection),
 
             // Stepping
             stepOverDebugee: this.communicator.getRequester(Target.Debugger.StepOver),
@@ -101,6 +102,8 @@ export class DependenciesCreator {
             onScriptParsed: this.communicator.getSubscriber(Target.Debugger.OnScriptParsed),
 
             getScriptsByUrl: url => this._scriptsLogic.getScriptsByPath(url),
+
+            setAsyncCallStackDepth: this.communicator.getRequester(Target.Debugger.SetAsyncCallStackDepth),
 
             // Temporary components until we remove them with the factoring
             chrome: this._chromeDiagnostics,
@@ -177,7 +180,7 @@ export class ConnectedCDACreator {
         const eventSender = EventSender.createWithHandlers(communicator, session, internalToVsCode);
         new TakeProperActionOnPausedEvent(dependencies).install();
         const dotScriptCommand = new DotScriptCommand(dependencies);
-        const smartStepLogic = new SmartStepLogic(dependencies).install({ isEnabled: !!updateArguments.smartStep });
+        /*const smartStepLogic =*/ new SmartStepLogic(dependencies).install({ isEnabled: !!updateArguments.smartStep });
         // const supportedDomains = new SupportedDomains(dependencies).install();
 
         // TODO DIEGO: this._breakpointsLogic = BreakpointsLogic.createWithHandlers(communicator, dependencies, args.breakOnLoadStrategy && args.breakOnLoadStrategy !== 'off');

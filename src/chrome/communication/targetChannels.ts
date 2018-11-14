@@ -26,6 +26,7 @@ const _debugger = {
     GetPossibleBreakpoints: new RequestChannelIdentifier<RangeInScript, LocationInScript[]>(),
     RemoveBreakpoint: new RequestChannelIdentifier<BPRecipie<ISourceResolver>, void>(),
     Resume: new RequestChannelIdentifier<void, void>(),
+    SetAsyncCallStackDepth: new RequestChannelIdentifier<number, void>(),
     SetBreakpoint: new RequestChannelIdentifier<BPRecipieInScript<AlwaysBreak | ConditionalBreak>, Breakpoint<IScript>>(),
     SetBreakpointByUrl: new RequestChannelIdentifier<BPRecipieInUrl<AlwaysBreak | ConditionalBreak>, Breakpoint<IResourceIdentifier>[]>(),
     SetBreakpointByUrlRegexp: new RequestChannelIdentifier<BPRecipieInUrlRegexp<AlwaysBreak | ConditionalBreak>, Breakpoint<URLRegexp>[]>(),

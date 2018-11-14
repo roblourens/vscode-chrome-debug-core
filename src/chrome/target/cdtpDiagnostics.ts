@@ -66,6 +66,7 @@ export async function registerCDTPDiagnosticsPublishersAndHandlers(communicator:
     await cdtpDiagnostics.Debugger.enable();
 
     // Requests
+    communicator.registerHandler(Debugger.SetAsyncCallStackDepth, maxDepth => cdtpDiagnostics.Debugger.setAsyncCallStackDepth({maxDepth: maxDepth }));
     communicator.registerHandler(Debugger.GetScriptSource, script => cdtpDiagnostics.Debugger.getScriptSource(script));
     communicator.registerHandler(Debugger.GetPossibleBreakpoints, rangeInScript => cdtpDiagnostics.Debugger.getPossibleBreakpoints(rangeInScript));
     communicator.registerHandler(Debugger.RemoveBreakpoint, bpRecipie => cdtpDiagnostics.Debugger.removeBreakpoint(bpRecipie));

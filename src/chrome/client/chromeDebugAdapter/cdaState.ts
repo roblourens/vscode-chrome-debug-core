@@ -1,6 +1,6 @@
-import { ITelemetryPropertyCollector, ISetBreakpointsResponseBody, IStackTraceResponseBody, IScopesResponseBody, IVariablesResponseBody, ISourceResponseBody, IEvaluateResponseBody, IGetLoadedSourcesResponseBody, IDebugAdapterState } from '../../../debugAdapterInterfaces';
+import { ITelemetryPropertyCollector, ISetBreakpointsResponseBody, IStackTraceResponseBody, IScopesResponseBody, IVariablesResponseBody, ISourceResponseBody, IEvaluateResponseBody, IGetLoadedSourcesResponseBody, IDebugAdapterState, ILaunchRequestArgs, IAttachRequestArgs } from '../../../debugAdapterInterfaces';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { ChromeDebugLogic, ILaunchRequestArgs, IAttachRequestArgs, IExceptionInfoResponseBody } from '../../../..';
+import { ChromeDebugLogic, IExceptionInfoResponseBody } from '../../../..';
 import { PromiseOrNot } from '../../utils/promises';
 
 export abstract class UnconnectedCDACommonLogic implements IDebugAdapterState {

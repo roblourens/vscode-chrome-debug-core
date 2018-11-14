@@ -23,8 +23,7 @@ export interface ISkipFilesLogicDependencies {
     readonly pathTransformer: BasePathTransformer;
 
     onScriptParsed(listener: (scriptEvent: ScriptParsedEvent) => Promise<void>): void;
-    registerForCallFrameAdditionalPresentationDetailsElection(
-        listener: (locationInLoadedSource: LocationInLoadedSource) => Promise<Vote<ICallFramePresentationDetails>>): void;
+    listenToCallFrameAdditionalPresentationDetailsElection(listener: (locationInLoadedSource: LocationInLoadedSource) => Promise<Vote<ICallFramePresentationDetails>>): void;
 }
 
 export interface ISkipFilesConfiguration {
@@ -54,7 +53,7 @@ export class SkipFilesLogic implements IFeature<ISkipFilesConfiguration> {
         return undefined;
     }
 
-    public async callFrameAdditionalPresentationDetailsElection(locationInLoadedSource: LocationInLoadedSource): Promise<Vote<ICallFramePresentationDetails>> {
+    public async listenToCallFrameAdditionalPresentationDetailsElection(locationInLoadedSource: LocationInLoadedSource): Promise<Vote<ICallFramePresentationDetails>> {
         return this.shouldSkipSource(locationInLoadedSource.source.identifier)
             ? new ReturnValue<ICallFramePresentationDetails>({
                 additionalSourceOrigins: [localize('skipFilesFeatureName', 'skipFiles')],
@@ -251,8 +250,8 @@ export class SkipFilesLogic implements IFeature<ISkipFilesConfiguration> {
 
     public install(_launchAttachArgs: ISkipFilesConfiguration): this {
         this._dependencies.onScriptParsed(scriptParsed => this.onScriptParsed(scriptParsed));
-        this._dependencies.registerForCallFrameAdditionalPresentationDetailsElection(
-            (location) => this.callFrameAdditionalPresentationDetailsElection(location));
+        this._dependencies.listenToCallFrameAdditionalPresentationDetailsElection(
+            (location) => this.listenToCallFrameAdditionalPresentationDetailsElection(location));
         this.configure(_launchAttachArgs);
         return this;
     }

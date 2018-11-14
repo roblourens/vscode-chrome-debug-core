@@ -5,7 +5,6 @@ import { ChromeConnection } from '../../chromeConnection';
 import { IClientCapabilities } from '../../../debugAdapterInterfaces';
 import { IExtensibilityPoints } from '../../extensibility/extensibilityPoints';
 import { InitializedEvent, Logger } from 'vscode-debugadapter';
-import { ICommonRequestArgs } from '../../../../lib/src';
 import { LoggingConfiguration } from '../../internal/services/logging';
 
 export class UnconnectedCDA extends UnconnectedCDACommonLogic implements IDebugAdapterState {
@@ -22,7 +21,7 @@ export class UnconnectedCDA extends UnconnectedCDACommonLogic implements IDebugA
         return this.createConnection(ScenarioType.Attach, updatedArgs);
     }
 
-    private parseLoggingConfiguration(args: ICommonRequestArgs): LoggingConfiguration {
+    private parseLoggingConfiguration(args: ILaunchRequestArgs | IAttachRequestArgs): LoggingConfiguration {
         const traceMapping: { [key: string]: Logger.LogLevel | undefined } = { true: Logger.LogLevel.Warn, verbose: Logger.LogLevel.Verbose };
         const traceValue = traceMapping[args.trace.toString().toLowerCase()];
         return { logLevel: traceValue, logFilePath: args.logFilePath, shouldLogTimestamps: args.logTimestamps };

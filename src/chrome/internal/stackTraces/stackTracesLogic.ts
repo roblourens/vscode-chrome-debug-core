@@ -17,12 +17,13 @@ import { IFeature } from '../features/feature';
 import { InformationAboutPausedProvider } from '../features/takeProperActionOnPausedEvent';
 import { ExecuteDecisionBasedOnVotes, Vote } from '../../communication/collaborativeDecision';
 import { asyncMap } from '../../collections/async';
+import { PromiseOrNot } from '../../utils/promises';
 
 export interface StackTraceDependencies {
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
     onResumed(listener: () => void): void;
     setAsyncCallStackDepth(maxDepth: number): Promise<void>;
-    callFrameAdditionalPresentationDetailsElection(locationInLoadedSource: LocationInLoadedSource): Promise<Vote<ICallFramePresentationDetails>[]>;
+    publishCallFrameAdditionalPresentationDetailsElection(locationInLoadedSource: LocationInLoadedSource): PromiseOrNot<Vote<ICallFramePresentationDetails>[]>;
 }
 
 export interface IStackTracesConfiguration {
@@ -105,7 +106,7 @@ export class StackTracesLogic implements IFeature<IStackTracesConfiguration> {
 
         // Apply hints to skipped frames
         const getSkipReason = (reason: string) => localize('skipReason', "(skipped by '{0}')", reason);
-        const votes = await this._dependencies.callFrameAdditionalPresentationDetailsElection(locationInLoadedSource);
+        const votes = await this._dependencies.publishCallFrameAdditionalPresentationDetailsElection(locationInLoadedSource);
         const result = await new ExecuteDecisionBasedOnVotes(() => ({
             additionalSourceOrigins: [] as string[],
             sourcePresentationHint: 'normal' as SourcePresentationHint
