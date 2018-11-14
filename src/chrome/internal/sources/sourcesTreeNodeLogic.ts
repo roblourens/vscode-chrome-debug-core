@@ -1,10 +1,9 @@
-import { DeleteMeScriptsRegistry } from '../scripts/scriptsRegistry';
 import { ILoadedSource, ILoadedSourceTreeNode, determineOrderingOfLoadedSources } from './loadedSource';
 import { IScript } from '../scripts/script';
 import { IFeature } from '../features/feature';
 
 export interface SourcesTreeNodeLogicDependencies {
-    runtimeScriptsManager: DeleteMeScriptsRegistry;
+    allScripts(): Promise<IScript[]>;
 }
 
 export class SourcesTreeNodeLogic implements IFeature {
@@ -17,7 +16,7 @@ export class SourcesTreeNodeLogic implements IFeature {
     */
     // TODO DIEGO: Verify if this is the format we should use for the tree
     public async getLoadedSourcesTrees(): Promise<ILoadedSourceTreeNode[]> {
-        const scripts = await Promise.all(Array.from(await this._dependencies.runtimeScriptsManager.getAllScripts()));
+        const scripts = await Promise.all(Array.from(await this._dependencies.allScripts()));
         const sourceMetadataTree = scripts.map(script => this.getLoadedSourcesTreeForScript(script));
         return sourceMetadataTree;
     }

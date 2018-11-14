@@ -2,7 +2,6 @@ import { IToggleSkipFileStatusArgs, utils, Crdp, BaseSourceMapTransformer, parse
 import { logger } from 'vscode-debugadapter/lib/logger';
 import { IScript } from '../scripts/script';
 import { BasePathTransformer } from '../../../transformers/basePathTransformer';
-import { DeleteMeScriptsRegistry } from '../scripts/scriptsRegistry';
 import { CDTPDiagnostics } from '../../target/cdtpDiagnostics';
 import { StackTracesLogic } from '../stackTraces/stackTracesLogic';
 import { newResourceIdentifierMap, IResourceIdentifier, parseResourceIdentifiers } from '../sources/resourceIdentifier';
@@ -16,12 +15,12 @@ const localize = nls.loadMessageBundle();
 
 export interface ISkipFilesLogicDependencies {
     // TODO DIEGO: Refactor these dependencies
-    readonly runtimeScriptsManager: DeleteMeScriptsRegistry;
     readonly chrome: CDTPDiagnostics;
     readonly stackTracesLogic: StackTracesLogic;
     readonly sourceMapTransformer: BaseSourceMapTransformer;
     readonly pathTransformer: BasePathTransformer;
 
+    getScriptByUrl(url: IResourceIdentifier<string>): IScript[];
     onScriptParsed(listener: (scriptEvent: ScriptParsedEvent) => Promise<void>): void;
     listenToCallFrameAdditionalPresentationDetailsElection(listener: (locationInLoadedSource: LocationInLoadedSource) => Promise<Vote<ICallFramePresentationDetails>>): void;
 }
@@ -239,7 +238,7 @@ export class SkipFilesLogic implements IFeature<ISkipFilesConfiguration> {
     }
 
     private getScriptByUrl(url: IResourceIdentifier): IScript[] {
-        return this._dependencies.runtimeScriptsManager.getScriptsByPath(url);
+        return this._dependencies.getScriptByUrl(url);
     }
 
     private async onScriptParsed(scriptEvent: ScriptParsedEvent): Promise<void> {
