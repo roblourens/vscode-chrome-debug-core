@@ -1,7 +1,7 @@
 import {
     ITelemetryPropertyCollector, PromiseOrNot, ILaunchRequestArgs, IAttachRequestArgs, IThreadsResponseBody,
     ISetBreakpointsResponseBody, IStackTraceResponseBody, IScopesResponseBody, IVariablesResponseBody, ISourceResponseBody,
-    IEvaluateResponseBody, LineColTransformer, utils, IExceptionInfoResponseBody, IDebugAdapterState
+    IEvaluateResponseBody, utils, IExceptionInfoResponseBody, IDebugAdapterState
 } from '../../..';
 import * as errors from '../../../errors';
 import { DebugProtocol } from 'vscode-debugprotocol';
@@ -11,49 +11,29 @@ import { ClientToInternal } from '../clientToInternal';
 import { InternalToClient } from '../internalToClient';
 import { IGetLoadedSourcesResponseBody } from '../../../debugAdapterInterfaces';
 import { StackTracesLogic } from '../../internal/stackTraces/stackTracesLogic';
-import { SkipFilesLogic } from '../../internal/features/skipFiles';
 import { SourcesLogic } from '../../internal/sources/sourcesLogic';
 import { BreakpointsLogic } from '../../internal/breakpoints/breakpointsLogic';
 import { CDTPScriptsRegistry } from '../../target/cdtpScriptsRegistry';
 import { PauseOnExceptionOrRejection } from '../../internal/exceptions/pauseOnException';
 import { Stepping } from '../../internal/stepping/stepping';
 import { DotScriptCommand } from '../../internal/sources/features/dotScriptsCommand';
-
-export interface ConnectedCDADependencies {
-    chromeDebugAdapter: ChromeDebugLogic;
-    lineColTransformer: LineColTransformer;
-    sourcesLogic: SourcesLogic;
-    scriptLogic: CDTPScriptsRegistry;
-    clientToInternal: ClientToInternal;
-    internalToVsCode: InternalToClient;
-    stackTraceLogic: StackTracesLogic;
-    skipFilesLogic: SkipFilesLogic;
-    breakpointsLogic: BreakpointsLogic;
-    pauseOnException: PauseOnExceptionOrRejection;
-    stepping: Stepping;
-    dotScriptCommand: DotScriptCommand;
-
-    // Are these needed?
-    // supportedDomains: SupportedDomains;
-    // smartStepLogic: SmartStepLogic;
-}
+import { inject } from 'inversify';
 
 // TODO DIEGO: Remember to call here and only here         this._lineColTransformer.convertDebuggerLocationToClient(stackFrame); for all responses
 export class ConnectedCDA implements IDebugAdapterState {
     public static SCRIPTS_COMMAND = '.scripts';
 
-    protected readonly _chromeDebugAdapter: ChromeDebugLogic;
-    private readonly _sourcesLogic: SourcesLogic;
-    protected _scriptsLogic: CDTPScriptsRegistry;
-    protected readonly _clientToInternal: ClientToInternal;
-    private readonly _internalToVsCode: InternalToClient;
-    private readonly _stackTraceLogic: StackTracesLogic;
-    protected readonly _breakpointsLogic: BreakpointsLogic;
-    public readonly _pauseOnException: PauseOnExceptionOrRejection;
-    private readonly _stepping: Stepping;
-    public readonly _dotScriptCommand: DotScriptCommand;
-
-    constructor(private readonly _dependencies: ConnectedCDADependencies) {
+    constructor(
+        @inject(ChromeDebugLogic) protected readonly _chromeDebugAdapter: ChromeDebugLogic,
+        @inject(SourcesLogic) private readonly _sourcesLogic: SourcesLogic,
+        @inject(CDTPScriptsRegistry) protected _scriptsLogic: CDTPScriptsRegistry,
+        @inject(ClientToInternal) protected readonly _clientToInternal: ClientToInternal,
+        @inject(InternalToClient) private readonly _internalToVsCode: InternalToClient,
+        @inject(StackTracesLogic) private readonly _stackTraceLogic: StackTracesLogic,
+        @inject(BreakpointsLogic) protected readonly _breakpointsLogic: BreakpointsLogic,
+        @inject(PauseOnExceptionOrRejection) public readonly _pauseOnException: PauseOnExceptionOrRejection,
+        @inject(Stepping) private readonly _stepping: Stepping,
+        @inject(DotScriptCommand) public readonly _dotScriptCommand: DotScriptCommand) {
 
     }
 
@@ -72,7 +52,7 @@ export class ConnectedCDA implements IDebugAdapterState {
     public async setBreakpoints(args: DebugProtocol.SetBreakpointsArguments, telemetryPropertyCollector?: ITelemetryPropertyCollector): Promise<ISetBreakpointsResponseBody> {
         if (args.breakpoints) {
             const desiredBPRecipies = this._clientToInternal.toBPRecipies(args);
-            const bpRecipiesStatus = await this._dependencies.breakpointsLogic.setBreakpoints(desiredBPRecipies, telemetryPropertyCollector);
+            const bpRecipiesStatus = await this._breakpointsLogic.updateBreakpointsForFile(desiredBPRecipies, telemetryPropertyCollector);
             return { breakpoints: await this._internalToVsCode.toBPRecipiesStatus(bpRecipiesStatus) };
         } else {
             throw new Error(`Expected the set breakpoints arguments to have a list of breakpoints yet it was ${args.breakpoints}`);
@@ -112,8 +92,8 @@ export class ConnectedCDA implements IDebugAdapterState {
 
     public async restartFrame(args: DebugProtocol.RestartFrameRequest): Promise<void> {
         const callFrame = this._clientToInternal.getCallFrameById(args.arguments.frameId);
-        if (callFrame.hasCodeFlow()) {
-            return this._stepping.restartFrame(callFrame.codeFlow);
+        if (callFrame.hasCallFrame()) {
+            return this._stepping.restartFrame(callFrame.callFrame.unmappedCallFrame);
         } else {
             throw new Error(`Cannot restart to a frame that doesn't have state information`);
         }

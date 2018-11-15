@@ -1,12 +1,14 @@
-import { IFeature } from '../features/feature';
+import { IComponent } from '../features/feature';
 import { AsyncSteppingDependencies, AsyncStepping } from './features/asyncStepping';
 import { SyncStepping, SyncSteppingDependencies } from './features/syncStepping';
 import { ICallFrame } from '../stackTraces/callFrame';
 import { IScript } from '../scripts/script';
+import { injectable } from 'inversify';
 
 export interface SteppingDependencies extends AsyncSteppingDependencies, SyncSteppingDependencies {}
 
-export class Stepping implements IFeature {
+@injectable()
+export class Stepping implements IComponent {
     private readonly _syncStepping = new SyncStepping(this._depenencies);
     private readonly _asyncStepping = new AsyncStepping(this._depenencies);
 

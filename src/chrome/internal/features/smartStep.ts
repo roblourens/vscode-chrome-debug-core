@@ -5,7 +5,7 @@ import { ICallFrame } from '../stackTraces/callFrame';
 import { PausedEvent } from '../../target/events';
 import { InformationAboutPausedProvider } from './takeProperActionOnPausedEvent';
 import { logger } from 'vscode-debugadapter';
-import { IFeature } from './feature';
+import { IComponent } from './feature';
 import { LocationInLoadedSource } from '../locations/location';
 import { ICallFramePresentationDetails } from '../stackTraces/callFramePresentation';
 import { Abstained, ReturnValue, VoteRelevance, VoteCommonLogic, Vote } from '../../communication/collaborativeDecision';
@@ -38,7 +38,7 @@ export class ShouldStepInToAvoidSkippedSource extends VoteCommonLogic<void> {
     }
 }
 
-export class SmartStepLogic implements IFeature<SmartStepLogicConfiguration> {
+export class SmartStepLogic implements IComponent<SmartStepLogicConfiguration> {
     private _smartStepCount = 0;
     private _isEnabled = false;
 

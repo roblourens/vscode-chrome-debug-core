@@ -1,14 +1,14 @@
 import { ILoadedSource } from './loadedSource';
 import { ValidatedMap } from '../../collections/validatedMap';
 import { printIterable } from '../../collections/printting';
-import { IFeature } from '../features/feature';
+import { IComponent } from '../features/feature';
 import { IScript } from '../scripts/script';
 
 export interface SourceTextLogicDependencies {
     getScriptSource(identifier: IScript): Promise<string>;
 }
 
-export class SourceTextLogic implements IFeature {
+export class SourceTextLogic implements IComponent {
     private _sourceToText = new ValidatedMap<ILoadedSource, string>();
 
     public async text(loadedSource: ILoadedSource): Promise<string> {

@@ -2,9 +2,10 @@ import { ICallFrame } from '../../stackTraces/callFrame';
 
 import { IScript } from '../../scripts/script';
 import { InformationAboutPausedProvider, } from '../../features/takeProperActionOnPausedEvent';
-import { IFeature } from '../../features/feature';
+import { IComponent } from '../../features/feature';
 import { PausedEvent } from '../../../target/events';
 import { Abstained, Vote } from '../../../communication/collaborativeDecision';
+import { injectable } from 'inversify';
 
 type SteppingAction = () => Promise<void>;
 
@@ -35,7 +36,8 @@ export interface SyncSteppingDependencies {
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
 }
 
-export class SyncStepping implements IFeature {
+@injectable()
+export class SyncStepping implements IComponent {
     private _status: SyncSteppingStatus = new CurrentlyIdle();
 
     public stepOver = this.createSteppingMethod(() => this._dependencies.stepOverDebugee());

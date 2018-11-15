@@ -5,12 +5,13 @@ import { BasePathTransformer } from '../../../transformers/basePathTransformer';
 import { CDTPDiagnostics } from '../../target/cdtpDiagnostics';
 import { StackTracesLogic } from '../stackTraces/stackTracesLogic';
 import { newResourceIdentifierMap, IResourceIdentifier, parseResourceIdentifiers } from '../sources/resourceIdentifier';
-import { IFeature } from './feature';
+import { IComponent } from './feature';
 import { ScriptParsedEvent } from '../../target/events';
 import { LocationInLoadedSource } from '../locations/location';
 import { ICallFramePresentationDetails } from '../stackTraces/callFramePresentation';
 import { Abstained, Vote, ReturnValue } from '../../communication/collaborativeDecision';
 import * as nls from 'vscode-nls';
+import { injectable } from 'inversify';
 const localize = nls.loadMessageBundle();
 
 export interface ISkipFilesLogicDependencies {
@@ -30,7 +31,8 @@ export interface ISkipFilesConfiguration {
     skipFileRegExps?: string[]; // a supplemental array of library code regex patterns
 }
 
-export class SkipFilesLogic implements IFeature<ISkipFilesConfiguration> {
+@injectable()
+export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration> {
     private _blackboxedRegexes: RegExp[] = [];
     private _skipFileStatuses = newResourceIdentifierMap<boolean>();
     public reprocessPausedEvent: () => void; // TODO DIEGO: Do this in a better way

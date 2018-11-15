@@ -1,11 +1,6 @@
-import { RequestChannelIdentifier } from './requestsCommunicator';
-import { BPRecipiesInUnresolvedSource } from '../internal/breakpoints/bpRecipies';
-import { IBPRecipieStatus } from '../internal/breakpoints/bpRecipieStatus';
 import { NotificationChannelIdentifier } from './notificationsCommunicator';
-import { BPRecipie, BPRecipieInLoadedSource } from '../internal/breakpoints/bpRecipie';
+import { BPRecipie } from '../internal/breakpoints/bpRecipie';
 import { ScriptOrSourceOrIdentifierOrUrlRegexp, LocationInLoadedSource } from '../internal/locations/location';
-import { ConditionalBreak, AlwaysBreak } from '../internal/breakpoints/bpActionWhenHit';
-import { IBreakpoint } from '../internal/breakpoints/breakpoint';
 import { registerChannels } from './channel';
 import { PausedEvent } from '../target/events';
 import { ICallFramePresentationDetails } from '../internal/stackTraces/callFramePresentation';
@@ -18,10 +13,6 @@ const _breakpoints = {
     OnNoPendingBreakpoints: new NotificationChannelIdentifier<void>(),
 
     VoteForWhatToDoOnPaused: new NotificationChannelIdentifier<PausedEvent, Vote<void>>(),
-
-    // Requests
-    UpdateBreakpointsForFile: new RequestChannelIdentifier<BPRecipiesInUnresolvedSource, IBPRecipieStatus[]>(),
-    AddBreakpointForLoadedSource: new RequestChannelIdentifier<BPRecipieInLoadedSource<ConditionalBreak | AlwaysBreak>, IBreakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>[]>(),
 };
 
 const Breakpoints: Readonly<typeof _breakpoints> = _breakpoints;

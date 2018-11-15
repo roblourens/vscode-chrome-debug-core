@@ -7,11 +7,16 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { ILaunchRequestArgs, IAttachRequestArgs } from '../debugAdapterInterfaces';
 import { IResourceIdentifier } from '../chrome/internal/sources/resourceIdentifier';
 import { StackTracePresentation } from '../chrome/internal/stackTraces/stackTracePresentation';
+import { IComponent, ComponentConfiguration, PromiseOrNot } from '../chrome/internal/features/feature';
 
 /**
  * Converts a local path from Code to a path on the target.
  */
-export class BasePathTransformer {
+export class BasePathTransformer implements IComponent {
+    public install(configuration: ComponentConfiguration): PromiseOrNot<void | this> {
+        this.launch(configuration.args);
+    }
+
     public launch(_args: ILaunchRequestArgs): Promise<void> {
         return Promise.resolve();
     }

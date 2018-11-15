@@ -1,7 +1,7 @@
 import { asyncMap } from '../../../collections/async';
 import { PausedEvent } from '../../../target/events';
 import { ILoadedSource } from '../../sources/loadedSource';
-import { IFeature } from '../../features/feature';
+import { IComponent } from '../../features/feature';
 import { LocationInScript, ScriptOrSourceOrIdentifierOrUrlRegexp } from '../../locations/location';
 import { IBreakpoint } from '../breakpoint';
 import { NotifyStoppedCommonLogic, NotifyStoppedDependencies, ResumeCommonLogic, ResumeDependencies, InformationAboutPausedProvider } from '../../features/takeProperActionOnPausedEvent';
@@ -39,7 +39,7 @@ export class PausedWhileLoadingScriptToResolveBreakpoints extends ResumeCommonLo
     }
 }
 
-export class PauseScriptLoadsToSetBPs implements IFeature<PauseScriptLoadsToSetBPsConfiguration> {
+export class PauseScriptLoadsToSetBPs implements IComponent<PauseScriptLoadsToSetBPsConfiguration> {
     private readonly stopsWhileScriptsLoadInstrumentationName = 'scriptFirstStatement';
     private _isInstrumentationEnabled = false;
     private _scriptFirstStatementStopsBeforeFile: boolean;

@@ -5,12 +5,14 @@ import { ILoadedSource, ILoadedSourceTreeNode } from './loadedSource';
 import { ISourceResolver } from './sourceResolver';
 import { IScript } from '../scripts/script';
 import { IResourceIdentifier } from './resourceIdentifier';
-import { IFeature } from '../features/feature';
+import { IComponent } from '../features/feature';
+import { injectable } from 'inversify';
 
 export interface SourcesLogicDependencies extends SourceResolverLogicDependencies, SourceTextLogicDependencies, SourcesTreeNodeLogicDependencies {
 }
 
-export class SourcesLogic implements IFeature {
+@injectable()
+export class SourcesLogic implements IComponent {
     private readonly _sourceResolverLogic = new SourceResolverLogic(this._dependencies);
     private readonly _sourceTextLogic = new SourceTextLogic(this._dependencies);
     private readonly _sourceTreeNodeLogic = new SourcesTreeNodeLogic(this._dependencies);

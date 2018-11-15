@@ -16,7 +16,15 @@ import { PauseOnExceptionsStrategy, PauseOnAllExceptions, PauseOnUnhandledExcept
 
 export type ScriptParsedListener = (params: ScriptParsedEvent) => void;
 
-export class CDTPDebugger extends CDTPEventsEmitterDiagnosticsModule<Crdp.DebuggerApi> {
+export interface ITargetBreakpoints {
+    setBreakpoint(bpRecipie: BPRecipieInScript<AlwaysBreak | ConditionalBreak>): Promise<BreakpointInScript>;
+    setBreakpointByUrl(bpRecipie: BPRecipieInUrl<AlwaysBreak | ConditionalBreak>): Promise<BreakpointInUrl[]>;
+    setBreakpointByUrlRegexp(bpRecipie: BPRecipieInUrlRegexp<AlwaysBreak | ConditionalBreak>): Promise<BreakpointInUrlRegexp[]>;
+    getPossibleBreakpoints(rangeInScript: RangeInScript): Promise<LocationInScript[]>;
+    removeBreakpoint(bpRecipie: BPRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp>): Promise<void>;
+}
+
+export class CDTPDebugger extends CDTPEventsEmitterDiagnosticsModule<Crdp.DebuggerApi> implements ITargetBreakpoints {
     private _firstScriptWasParsed = utils.promiseDefer<Crdp.Runtime.ScriptId>();
 
     public readonly onBreakpointResolved = this.addApiListener('breakpointResolved', async (params: Crdp.Debugger.BreakpointResolvedEvent) => {

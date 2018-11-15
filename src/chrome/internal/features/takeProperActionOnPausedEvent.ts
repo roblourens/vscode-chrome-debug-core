@@ -1,9 +1,10 @@
-import { IFeature } from './feature';
+import { IComponent } from './feature';
 import { PausedEvent } from '../../target/events';
 import { DebugeeIsStoppedParameters } from '../../client/eventSender';
 import { ReasonType } from '../../stoppedEvent';
 import { PromiseOrNot } from '../../utils/promises';
 import { Vote, VoteCommonLogic, VoteRelevance, ExecuteDecisionBasedOnVotes } from '../../communication/collaborativeDecision';
+import { injectable } from 'inversify';
 
 export interface NotifyStoppedDependencies {
     notifyClientDebugeeIsStopped(params: DebugeeIsStoppedParameters): void;
@@ -37,7 +38,8 @@ export interface TakeProperActionOnPausedEventDependencies extends TakeActionBas
     onPaused(listener: (paused: PausedEvent) => Promise<void> | void): void;
 }
 
-export class TakeProperActionOnPausedEvent implements IFeature {
+@injectable()
+export class TakeProperActionOnPausedEvent implements IComponent {
     public async onPause(paused: PausedEvent): Promise<void> {
         // Ask all the listeners what information they can provide
         const infoPieces = await this._dependencies.askForInformationAboutPause(paused);

@@ -1,6 +1,6 @@
 import { IBPRecipie } from './bpRecipie';
 import { ITelemetryPropertyCollector } from '../../..';
-import { ScriptOrSourceOrIdentifierOrUrlRegexp, LocationInScript } from '../locations/location';
+import { ScriptOrSourceOrIdentifierOrUrlRegexp } from '../locations/location';
 import { BPRecipiesInUnresolvedSource } from './bpRecipies';
 import { Breakpoint } from './breakpoint';
 import { ReAddBPsWhenSourceIsLoaded, ReAddBPsWhenSourceIsLoadedDependencies } from './features/reAddBPsWhenSourceIsLoaded';
@@ -8,14 +8,11 @@ import { asyncMap } from '../../collections/async';
 import { IBPRecipieStatus } from './bpRecipieStatus';
 import { ClientCurrentBPRecipiesRegistry } from './clientCurrentBPRecipiesRegistry';
 import { BreakpointsRegistry } from './breakpointsRegistry';
-import { ICommunicator } from '../../communication/communicator';
-import { Internal } from '../../communication/internalChannels';
 import { BPRecipieInLoadedSourceLogic, BPRInLoadedSourceLogicDependencies } from './bpRecipieInLoadedSourceLogic';
 import { RemoveProperty } from '../../../typeUtils';
-import { combineProperties } from '../../utils/combine';
-import { ILoadedSource } from '../sources/loadedSource';
 import { BPStatusChangedParameters } from '../../client/eventSender';
 import { PauseScriptLoadsToSetBPs, PauseScriptLoadsToSetBPsDependencies } from './features/pauseScriptLoadsToSetBPs';
+import { inject } from 'inversify';
 
 export interface IOnPausedResult {
     didPause: boolean;
@@ -37,16 +34,6 @@ export type BreakpointsLogicDependencies = RemoveProperty<InternalDependencies,
 
 export class BreakpointsLogic {
     private readonly _clientBreakpointsRegistry = new ClientCurrentBPRecipiesRegistry();
-    private readonly _breakpointRegistry: BreakpointsRegistry;
-    private readonly _unbindedBreakpointsLogic: ReAddBPsWhenSourceIsLoaded;
-    private readonly _bpsWhileLoadingLogic: PauseScriptLoadsToSetBPs;
-    private readonly _bprInLoadedSourceLogic: BPRecipieInLoadedSourceLogic;
-
-    private readonly subObjectsSelfDependencies = {
-        notifyAllBPsAreBinded: () => this._bpsWhileLoadingLogic.disableIfNeccesary(),
-        waitUntilUnbindedBPsAreSet: (source: ILoadedSource) => this._unbindedBreakpointsLogic.waitUntilBPsAreSet(source),
-        tryGettingBreakpointAtLocation: (l: LocationInScript) => this._breakpointRegistry.tryGettingBreakpointAtLocation(l)
-    };
 
     protected onAsyncBreakpointResolved(breakpoint: Breakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>): void {
         this._breakpointRegistry.registerBreakpointAsBinded(breakpoint);
@@ -58,7 +45,7 @@ export class BreakpointsLogic {
         this._dependencies.sendBPStatusChanged({ reason: 'changed', bpRecipieStatus });
     }
 
-    public async setBreakpoints(requestedBPs: BPRecipiesInUnresolvedSource, _?: ITelemetryPropertyCollector): Promise<IBPRecipieStatus[]> {
+    public async updateBreakpointsForFile(requestedBPs: BPRecipiesInUnresolvedSource, _?: ITelemetryPropertyCollector): Promise<IBPRecipieStatus[]> {
         const bpsDelta = this._clientBreakpointsRegistry.updateBPRecipiesAndCalculateDelta(requestedBPs);
         const requestedBPsToAdd = new BPRecipiesInUnresolvedSource(bpsDelta.resource, bpsDelta.requestedToAdd);
         bpsDelta.requestedToAdd.forEach(requestedBP => this._breakpointRegistry.registerBPRecipie(requestedBP));
@@ -70,7 +57,7 @@ export class BreakpointsLogic {
 
                 await asyncMap(requestedBPsToAddInLoadedSources.breakpoints, async requestedBP => {
                     // DIEGO TODO: Do we need to do one breakpoint at a time to avoid issues on Crdp, or can we do them in parallel now that we use a different algorithm?
-                    await this._bprInLoadedSourceLogic.addBreakpoint(requestedBP);
+                    await this._bprInLoadedSourceLogic.addBreakpointForLoadedSource(requestedBP);
                 });
                 await Promise.all(bpsDelta.existingToRemove.map(async existingBPToRemove => {
                     await this._bprInLoadedSourceLogic.removeBreakpoint(existingBPToRemove);
@@ -82,7 +69,7 @@ export class BreakpointsLogic {
                     // We need to investigate if we can make the new breakpoint using a pseudo-regexp to make the target think that they are on different locations
                     // and thus workaround this issue
                     await this._bprInLoadedSourceLogic.removeBreakpoint(existingToBeReplaced.existingBP);
-                    await this._bprInLoadedSourceLogic.addBreakpoint(existingToBeReplaced.replacement.asBreakpointInLoadedSource());
+                    await this._bprInLoadedSourceLogic.addBreakpointForLoadedSource(existingToBeReplaced.replacement.asBreakpointInLoadedSource());
                 });
             },
             () => {
@@ -98,21 +85,11 @@ export class BreakpointsLogic {
     }
 
     constructor(private readonly _dependencies: BreakpointsLogicDependencies,
+        @inject(BreakpointsRegistry) private readonly _breakpointRegistry: BreakpointsRegistry,
+        @inject(ReAddBPsWhenSourceIsLoaded) private readonly _unbindedBreakpointsLogic: ReAddBPsWhenSourceIsLoaded,
+        @inject(PauseScriptLoadsToSetBPs) private readonly _bpsWhileLoadingLogic: PauseScriptLoadsToSetBPs,
+        @inject(BPRecipieInLoadedSourceLogic) private readonly _bprInLoadedSourceLogic: BPRecipieInLoadedSourceLogic,
         private readonly _isBpsWhileLoadingEnable: boolean) {
-        const internalDependencies = combineProperties(this._dependencies, this.subObjectsSelfDependencies);
-
-        this._breakpointRegistry = new BreakpointsRegistry();
-        this._unbindedBreakpointsLogic = new ReAddBPsWhenSourceIsLoaded(internalDependencies);
-        this._bpsWhileLoadingLogic = new PauseScriptLoadsToSetBPs(internalDependencies);
-        this._bprInLoadedSourceLogic = new BPRecipieInLoadedSourceLogic(internalDependencies, this._breakpointRegistry);
-
         this._dependencies.onAsyncBreakpointResolved(breakpoint => this.onAsyncBreakpointResolved(breakpoint));
-    }
-
-    public static createWithHandlers(communicator: ICommunicator, dependencies: BreakpointsLogicDependencies, isBpsWhileLoadingEnable: boolean) {
-        const breakpointsLogic = new BreakpointsLogic(dependencies, isBpsWhileLoadingEnable);
-        communicator.registerHandler(Internal.Breakpoints.UpdateBreakpointsForFile, requestedBPs => breakpointsLogic.setBreakpoints(requestedBPs));
-        communicator.registerHandler(Internal.Breakpoints.AddBreakpointForLoadedSource, requestedBP => breakpointsLogic._bprInLoadedSourceLogic.addBreakpoint(requestedBP));
-        return breakpointsLogic;
     }
 }

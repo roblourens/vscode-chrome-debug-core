@@ -1,4 +1,6 @@
 import { DebugProtocol } from 'vscode-debugprotocol';
+import { injectable } from 'inversify';
+
 import * as errors from '../../../errors';
 import * as path from 'path';
 
@@ -13,11 +15,12 @@ import { CodeFlowFrame, ICallFrame, ScriptCallFrame, LoadedSourceCallFrame } fro
 import { LocationInLoadedSource } from '../locations/location';
 import { CallFramePresentation, CallFramePresentationHint, SourcePresentationHint, ICallFramePresentationDetails } from './callFramePresentation';
 import { FormattedName } from './callFrameName';
-import { IFeature } from '../features/feature';
+import { IComponent, ComponentConfiguration } from '../features/feature';
 import { InformationAboutPausedProvider } from '../features/takeProperActionOnPausedEvent';
 import { ExecuteDecisionBasedOnVotes, Vote } from '../../communication/collaborativeDecision';
 import { asyncMap } from '../../collections/async';
 import { PromiseOrNot } from '../../utils/promises';
+import { ConnectedCDAConfiguration } from '../../client/chromeDebugAdapter/cdaConfiguration';
 
 export interface StackTraceDependencies {
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
@@ -30,7 +33,8 @@ export interface IStackTracesConfiguration {
     showAsyncStacks: boolean;
 }
 
-export class StackTracesLogic implements IFeature<IStackTracesConfiguration> {
+@injectable()
+export class StackTracesLogic implements IComponent<IStackTracesConfiguration> {
     public static ASYNC_CALL_STACK_DEPTH = 4;
 
     private _currentPauseEvent: PausedEvent | null = null;
@@ -124,14 +128,14 @@ export class StackTracesLogic implements IFeature<IStackTracesConfiguration> {
         return new CallFramePresentation<ILoadedSource>(callFrame, presentationDetails, presentationHint);
     }
 
-    public async install(configuration: IStackTracesConfiguration): Promise<this> {
+    public async install(configuration: ComponentConfiguration): Promise<this> {
         this._dependencies.subscriberForAskForInformationAboutPaused(params => this.onPaused(params));
         this._dependencies.onResumed(() => this.onResumed());
         return await this.configure(configuration);
     }
 
-    private async configure(configuration: IStackTracesConfiguration): Promise<this> {
-        const maxDepth = configuration.showAsyncStacks ? StackTracesLogic.ASYNC_CALL_STACK_DEPTH : 0;
+    private async configure(configuration: ComponentConfiguration): Promise<this> {
+        const maxDepth = configuration.args.showAsyncStacks ? StackTracesLogic.ASYNC_CALL_STACK_DEPTH : 0;
 
         try {
             await this._dependencies.setAsyncCallStackDepth(maxDepth);

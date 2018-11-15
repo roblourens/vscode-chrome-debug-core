@@ -1,4 +1,4 @@
-import { IFeature } from '../../features/feature';
+import { IComponent } from '../../features/feature';
 import { PausedEvent } from '../../../target/events';
 import { BPRecipieInUnresolvedSource, IBPRecipie } from '../bpRecipie';
 import { BreakOnHitCount } from '../bpActionWhenHit';
@@ -8,6 +8,7 @@ import { ScriptOrSourceOrIdentifierOrUrlRegexp } from '../../locations/location'
 import {  NotifyStoppedCommonLogic, NotifyStoppedDependencies, InformationAboutPausedProvider } from '../../features/takeProperActionOnPausedEvent';
 import { ReasonType } from '../../../stoppedEvent';
 import { Vote, Abstained, VoteRelevance } from '../../../communication/collaborativeDecision';
+import { injectable } from 'inversify';
 
 export interface HitCountBreakpointsDependencies extends NotifyStoppedDependencies {
     registerAddBPRecipieHandler(handlerRequirements: (bpRecipie: BPRecipieInUnresolvedSource) => boolean,
@@ -43,7 +44,8 @@ export class HitAndSatisfiedCountBPCondition extends NotifyStoppedCommonLogic {
     }
 }
 
-export class HitCountBreakpoints implements IFeature {
+@injectable()
+export class HitCountBreakpoints implements IComponent {
     private readonly underlyingToBPRecipie = new ValidatedMap<IBPRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp>, HitCountBPData>();
 
     public install(): void {

@@ -1,5 +1,5 @@
 import { InformationAboutPausedProvider, NotifyStoppedCommonLogic, NotifyStoppedDependencies } from '../features/takeProperActionOnPausedEvent';
-import { IFeature } from '../features/feature';
+import { IComponent } from '../features/feature';
 import { PausedEvent } from '../../target/events';
 import * as errors from '../../../errors';
 import { utils } from '../../..';
@@ -46,7 +46,7 @@ export class PromiseWasRejected extends NotifyStoppedCommonLogic {
     }
 }
 
-export class PauseOnExceptionOrRejection implements IFeature {
+export class PauseOnExceptionOrRejection implements IComponent {
     private _promiseRejectionsStrategy: PauseOnPromiseRejectionsStrategy;
 
     private _lastException: any;

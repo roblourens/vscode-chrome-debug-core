@@ -1,11 +1,13 @@
-import { IFeature } from '../features/feature';
+import { IComponent } from '../features/feature';
 import { Crdp } from '../../..';
+import { injectable } from 'inversify';
 
 export interface SupportedDomainsDependencies {
     getTargetDebuggerDomainsSchemas(): Promise<Crdp.Schema.Domain[]>;
 }
 
-export class SupportedDomains implements IFeature {
+@injectable()
+export class SupportedDomains implements IComponent {
     private readonly _domains = new Map<string, Crdp.Schema.Domain>();
 
     public async install(): Promise<this> {

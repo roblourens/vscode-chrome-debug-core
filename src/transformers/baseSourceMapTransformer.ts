@@ -11,6 +11,7 @@ import { SourceMaps } from '../sourceMaps/sourceMaps';
 import { logger } from 'vscode-debugadapter';
 
 import { ILoadedSource } from '../chrome/internal/sources/loadedSource';
+import { IComponent, ComponentConfiguration, PromiseOrNot } from '../chrome/internal/features/feature';
 
 interface ISavedSetBreakpointsArgs {
     generatedPath: string;
@@ -28,7 +29,7 @@ export interface ISourceLocation {
 /**
  * If sourcemaps are enabled, converts from source files on the client side to runtime files on the target side
  */
-export class BaseSourceMapTransformer {
+export class BaseSourceMapTransformer implements IComponent {
     protected _sourceMaps: SourceMaps;
     private _enableSourceMapCaching: boolean;
 
@@ -44,6 +45,12 @@ export class BaseSourceMapTransformer {
 
     constructor(enableSourceMapCaching?: boolean) {
         this._enableSourceMapCaching = enableSourceMapCaching;
+    }
+
+    public install(configuration: ComponentConfiguration): PromiseOrNot<void | this> {
+        this.launch(configuration.args);
+        this._enableSourceMapCaching = configuration._extensibilityPoints.enableSourceMapCaching;
+        this.isVSClient = configuration._clientCapabilities.clientID === 'visualstudio';
     }
 
     public get sourceMaps(): SourceMaps {

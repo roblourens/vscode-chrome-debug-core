@@ -1,12 +1,14 @@
 import { ILoadedSource, ILoadedSourceTreeNode, determineOrderingOfLoadedSources } from './loadedSource';
 import { IScript } from '../scripts/script';
-import { IFeature } from '../features/feature';
+import { IComponent } from '../features/feature';
+import { injectable } from 'inversify';
 
 export interface SourcesTreeNodeLogicDependencies {
     allScripts(): Promise<IScript[]>;
 }
 
-export class SourcesTreeNodeLogic implements IFeature {
+@injectable()
+export class SourcesTreeNodeLogic implements IComponent {
     /*
     We create a tree like:
     + RuntimeSource_1

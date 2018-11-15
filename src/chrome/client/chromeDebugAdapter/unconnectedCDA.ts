@@ -1,11 +1,19 @@
 import { UnconnectedCDACommonLogic } from './unconnectedCDACommonLogic';
-import { ILaunchRequestArgs, ITelemetryPropertyCollector, IAttachRequestArgs, ChromeDebugLogic, IDebugAdapterState, ChromeDebugSession } from '../../..';
-import { ScenarioType, ConnectedCDACreator } from '../targetConnectionCreator';
+import { ILaunchRequestArgs, ITelemetryPropertyCollector, IAttachRequestArgs, ChromeDebugLogic, IDebugAdapterState, ChromeDebugSession, BasePathTransformer, BaseSourceMapTransformer } from '../../..';
+import { ScenarioType } from '../targetConnectionCreator';
 import { ChromeConnection } from '../../chromeConnection';
 import { IClientCapabilities } from '../../../debugAdapterInterfaces';
 import { IExtensibilityPoints } from '../../extensibility/extensibilityPoints';
 import { InitializedEvent, Logger } from 'vscode-debugadapter';
 import { LoggingConfiguration } from '../../internal/services/logging';
+import { DependencyInjection } from '../../dependencyInjection.ts/di';
+import { ConnectedCDA } from './connectedCDA';
+import { ConnectedCDAConfiguration } from './cdaConfiguration';
+import { FallbackToClientPathTransformer } from '../../../transformers/fallbackToClientPathTransformer';
+import { RemotePathTransformer } from '../../../transformers/remotePathTransformer';
+import { EagerSourceMapTransformer } from '../../../transformers/eagerSourceMapTransformer';
+import { DelayMessagesUntilInitializedSession } from '../delayMessagesUntilInitializedSession';
+import { DoNotPauseWhileSteppingSession } from '../doNotPauseWhileSteppingSession';
 
 export class UnconnectedCDA extends UnconnectedCDACommonLogic implements IDebugAdapterState {
     public chromeDebugAdapter(): ChromeDebugLogic {
@@ -28,16 +36,27 @@ export class UnconnectedCDA extends UnconnectedCDACommonLogic implements IDebugA
     }
 
     private async createConnection(scenarioType: ScenarioType, args: ILaunchRequestArgs | IAttachRequestArgs): Promise<IDebugAdapterState> {
-        const model = await new ConnectedCDACreator(
-            this._extensibilityPoints,
-            this.parseLoggingConfiguration(args),
-            this._session,
-            this._clientCapabilities,
-            this._chromeConnectionClass,
-            scenarioType,
-            args).create();
         this._session.sendEvent(new InitializedEvent());
-        return model;
+        const di = new DependencyInjection();
+
+        const pathTransformerClass = this._clientCapabilities.supportsMapURLToFilePathRequest
+            ? FallbackToClientPathTransformer
+            : this._extensibilityPoints.pathTransformer || RemotePathTransformer;
+        const sourceMapTransformerClass = this._extensibilityPoints.sourceMapTransformer || EagerSourceMapTransformer;
+
+        return di
+            .configureValue(ISession, new DelayMessagesUntilInitializedSession(new DoNotPauseWhileSteppingSession(this._session)))
+            .configureClass(BasePathTransformer, pathTransformerClass)
+            .configureClass(BaseSourceMapTransformer, sourceMapTransformerClass)
+            .configureValue(ChromeConnection, new (this._chromeConnectionClass)(undefined, args.targetFilter || this._extensibilityPoints.targetFilter))
+                .configureValue(ConnectedCDAConfiguration, new ConnectedCDAConfiguration(this._extensibilityPoints,
+                this.parseLoggingConfiguration(args),
+                this._session,
+                this._clientCapabilities,
+                this._chromeConnectionClass,
+                scenarioType,
+                args))
+            .createClassWithDI<ConnectedCDA>(ConnectedCDA);
     }
 
     constructor(

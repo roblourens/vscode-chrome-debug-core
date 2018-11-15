@@ -1,8 +1,9 @@
-import { IFeature } from '../../features/feature';
+import { IComponent } from '../../features/feature';
 import { PausedEvent } from '../../../target/events';
 import {  InformationAboutPausedProvider, ResumeCommonLogic, ResumeDependencies } from '../../features/takeProperActionOnPausedEvent';
 import { Crdp } from '../../../..';
 import { VoteRelevance, Vote, Abstained } from '../../../communication/collaborativeDecision';
+import { injectable } from 'inversify';
 
 export interface AsyncSteppingDependencies extends ResumeDependencies {
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
@@ -17,7 +18,8 @@ export class PausedBecauseAsyncCallWasScheduled extends ResumeCommonLogic {
     }
 }
 
-export class AsyncStepping implements IFeature {
+@injectable()
+export class AsyncStepping implements IComponent {
     public async askForInformationAboutPaused(paused: PausedEvent): Promise<Vote<void>> {
         if (paused.asyncCallStackTraceId) {
             await this._dependencies.pauseProgramOnAsyncCall(paused.asyncCallStackTraceId);

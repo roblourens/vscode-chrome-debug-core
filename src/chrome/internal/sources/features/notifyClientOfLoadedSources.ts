@@ -1,4 +1,4 @@
-import { IFeature } from '../../features/feature';
+import { IComponent } from '../../features/feature';
 import { IScript } from '../../scripts/script';
 import { ScriptParsedEvent } from '../../../target/events';
 import { telemetry } from '../../../../telemetry';
@@ -12,7 +12,7 @@ export interface NotifyClientOfLoadedSourcesDependencies {
     onScriptParsed(listener: (scriptEvent: ScriptParsedEvent) => Promise<void>): void;
 }
 
-export class NotifyClientOfLoadedSources implements IFeature {
+export class NotifyClientOfLoadedSources implements IComponent {
     // TODO DIEGO: Ask VS what index do they use internally to verify if the source is the same or a new one
     private _notifiedSourceByUrl = new ValidatedMap<CDTPScriptUrl, IScript>();
 

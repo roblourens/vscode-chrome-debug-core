@@ -3,22 +3,20 @@ import { ILoadedSource } from '../../sources/loadedSource';
 import { asyncMap } from '../../../collections/async';
 import { BPRecipieIsUnbinded, BPRecipieIsBinded } from '../bpRecipieStatus';
 import { newResourceIdentifierMap, IResourceIdentifier } from '../../sources/resourceIdentifier';
-import { BPRecipieInLoadedSource } from '../bpRecipie';
-import { ConditionalBreak, AlwaysBreak } from '../bpActionWhenHit';
-import { IBreakpoint } from '../breakpoint';
-import { ScriptOrSourceOrIdentifierOrUrlRegexp } from '../../locations/location';
 import { BPStatusChangedParameters } from '../../../client/eventSender';
 import { PromiseDefer, promiseDefer } from '../../../../utils';
-import { IFeature } from '../../features/feature';
+import { IComponent } from '../../features/feature';
+import { injectable, inject } from 'inversify';
+import { IBreakpointsInLoadedSource, BPRecipieInLoadedSourceLogic } from '../bpRecipieInLoadedSourceLogic';
 
 export interface ReAddBPsWhenSourceIsLoadedDependencies {
     onLoadedSourceIsAvailable(listener: (source: ILoadedSource) => Promise<void>): void;
-    addBreakpointForLoadedSource(bpRecipie: BPRecipieInLoadedSource<ConditionalBreak | AlwaysBreak>): Promise<IBreakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>[]>;
     notifyNoPendingBPs(): void;
     sendClientBPStatusChanged(statusChanges: BPStatusChangedParameters): Promise<void>;
 }
 
-export class ReAddBPsWhenSourceIsLoaded implements IFeature {
+@injectable()
+export class ReAddBPsWhenSourceIsLoaded implements IComponent {
     private readonly _sourcePathToBPRecipies = newResourceIdentifierMap<BPRecipiesInUnresolvedSource>();
     private readonly _sourcePathToBPsAreSetDefer = newResourceIdentifierMap<PromiseDefer<void>>();
 
@@ -54,7 +52,7 @@ export class ReAddBPsWhenSourceIsLoaded implements IFeature {
             const remainingBPRecipies = new Set(unbindBPRecipies.breakpoints);
             await asyncMap(unbindBPRecipies.breakpoints, async bpRecipie => {
                 try {
-                    const bpStatus = await this._dependencies.addBreakpointForLoadedSource(bpRecipie.asBreakpointWithLoadedSource(source));
+                    const bpStatus = await this._breakpointsInLoadedSource.addBreakpointForLoadedSource(bpRecipie.asBreakpointWithLoadedSource(source));
                     this._dependencies.sendClientBPStatusChanged({
                         bpRecipieStatus: new BPRecipieIsBinded(bpRecipie, bpStatus, 'TODO DIEGO'),
                         reason: 'changed'
@@ -88,5 +86,6 @@ export class ReAddBPsWhenSourceIsLoaded implements IFeature {
         return `{ BPs to re-add when source is laoded: ${this._sourcePathToBPRecipies}}`;
     }
 
-    constructor(private readonly _dependencies: ReAddBPsWhenSourceIsLoadedDependencies) {}
+    constructor(private readonly _dependencies: ReAddBPsWhenSourceIsLoadedDependencies,
+        @inject(BPRecipieInLoadedSourceLogic) private readonly _breakpointsInLoadedSource: IBreakpointsInLoadedSource) { }
 }

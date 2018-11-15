@@ -1,15 +1,12 @@
-import { utils, ChromeDebugLogic, LineColTransformer, IClientCapabilities, ILaunchRequestArgs, IAttachRequestArgs, ChromeDebugSession, BaseSourceMapTransformer } from '../..';
+import { utils, LineColTransformer, IClientCapabilities, ILaunchRequestArgs, IAttachRequestArgs, ChromeDebugSession, BaseSourceMapTransformer } from '../..';
 
 import * as errors from '../../errors';
 
 import { CDTPDiagnostics, registerCDTPDiagnosticsPublishersAndHandlers } from '../target/cdtpDiagnostics';
 import { ChromeConnection } from '../chromeConnection';
-import { SourcesLogic } from '../internal/sources/sourcesLogic';
-import { ClientToInternal } from './clientToInternal';
-import { InternalToClient } from './internalToClient';
 import { StackTracesLogic, StackTraceDependencies } from '../internal/stackTraces/stackTracesLogic';
-import { SkipFilesLogic, ISkipFilesLogicDependencies } from '../internal/features/skipFiles';
-import { BreakpointsLogic, BreakpointsLogicDependencies } from '../internal/breakpoints/breakpointsLogic';
+import { ISkipFilesLogicDependencies } from '../internal/features/skipFiles';
+import { BreakpointsLogicDependencies } from '../internal/breakpoints/breakpointsLogic';
 import { LoggingCommunicator, Communicator, ICommunicator } from '../communication/communicator';
 import { ExecutionLogger } from '../logging/executionLogger';
 import { Internal } from '../communication/internalChannels';
@@ -22,15 +19,13 @@ import { DelayMessagesUntilInitializedSession } from './delayMessagesUntilInitia
 import { DoNotPauseWhileSteppingSession } from './doNotPauseWhileSteppingSession';
 import { ILoadedSource } from '../internal/sources/loadedSource';
 import { asyncMap } from '../collections/async';
-import { PauseOnExceptionDependencies, PauseOnExceptionOrRejection } from '../internal/exceptions/pauseOnException';
-import { SteppingDependencies, Stepping } from '../internal/stepping/stepping';
-import { TakeProperActionOnPausedEventDependencies, TakeProperActionOnPausedEvent } from '../internal/features/takeProperActionOnPausedEvent';
-import { IDotScriptCommandDependencies, DotScriptCommand } from '../internal/sources/features/dotScriptsCommand';
-import { HandlesRegistry } from './handlesRegistry';
-import { EventSender } from './eventSender';
+import { PauseOnExceptionDependencies } from '../internal/exceptions/pauseOnException';
+import { SteppingDependencies } from '../internal/stepping/stepping';
+import { TakeProperActionOnPausedEventDependencies } from '../internal/features/takeProperActionOnPausedEvent';
+import { IDotScriptCommandDependencies } from '../internal/sources/features/dotScriptsCommand';
 import { SmartStepLogic } from '../internal/features/smartStep';
 import { IExtensibilityPoints } from '../extensibility/extensibilityPoints';
-import { ConnectedCDA, ConnectedCDADependencies } from './chromeDebugAdapter/connectedCDA';
+import { ConnectedCDA } from './chromeDebugAdapter/connectedCDA';
 import { FallbackToClientPathTransformer } from '../../transformers/fallbackToClientPathTransformer';
 import { LoggingConfiguration, Logging } from '../internal/services/logging';
 
@@ -57,8 +52,6 @@ export class DependenciesCreator {
 
         return {
             onLoadedSourceIsAvailable: onLoadedSourceIsAvailable,
-
-            addBreakpointForLoadedSource: this.communicator.getRequester(Internal.Breakpoints.AddBreakpointForLoadedSource),
             sendClientBPStatusChanged: this.communicator.getRequester(Client.EventSender.SendBPStatusChanged),
             sendOutputToClient: this.communicator.getRequester(Client.EventSender.SendOutput),
 
@@ -66,10 +59,6 @@ export class DependenciesCreator {
             removeInstrumentationBreakpoint: this.communicator.getRequester(Target.Debugger.RemoveInstrumentationBreakpoint),
             sendBPStatusChanged: this.communicator.getRequester(Client.EventSender.SendBPStatusChanged),
             getPossibleBreakpoints: this.communicator.getRequester(Target.Debugger.GetPossibleBreakpoints),
-            removeBreakpoint: this.communicator.getRequester(Target.Debugger.RemoveBreakpoint),
-            setBreakpoint: this.communicator.getRequester(Target.Debugger.SetBreakpoint),
-            setBreakpointByUrl: this.communicator.getRequester(Target.Debugger.SetBreakpointByUrl),
-            setBreakpointByUrlRegexp: this.communicator.getRequester(Target.Debugger.SetBreakpointByUrlRegexp),
             setPauseOnExceptions: this.communicator.getRequester(Target.Debugger.SetPauseOnExceptions),
             pauseProgramOnAsyncCall: this.communicator.getRequester(Target.Debugger.PauseOnAsyncCall),
             notifyNoPendingBPs: this.communicator.getPublisher(Internal.Breakpoints.OnNoPendingBreakpoints),
@@ -132,25 +121,8 @@ export class ConnectedCDACreator {
 
     public async create(): Promise<ConnectedCDA> {
         const logging = new Logging().install(this._loggingConfiguration);
-        const updateArguments = this._extensibilityPoints.updateArguments(this._args);
 
-        if (updateArguments.pathMapping) {
-            for (const urlToMap in updateArguments.pathMapping) {
-                updateArguments.pathMapping[urlToMap] = utils.canonicalizeUrl(updateArguments.pathMapping[urlToMap]);
-            }
-        }
-
-        const pathTransformer = this._clientCapabilities.supportsMapURLToFilePathRequest
-            ? new FallbackToClientPathTransformer(this._session)
-            : new (this._extensibilityPoints.pathTransformer || RemotePathTransformer)();
-        pathTransformer.launch(updateArguments);
-
-        const isVSClient = this._clientCapabilities.clientID === 'visualstudio';
-        utils.setCaseSensitivePaths(!isVSClient); // TODO DIEGO: Find a way to remove this
-
-        const sourceMapTransformer = new (this._extensibilityPoints.sourceMapTransformer || EagerSourceMapTransformer)(this._extensibilityPoints.enableSourceMapCaching);
-        sourceMapTransformer.launch(updateArguments);
-        sourceMapTransformer.isVSClient = isVSClient;
+        utils.setCaseSensitivePaths(this._clientCapabilities.clientID !== 'visualstudio'); // TODO DIEGO: Find a way to remove this
 
         const chromeConnection = new (this._chromeConnectionClass)(undefined, updateArguments.targetFilter || this._extensibilityPoints.targetFilter);
         const lineColTransformer = new (this._extensibilityPoints.lineColTransformer || LineColTransformer)(
@@ -173,38 +145,9 @@ export class ConnectedCDACreator {
             & IDotScriptCommandDependencies = new DependenciesCreator(
                 communicator,
                 chromeDiagnostics, scriptsLogic, sourceMapTransformer).create();
-
-        const sourcesLogic = new SourcesLogic(dependencies);
-
-        const handlesRegistry = new HandlesRegistry();
-        const internalToVsCode = new InternalToClient(handlesRegistry, lineColTransformer);
-        const eventSender = EventSender.createWithHandlers(communicator, session, internalToVsCode);
-        new TakeProperActionOnPausedEvent(dependencies).install();
-        const dotScriptCommand = new DotScriptCommand(dependencies);
         /*const smartStepLogic =*/ new SmartStepLogic(dependencies).install({ isEnabled: !!updateArguments.smartStep });
-        // const supportedDomains = new SupportedDomains(dependencies).install();
 
-        // TODO DIEGO: this._breakpointsLogic = BreakpointsLogic.createWithHandlers(communicator, dependencies, args.breakOnLoadStrategy && args.breakOnLoadStrategy !== 'off');
-        const connectedCDADependencies: ConnectedCDADependencies = {
-            lineColTransformer: lineColTransformer,
-            scriptLogic: scriptsLogic,
-            breakpointsLogic: BreakpointsLogic.createWithHandlers(communicator, dependencies, true),
-            stepping: new Stepping(dependencies).install(),
-            pauseOnException: new PauseOnExceptionOrRejection(dependencies).install(),
-
-            sourcesLogic: sourcesLogic,
-            clientToInternal: new ClientToInternal(handlesRegistry, lineColTransformer, sourcesLogic),
-            stackTraceLogic: stackTraceLogic,
-
-            internalToVsCode: internalToVsCode,
-            dotScriptCommand: dotScriptCommand,
-            skipFilesLogic: new SkipFilesLogic(dependencies),
-
-            chromeDebugAdapter: new ChromeDebugLogic(lineColTransformer, sourceMapTransformer, pathTransformer, session,
-                scriptsLogic, chromeConnection, chromeDiagnostics, eventSender).install(),
-        };
-
-        return new ConnectedCDA(connectedCDADependencies);
+        return new ConnectedCDA();
     }
 
     constructor(

@@ -6,7 +6,9 @@
         "sourceMap": true,
         "outDir": "out",
         "declaration": true,
-
+        "types": ["reflect-metadata"],
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
         "noUnusedLocals": true,
         "noImplicitThis": true,
         "noFallthroughCasesInSwitch": true,
@@ -18,9 +20,7 @@
         "strictNullChecks": false,
         "strictPropertyInitialization": false,
 
-        "lib": [
-            "es2015"
-        ]
+        "lib": ["es6", "dom"]
     },
     "include": [
         "src/**/*.ts",

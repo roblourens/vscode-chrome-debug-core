@@ -1,14 +1,16 @@
 import { ILoadedSource } from './loadedSource';
 import { ISourceResolver, ResolveSourceUsingPath } from './sourceResolver';
 import { newResourceIdentifierMap, IResourceIdentifier } from './resourceIdentifier';
-import { IFeature } from '../features/feature';
+import { IComponent } from '../features/feature';
 import { ScriptParsedEvent } from '../../target/events';
+import { injectable } from 'inversify';
 
 export interface SourceResolverLogicDependencies {
     onScriptParsed(listener: (scriptEvent: ScriptParsedEvent) => Promise<void>): void;
 }
 
-export class SourceResolverLogic implements IFeature {
+@injectable()
+export class SourceResolverLogic implements IComponent {
     private _pathToSource = newResourceIdentifierMap<ILoadedSource>();
 
     public tryResolving<R>(sourceIdentifier: IResourceIdentifier,
