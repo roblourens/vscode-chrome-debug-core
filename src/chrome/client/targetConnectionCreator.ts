@@ -138,7 +138,6 @@ export class ConnectedCDACreator {
         await registerCDTPDiagnosticsPublishersAndHandlers(communicator, chromeDiagnostics);
 
         const session = new DelayMessagesUntilInitializedSession(new DoNotPauseWhileSteppingSession(this._session));
-        const stackTraceLogic = await new StackTracesLogic(dependencies).install({ showAsyncStacks: updateArguments.showAsyncStacks });
 
         const dependencies: BreakpointsLogicDependencies & PauseOnExceptionDependencies & SteppingDependencies
             & StackTraceDependencies & TakeProperActionOnPausedEventDependencies & ISkipFilesLogicDependencies

@@ -20,7 +20,6 @@ import { InformationAboutPausedProvider } from '../features/takeProperActionOnPa
 import { ExecuteDecisionBasedOnVotes, Vote } from '../../communication/collaborativeDecision';
 import { asyncMap } from '../../collections/async';
 import { PromiseOrNot } from '../../utils/promises';
-import { ConnectedCDAConfiguration } from '../../client/chromeDebugAdapter/cdaConfiguration';
 
 export interface StackTraceDependencies {
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
