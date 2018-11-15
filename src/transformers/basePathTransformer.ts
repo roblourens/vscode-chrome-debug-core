@@ -8,10 +8,12 @@ import { ILaunchRequestArgs, IAttachRequestArgs } from '../debugAdapterInterface
 import { IResourceIdentifier } from '../chrome/internal/sources/resourceIdentifier';
 import { StackTracePresentation } from '../chrome/internal/stackTraces/stackTracePresentation';
 import { IComponent, ComponentConfiguration, PromiseOrNot } from '../chrome/internal/features/feature';
+import { injectable } from 'inversify';
 
 /**
  * Converts a local path from Code to a path on the target.
  */
+@injectable()
 export class BasePathTransformer implements IComponent {
     public install(configuration: ComponentConfiguration): PromiseOrNot<void | this> {
         this.launch(configuration.args);

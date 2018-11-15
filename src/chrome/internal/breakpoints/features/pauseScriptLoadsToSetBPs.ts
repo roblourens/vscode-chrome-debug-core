@@ -8,6 +8,7 @@ import { NotifyStoppedCommonLogic, NotifyStoppedDependencies, ResumeCommonLogic,
 import { ReasonType } from '../../../stoppedEvent';
 import { TargetVersions } from '../../../chromeTargetDiscoveryStrategy';
 import { VoteRelevance, Vote, Abstained } from '../../../communication/collaborativeDecision';
+import { injectable } from 'inversify';
 
 export interface PauseScriptLoadsToSetBPsDependencies extends NotifyStoppedDependencies, ResumeDependencies {
     setInstrumentationBreakpoint(nativeEventName: string): Promise<void>;
@@ -39,6 +40,7 @@ export class PausedWhileLoadingScriptToResolveBreakpoints extends ResumeCommonLo
     }
 }
 
+@injectable()
 export class PauseScriptLoadsToSetBPs implements IComponent<PauseScriptLoadsToSetBPsConfiguration> {
     private readonly stopsWhileScriptsLoadInstrumentationName = 'scriptFirstStatement';
     private _isInstrumentationEnabled = false;

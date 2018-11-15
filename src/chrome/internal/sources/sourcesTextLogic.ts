@@ -3,11 +3,13 @@ import { ValidatedMap } from '../../collections/validatedMap';
 import { printIterable } from '../../collections/printting';
 import { IComponent } from '../features/feature';
 import { IScript } from '../scripts/script';
+import { injectable } from 'inversify';
 
 export interface SourceTextLogicDependencies {
     getScriptSource(identifier: IScript): Promise<string>;
 }
 
+@injectable()
 export class SourceTextLogic implements IComponent {
     private _sourceToText = new ValidatedMap<ILoadedSource, string>();
 

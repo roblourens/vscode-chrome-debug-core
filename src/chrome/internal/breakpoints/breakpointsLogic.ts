@@ -10,7 +10,7 @@ import { ClientCurrentBPRecipiesRegistry } from './clientCurrentBPRecipiesRegist
 import { BreakpointsRegistry } from './breakpointsRegistry';
 import { BPRecipieInLoadedSourceLogic, BPRInLoadedSourceLogicDependencies } from './bpRecipieInLoadedSourceLogic';
 import { RemoveProperty } from '../../../typeUtils';
-import { BPStatusChangedParameters } from '../../client/eventSender';
+import { IEventsToClientReporter, EventSender } from '../../client/eventSender';
 import { PauseScriptLoadsToSetBPs, PauseScriptLoadsToSetBPsDependencies } from './features/pauseScriptLoadsToSetBPs';
 import { inject } from 'inversify';
 
@@ -22,7 +22,6 @@ export interface InternalDependencies extends
     ReAddBPsWhenSourceIsLoadedDependencies,
     PauseScriptLoadsToSetBPsDependencies,
     BPRInLoadedSourceLogicDependencies {
-    sendBPStatusChanged(params: BPStatusChangedParameters): Promise<void>;
 
     onAsyncBreakpointResolved(listener: (params: Breakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>) => void): void;
 }
@@ -42,7 +41,7 @@ export class BreakpointsLogic {
 
     private onUnbounBPRecipieIsNowBound(bpRecipie: IBPRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp>): void {
         const bpRecipieStatus = this._breakpointRegistry.getStatusOfBPRecipie(bpRecipie);
-        this._dependencies.sendBPStatusChanged({ reason: 'changed', bpRecipieStatus });
+        this._eventsToClientReporter.sendBPStatusChanged({ reason: 'changed', bpRecipieStatus });
     }
 
     public async updateBreakpointsForFile(requestedBPs: BPRecipiesInUnresolvedSource, _?: ITelemetryPropertyCollector): Promise<IBPRecipieStatus[]> {
@@ -89,6 +88,7 @@ export class BreakpointsLogic {
         @inject(ReAddBPsWhenSourceIsLoaded) private readonly _unbindedBreakpointsLogic: ReAddBPsWhenSourceIsLoaded,
         @inject(PauseScriptLoadsToSetBPs) private readonly _bpsWhileLoadingLogic: PauseScriptLoadsToSetBPs,
         @inject(BPRecipieInLoadedSourceLogic) private readonly _bprInLoadedSourceLogic: BPRecipieInLoadedSourceLogic,
+        @inject(EventSender) private readonly _eventsToClientReporter: IEventsToClientReporter,
         private readonly _isBpsWhileLoadingEnable: boolean) {
         this._dependencies.onAsyncBreakpointResolved(breakpoint => this.onAsyncBreakpointResolved(breakpoint));
     }

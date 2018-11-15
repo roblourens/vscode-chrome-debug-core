@@ -4,7 +4,7 @@ import * as errors from '../../errors';
 
 import { CDTPDiagnostics, registerCDTPDiagnosticsPublishersAndHandlers } from '../target/cdtpDiagnostics';
 import { ChromeConnection } from '../chromeConnection';
-import { StackTracesLogic, StackTraceDependencies } from '../internal/stackTraces/stackTracesLogic';
+import { StackTraceDependencies } from '../internal/stackTraces/stackTracesLogic';
 import { ISkipFilesLogicDependencies } from '../internal/features/skipFiles';
 import { BreakpointsLogicDependencies } from '../internal/breakpoints/breakpointsLogic';
 import { LoggingCommunicator, Communicator, ICommunicator } from '../communication/communicator';
@@ -12,8 +12,6 @@ import { ExecutionLogger } from '../logging/executionLogger';
 import { Internal } from '../communication/internalChannels';
 import { Client } from '../communication/clientChannels';
 import { Target } from '../communication/targetChannels';
-import { EagerSourceMapTransformer } from '../../transformers/eagerSourceMapTransformer';
-import { RemotePathTransformer } from '../../transformers/remotePathTransformer';
 import { CDTPScriptsRegistry } from '../target/cdtpScriptsRegistry';
 import { DelayMessagesUntilInitializedSession } from './delayMessagesUntilInitializedSession';
 import { DoNotPauseWhileSteppingSession } from './doNotPauseWhileSteppingSession';
@@ -23,10 +21,7 @@ import { PauseOnExceptionDependencies } from '../internal/exceptions/pauseOnExce
 import { SteppingDependencies } from '../internal/stepping/stepping';
 import { TakeProperActionOnPausedEventDependencies } from '../internal/features/takeProperActionOnPausedEvent';
 import { IDotScriptCommandDependencies } from '../internal/sources/features/dotScriptsCommand';
-import { SmartStepLogic } from '../internal/features/smartStep';
 import { IExtensibilityPoints } from '../extensibility/extensibilityPoints';
-import { ConnectedCDA } from './chromeDebugAdapter/connectedCDA';
-import { FallbackToClientPathTransformer } from '../../transformers/fallbackToClientPathTransformer';
 import { LoggingConfiguration, Logging } from '../internal/services/logging';
 
 export enum ScenarioType {
@@ -119,34 +114,17 @@ export class ConnectedCDACreator {
         }
     }
 
-    public async create(): Promise<ConnectedCDA> {
+    public create(): void {
         const logging = new Logging().install(this._loggingConfiguration);
 
         utils.setCaseSensitivePaths(this._clientCapabilities.clientID !== 'visualstudio'); // TODO DIEGO: Find a way to remove this
-
-        const chromeConnection = new (this._chromeConnectionClass)(undefined, updateArguments.targetFilter || this._extensibilityPoints.targetFilter);
-        const lineColTransformer = new (this._extensibilityPoints.lineColTransformer || LineColTransformer)(
-            this._clientCapabilities.linesStartAt1,
-            this._clientCapabilities.columnsStartAt1);
 
         this.initialization();
 
         const communicator = new LoggingCommunicator(new Communicator(), new ExecutionLogger(logging));
 
-        const scriptsLogic = new CDTPScriptsRegistry();
         const chromeDiagnostics = new CDTPDiagnostics(chromeConnection.api, pathTransformer, sourceMapTransformer);
         await registerCDTPDiagnosticsPublishersAndHandlers(communicator, chromeDiagnostics);
-
-        const session = new DelayMessagesUntilInitializedSession(new DoNotPauseWhileSteppingSession(this._session));
-
-        const dependencies: BreakpointsLogicDependencies & PauseOnExceptionDependencies & SteppingDependencies
-            & StackTraceDependencies & TakeProperActionOnPausedEventDependencies & ISkipFilesLogicDependencies
-            & IDotScriptCommandDependencies = new DependenciesCreator(
-                communicator,
-                chromeDiagnostics, scriptsLogic, sourceMapTransformer).create();
-        /*const smartStepLogic =*/ new SmartStepLogic(dependencies).install({ isEnabled: !!updateArguments.smartStep });
-
-        return new ConnectedCDA();
     }
 
     constructor(

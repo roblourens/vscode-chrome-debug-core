@@ -12,6 +12,7 @@ import { logger } from 'vscode-debugadapter';
 
 import { ILoadedSource } from '../chrome/internal/sources/loadedSource';
 import { IComponent, ComponentConfiguration, PromiseOrNot } from '../chrome/internal/features/feature';
+import { injectable } from 'inversify';
 
 interface ISavedSetBreakpointsArgs {
     generatedPath: string;
@@ -29,6 +30,7 @@ export interface ISourceLocation {
 /**
  * If sourcemaps are enabled, converts from source files on the client side to runtime files on the target side
  */
+@injectable()
 export class BaseSourceMapTransformer implements IComponent {
     protected _sourceMaps: SourceMaps;
     private _enableSourceMapCaching: boolean;

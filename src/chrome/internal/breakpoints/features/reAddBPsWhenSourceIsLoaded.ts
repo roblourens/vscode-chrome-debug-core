@@ -3,7 +3,7 @@ import { ILoadedSource } from '../../sources/loadedSource';
 import { asyncMap } from '../../../collections/async';
 import { BPRecipieIsUnbinded, BPRecipieIsBinded } from '../bpRecipieStatus';
 import { newResourceIdentifierMap, IResourceIdentifier } from '../../sources/resourceIdentifier';
-import { BPStatusChangedParameters } from '../../../client/eventSender';
+import { BPStatusChangedParameters, IEventsToClientReporter, EventSender } from '../../../client/eventSender';
 import { PromiseDefer, promiseDefer } from '../../../../utils';
 import { IComponent } from '../../features/feature';
 import { injectable, inject } from 'inversify';
@@ -53,13 +53,13 @@ export class ReAddBPsWhenSourceIsLoaded implements IComponent {
             await asyncMap(unbindBPRecipies.breakpoints, async bpRecipie => {
                 try {
                     const bpStatus = await this._breakpointsInLoadedSource.addBreakpointForLoadedSource(bpRecipie.asBreakpointWithLoadedSource(source));
-                    this._dependencies.sendClientBPStatusChanged({
+                    this._eventsToClientReporter.sendBPStatusChanged({
                         bpRecipieStatus: new BPRecipieIsBinded(bpRecipie, bpStatus, 'TODO DIEGO'),
                         reason: 'changed'
                     });
                     remainingBPRecipies.delete(bpRecipie);
                 } catch (exception) {
-                    this._dependencies.sendClientBPStatusChanged({
+                    this._eventsToClientReporter.sendBPStatusChanged({
                         bpRecipieStatus: new BPRecipieIsUnbinded(bpRecipie, `An unexpected error happen while trying to set the breakpoint: ${exception})`),
                         reason: 'changed'
                     });
@@ -87,5 +87,6 @@ export class ReAddBPsWhenSourceIsLoaded implements IComponent {
     }
 
     constructor(private readonly _dependencies: ReAddBPsWhenSourceIsLoadedDependencies,
+        @inject(EventSender) private readonly _eventsToClientReporter: IEventsToClientReporter,
         @inject(BPRecipieInLoadedSourceLogic) private readonly _breakpointsInLoadedSource: IBreakpointsInLoadedSource) { }
 }

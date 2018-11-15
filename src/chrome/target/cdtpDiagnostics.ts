@@ -11,8 +11,11 @@ import { Target } from '../communication/targetChannels';
 import { BreakpointIdRegistry } from './breakpointIdRegistry';
 import { ICallFrame } from '../internal/stackTraces/callFrame';
 import { CDTPScriptsRegistry } from './cdtpScriptsRegistry';
+import { injectable } from 'inversify';
+import { IComponent } from '../../../lib/src/chrome/internal/features/feature';
 
-export class CDTPDiagnostics {
+@injectable()
+export class CDTPDiagnostics implements IComponent {
     public Debugger: CDTPDebugger;
     public Console: CDTPConsole;
     public Runtime: CDTPRuntime;
@@ -23,6 +26,15 @@ export class CDTPDiagnostics {
     public Browser: CDTPBrowser;
     public Overlay: CDTPOverlay;
     public Log: CDTPLog;
+
+    public async install(): Promise<void> {
+        // Enable domains so we can use the handlers
+        await Promise.all([
+            this.Debugger.enable(),
+            this.Runtime.enable().then(() => this.Runtime.runIfWaitingForDebugger()),
+            this.Log.enable().catch(_exception => { }) // Not supported by all runtimes
+        ]);
+    }
 
     constructor(private _api: Crdp.ProtocolApi,
         pathTransformer: BasePathTransformer, sourceMapTransformer: BaseSourceMapTransformer) {
@@ -46,27 +58,8 @@ export class CDTPDiagnostics {
 export async function registerCDTPDiagnosticsPublishersAndHandlers(communicator: ICommunicator, cdtpDiagnostics: CDTPDiagnostics): Promise<void> {
     const Debugger = Target.Debugger;
 
-    // Enable domains so we can use the handlers
-    await Promise.all([
-        cdtpDiagnostics.Debugger.enable(),
-        cdtpDiagnostics.Runtime.enable().then(() => cdtpDiagnostics.Runtime.runIfWaitingForDebugger()),
-        cdtpDiagnostics.Log.enable().catch(_exception => { }) // Not supported by all runtimes
-    ]);
-
-    communicator.registerHandler(Target.Schema.GetDomains, () => cdtpDiagnostics.Schema.getDomains());
-
-    // Notifications
-    cdtpDiagnostics.Debugger.onBreakpointResolved(communicator.getPublisher(Debugger.OnAsyncBreakpointResolved));
-    cdtpDiagnostics.Debugger.onScriptParsed(communicator.getPublisher(Debugger.OnScriptParsed));
-    const laa = communicator.getPublisher(Debugger.OnResumed);
-    cdtpDiagnostics.Debugger.onResumed(laa);
-    cdtpDiagnostics.Debugger.onPaused(communicator.getPublisher(Debugger.OnPaused));
-
-    // TODO DIEGO: Figure out best place to do this
-    await cdtpDiagnostics.Debugger.enable();
-
     // Requests
-    communicator.registerHandler(Debugger.SetAsyncCallStackDepth, maxDepth => cdtpDiagnostics.Debugger.setAsyncCallStackDepth({maxDepth: maxDepth }));
+    communicator.registerHandler(Debugger.SetAsyncCallStackDepth, maxDepth => cdtpDiagnostics.Debugger.setAsyncCallStackDepth({ maxDepth: maxDepth }));
     communicator.registerHandler(Debugger.GetScriptSource, script => cdtpDiagnostics.Debugger.getScriptSource(script));
     communicator.registerHandler(Debugger.GetPossibleBreakpoints, rangeInScript => cdtpDiagnostics.Debugger.getPossibleBreakpoints(rangeInScript));
     communicator.registerHandler(Debugger.RemoveBreakpoint, bpRecipie => cdtpDiagnostics.Debugger.removeBreakpoint(bpRecipie));

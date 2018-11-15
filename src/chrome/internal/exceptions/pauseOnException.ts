@@ -6,6 +6,7 @@ import { utils } from '../../..';
 import { FormattedExceptionParser, FormattedExceptionParserDependencies, IFormattedExceptionLineDescription } from '../formattedExceptionParser';
 import { PauseOnPromiseRejectionsStrategy, PauseOnExceptionsStrategy } from './strategies';
 import { VoteRelevance, Vote, Abstained } from '../../communication/collaborativeDecision';
+import { injectable } from 'inversify';
 
 type ExceptionBreakMode = 'never' | 'always' | 'unhandled' | 'userUnhandled';
 
@@ -46,6 +47,7 @@ export class PromiseWasRejected extends NotifyStoppedCommonLogic {
     }
 }
 
+@injectable()
 export class PauseOnExceptionOrRejection implements IComponent {
     private _promiseRejectionsStrategy: PauseOnPromiseRejectionsStrategy;
 

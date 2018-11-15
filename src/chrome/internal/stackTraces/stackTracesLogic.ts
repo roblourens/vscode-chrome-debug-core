@@ -33,7 +33,7 @@ export interface IStackTracesConfiguration {
 }
 
 @injectable()
-export class StackTracesLogic implements IComponent<IStackTracesConfiguration> {
+export class StackTracesLogic implements IComponent {
     public static ASYNC_CALL_STACK_DEPTH = 4;
 
     private _currentPauseEvent: PausedEvent | null = null;

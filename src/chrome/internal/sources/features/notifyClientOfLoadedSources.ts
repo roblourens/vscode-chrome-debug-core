@@ -2,16 +2,18 @@ import { IComponent } from '../../features/feature';
 import { IScript } from '../../scripts/script';
 import { ScriptParsedEvent } from '../../../target/events';
 import { telemetry } from '../../../../telemetry';
-import { SourceWasLoadedParameters } from '../../../client/eventSender';
+import { SourceWasLoadedParameters, EventSender, IEventsToClientReporter } from '../../../client/eventSender';
 import { ValidatedMap } from '../../../collections/validatedMap';
 import { CDTPScriptUrl } from '../resourceIdentifierSubtypes';
 import { LoadedSourceEventReason } from '../../../..';
+import { injectable, inject } from 'inversify';
 
 export interface NotifyClientOfLoadedSourcesDependencies {
     sendSourceWasLoaded(params: SourceWasLoadedParameters): Promise<void>;
     onScriptParsed(listener: (scriptEvent: ScriptParsedEvent) => Promise<void>): void;
 }
 
+@injectable()
 export class NotifyClientOfLoadedSources implements IComponent {
     // TODO DIEGO: Ask VS what index do they use internally to verify if the source is the same or a new one
     private _notifiedSourceByUrl = new ValidatedMap<CDTPScriptUrl, IScript>();
@@ -58,8 +60,9 @@ export class NotifyClientOfLoadedSources implements IComponent {
         // TODO DIEGO: Should we be using the source tree here?
         // const sourceTree = this._sourcesLogic.getLoadedSourcesTree(script.script);
 
-        this._dependencies.sendSourceWasLoaded({ reason: loadedSourceEventReason, source: script.developmentSource });
+        this._eventsToClientReporter.sendSourceWasLoaded({ reason: loadedSourceEventReason, source: script.developmentSource });
     }
 
-    constructor(private readonly _dependencies: NotifyClientOfLoadedSourcesDependencies) { }
+    constructor(private readonly _dependencies: NotifyClientOfLoadedSourcesDependencies,
+        @inject(EventSender) private readonly _eventsToClientReporter: IEventsToClientReporter) { }
 }

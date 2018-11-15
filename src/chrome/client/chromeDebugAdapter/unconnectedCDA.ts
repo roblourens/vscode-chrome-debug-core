@@ -1,5 +1,5 @@
 import { UnconnectedCDACommonLogic } from './unconnectedCDACommonLogic';
-import { ILaunchRequestArgs, ITelemetryPropertyCollector, IAttachRequestArgs, ChromeDebugLogic, IDebugAdapterState, ChromeDebugSession, BasePathTransformer, BaseSourceMapTransformer } from '../../..';
+import { ILaunchRequestArgs, ITelemetryPropertyCollector, IAttachRequestArgs, ChromeDebugLogic, IDebugAdapterState, ChromeDebugSession, BasePathTransformer, BaseSourceMapTransformer, LineColTransformer } from '../../..';
 import { ScenarioType } from '../targetConnectionCreator';
 import { ChromeConnection } from '../../chromeConnection';
 import { IClientCapabilities } from '../../../debugAdapterInterfaces';
@@ -43,13 +43,15 @@ export class UnconnectedCDA extends UnconnectedCDACommonLogic implements IDebugA
             ? FallbackToClientPathTransformer
             : this._extensibilityPoints.pathTransformer || RemotePathTransformer;
         const sourceMapTransformerClass = this._extensibilityPoints.sourceMapTransformer || EagerSourceMapTransformer;
+        const lineColTransformerClass = this._extensibilityPoints.lineColTransformer || LineColTransformer;
 
         return di
+            .configureClass(LineColTransformer, lineColTransformerClass)
             .configureValue(ISession, new DelayMessagesUntilInitializedSession(new DoNotPauseWhileSteppingSession(this._session)))
             .configureClass(BasePathTransformer, pathTransformerClass)
             .configureClass(BaseSourceMapTransformer, sourceMapTransformerClass)
             .configureValue(ChromeConnection, new (this._chromeConnectionClass)(undefined, args.targetFilter || this._extensibilityPoints.targetFilter))
-                .configureValue(ConnectedCDAConfiguration, new ConnectedCDAConfiguration(this._extensibilityPoints,
+            .configureValue(ConnectedCDAConfiguration, new ConnectedCDAConfiguration(this._extensibilityPoints,
                 this.parseLoggingConfiguration(args),
                 this._session,
                 this._clientCapabilities,

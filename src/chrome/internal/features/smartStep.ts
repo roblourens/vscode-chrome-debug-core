@@ -5,11 +5,12 @@ import { ICallFrame } from '../stackTraces/callFrame';
 import { PausedEvent } from '../../target/events';
 import { InformationAboutPausedProvider } from './takeProperActionOnPausedEvent';
 import { logger } from 'vscode-debugadapter';
-import { IComponent } from './feature';
+import { IComponent, ComponentConfiguration } from './feature';
 import { LocationInLoadedSource } from '../locations/location';
 import { ICallFramePresentationDetails } from '../stackTraces/callFramePresentation';
 import { Abstained, ReturnValue, VoteRelevance, VoteCommonLogic, Vote } from '../../communication/collaborativeDecision';
 import * as nls from 'vscode-nls';
+import { injectable } from 'inversify';
 const localize = nls.loadMessageBundle();
 
 export interface SmartStepLogicDependencies {
@@ -38,7 +39,8 @@ export class ShouldStepInToAvoidSkippedSource extends VoteCommonLogic<void> {
     }
 }
 
-export class SmartStepLogic implements IComponent<SmartStepLogicConfiguration> {
+@injectable()
+export class SmartStepLogic implements IComponent {
     private _smartStepCount = 0;
     private _isEnabled = false;
 
@@ -102,15 +104,15 @@ export class SmartStepLogic implements IComponent<SmartStepLogicConfiguration> {
             : new Abstained<ICallFramePresentationDetails>();
     }
 
-    public install(configuration: SmartStepLogicConfiguration): this {
+    public install(configuration: ComponentConfiguration): this {
         this._dependencies.subscriberForAskForInformationAboutPaused(paused => this.askForInformationAboutPaused(paused));
         this._dependencies.listenToCallFrameAdditionalPresentationDetailsElection(async locationInLoadedSource => this.onCallFrameAdditionalPresentationDetailsElection(locationInLoadedSource));
         this.configure(configuration);
         return this;
     }
 
-    public configure(configuration: SmartStepLogicConfiguration): void {
-        this._isEnabled = configuration.isEnabled;
+    public configure(configuration: ComponentConfiguration): void {
+        this._isEnabled = !!configuration.args.smartStep;
     }
 
     constructor(private readonly _dependencies: SmartStepLogicDependencies) {

@@ -39,7 +39,15 @@ export interface DebugeeIsStoppedParameters {
     exception?: Crdp.Runtime.RemoteObject;
 }
 
-export class EventSender {
+export interface IEventsToClientReporter {
+    sendOutput(params: OutputParameters): void;
+    sendSourceWasLoaded(params: SourceWasLoadedParameters): Promise<void>;
+    sendBPStatusChanged(params: BPStatusChangedParameters): Promise<void>;
+    sendExceptionThrown(params: ExceptionThrownParameters): Promise<void>;
+    sendDebugeeIsStopped(params: DebugeeIsStoppedParameters): Promise<void>;
+}
+
+export class EventSender implements IEventsToClientReporter {
     public sendOutput(params: OutputParameters): void {
         const event = new OutputEvent(params.output, params.category) as DebugProtocol.OutputEvent;
 

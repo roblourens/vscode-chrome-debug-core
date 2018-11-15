@@ -5,18 +5,20 @@
 import { DebugProtocol } from 'vscode-debugprotocol';
 
 import { IDebugTransformer, ISetBreakpointsResponseBody, IScopesResponseBody, IStackTraceResponseBody } from '../debugAdapterInterfaces';
+import { IComponent, ComponentConfiguration, PromiseOrNot } from '../chrome/internal/features/feature';
+import { inject } from 'inversify';
 
 /**
  * Converts from 1 based lines/cols on the client side to 0 based lines/cols on the target side
  */
-export class LineColTransformer implements IDebugTransformer  {
+export class LineColTransformer implements IDebugTransformer {
     private columnBreakpointsEnabled: boolean;
-    private readonly _clientToDebuggerLineNumberDifference: number; // Client line number - debugger line number. 0 if client line number is 0-based, 1 otherwise
-    private readonly _clientToDebuggerColumnsDifference: number; // Similar to line numbers
+    private _clientToDebuggerLineNumberDifference: number; // Client line number - debugger line number. 0 if client line number is 0-based, 1 otherwise
+    private _clientToDebuggerColumnsDifference: number; // Similar to line numbers
 
-    constructor(clientLinesStartAt1: boolean, clientColumnsStartAt1: boolean) {
-        this._clientToDebuggerLineNumberDifference = clientLinesStartAt1 ? 1 : 0;
-        this._clientToDebuggerColumnsDifference = clientColumnsStartAt1 ? 1 : 0;
+    constructor(@inject(ComponentConfiguration) configuration: ComponentConfiguration) {
+        this._clientToDebuggerLineNumberDifference = configuration._clientCapabilities.linesStartAt1 ? 1 : 0;
+        this._clientToDebuggerColumnsDifference = configuration._clientCapabilities.columnsStartAt1 ? 1 : 0;
     }
 
     public setBreakpointsResponse(response: ISetBreakpointsResponseBody): void {

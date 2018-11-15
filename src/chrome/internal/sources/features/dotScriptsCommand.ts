@@ -4,9 +4,10 @@ import { IScript } from '../../scripts/script';
 
 import { parseResourceIdentifier } from '../../../..';
 
-import { OutputParameters } from '../../../client/eventSender';
+import { OutputParameters, EventSender, IEventsToClientReporter } from '../../../client/eventSender';
 import { ISourcePathDetails } from '../../../../sourceMaps/sourceMap';
 import { determineOrderingOfStrings } from '../../../collections/utilities';
+import { inject } from 'inversify';
 
 export interface IDotScriptCommandDependencies {
     getScriptByUrl(url: IResourceIdentifier): IScript[];
@@ -42,7 +43,7 @@ export class DotScriptCommand {
         }
 
         return outputStringP.then(scriptsStr => {
-            this._dependencies.sendOutputToClient({ output: scriptsStr, category: null });
+            this._eventsToClientReporter.sendOutputToClient({ output: scriptsStr, category: null });
         });
     }
 
@@ -65,5 +66,6 @@ export class DotScriptCommand {
         });
     }
 
-    constructor(private readonly _dependencies: IDotScriptCommandDependencies) { }
+    constructor(private readonly _dependencies: IDotScriptCommandDependencies,
+        @inject(EventSender) private readonly _eventsToClientReporter: IEventsToClientReporter) { }
 }
