@@ -42,27 +42,15 @@ export class DependenciesCreator {
             onLoadedSourceIsAvailable: onLoadedSourceIsAvailable,
 
             notifyNoPendingBPs: this.communicator.getPublisher(Internal.Breakpoints.OnNoPendingBreakpoints),
-            askForInformationAboutPause: this.communicator.getPublisher(Internal.Breakpoints.VoteForWhatToDoOnPaused),
 
             onResumed: this.communicator.getSubscriber(Target.Debugger.OnResumed),
             onPaused: this.communicator.getSubscriber(Target.Debugger.OnPaused),
             onAsyncBreakpointResolved: this.communicator.getSubscriber(Target.Debugger.OnAsyncBreakpointResolved),
-            subscriberForAskForInformationAboutPaused: this.communicator.getSubscriber(Internal.AskForInformationAboutPaused),
-            listenToCallFrameAdditionalPresentationDetailsElection: this.communicator.getSubscriber(Internal.CallFrameAdditionalPresentationDetailsElection),
-            publishCallFrameAdditionalPresentationDetailsElection: this.communicator.getPublisher(Internal.CallFrameAdditionalPresentationDetailsElection),
 
-            // Stepping
-            allSourcePathDetails: path => this._sourceMapTransformer.allSourcePathDetails(path),
-
-            allScripts: () => Promise.all(Array.from(this._scriptsLogic.getAllScripts())),
             getScriptByUrl: path => this._scriptsLogic.getScriptsByPath(path),
             getScriptSource: this.communicator.getRequester(Target.Debugger.GetScriptSource),
 
             onScriptParsed: this.communicator.getSubscriber(Target.Debugger.OnScriptParsed),
-
-            getScriptsByUrl: url => this._scriptsLogic.getScriptsByPath(url),
-
-            setAsyncCallStackDepth: this.communicator.getRequester(Target.Debugger.SetAsyncCallStackDepth)
         };
     }
 }

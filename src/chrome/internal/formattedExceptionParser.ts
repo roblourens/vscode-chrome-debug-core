@@ -2,12 +2,8 @@ import { parseResourceIdentifier } from '../..';
 import { LocationInScript, Coordinates, LocationInLoadedSource } from './locations/location';
 import { IResourceIdentifier } from './sources/resourceIdentifier';
 import { CDTPScriptUrl } from './sources/resourceIdentifierSubtypes';
-import { IScript } from './scripts/script';
 import { LineNumber, ColumnNumber } from './locations/subtypes';
-
-export interface FormattedExceptionParserDependencies {
-    getScriptsByUrl(url: IResourceIdentifier<CDTPScriptUrl>): IScript[];
-}
+import { DeleteMeScriptsRegistry } from './scripts/scriptsRegistry';
 
 export interface IFormattedExceptionLineDescription {
     generateDescription(zeroBaseNumbers: boolean): string;
@@ -51,7 +47,7 @@ export class FormattedExceptionParser {
                 const zeroBasedLineNumber = (lineNumber - 1) as LineNumber;
                 const columnNumber = parseInt(matches[4], 10) as ColumnNumber;
                 const zeroBasedColumnNumber = (columnNumber - 1) as ColumnNumber;
-                const scripts = this._dependencies.getScriptsByUrl(url);
+                const scripts = this._scriptsLogic.getScriptsByPath(url);
                 if (scripts.length > 0) {
                     const scriptLocation = new LocationInScript(scripts[0], new Coordinates(zeroBasedLineNumber, zeroBasedColumnNumber));
                     const location = scriptLocation.asLocationInLoadedSource();
@@ -67,6 +63,7 @@ export class FormattedExceptionParser {
         return this._formattedException.split(/\r?\n/);
     }
 
-    constructor(private readonly _dependencies: FormattedExceptionParserDependencies,
+    constructor(
+        private readonly _scriptsLogic: DeleteMeScriptsRegistry,
         private readonly _formattedException: string) { }
 }

@@ -40,7 +40,7 @@ export class DeleteMeScriptsRegistry {
         return this._scriptsGeneration.getScriptByPath(nameOrLocation);
     }
 
-    public getAllScripts(): IterableIterator<Promise<IScript>> {
+    public getAllScripts(): Promise<IScript[]> {
         return this._scriptsGeneration.getAllScripts();
     }
 }
@@ -92,7 +92,7 @@ export class ScriptsGeneration {
         return runtimeScript || [];
     }
 
-    public getAllScripts(): IterableIterator<Promise<IScript>> {
-        return this._cdtpIdByScript.values();
+    public getAllScripts(): Promise<IScript[]> {
+        return Promise.all(Array.from(this._cdtpIdByScript.values()));
     }
 }

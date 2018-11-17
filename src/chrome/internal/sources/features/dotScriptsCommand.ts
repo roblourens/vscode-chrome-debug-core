@@ -8,13 +8,13 @@ import { OutputParameters, EventSender, IEventsToClientReporter } from '../../..
 import { ISourcePathDetails } from '../../../../sourceMaps/sourceMap';
 import { determineOrderingOfStrings } from '../../../collections/utilities';
 import { inject } from 'inversify';
+import { BaseSourceMapTransformer } from '../../../../transformers/baseSourceMapTransformer';
+import { DeleteMeScriptsRegistry } from '../../scripts/scriptsRegistry';
 
 export interface IDotScriptCommandDependencies {
     getScriptByUrl(url: IResourceIdentifier): IScript[];
     getScriptSource(identifier: IScript): Promise<string>;
     sendOutputToClient(params: OutputParameters): void;
-    allSourcePathDetails(pathToGenerated: string): Promise<ISourcePathDetails[]>;
-    allScripts(): Promise<IScript[]>;
 }
 
 export class DotScriptCommand {
@@ -43,12 +43,12 @@ export class DotScriptCommand {
         }
 
         return outputStringP.then(scriptsStr => {
-            this._eventsToClientReporter.sendOutputToClient({ output: scriptsStr, category: null });
+            this._eventsToClientReporter.sendOutput({ output: scriptsStr, category: null });
         });
     }
 
     private async getAllScriptsString(): Promise<string> {
-        const scripts = (await this._dependencies.allScripts()).sort((left, script) => determineOrderingOfStrings(left.url, script.url));
+        const scripts = (await this._scriptsLogic.getAllScripts()).sort((left, script) => determineOrderingOfStrings(left.url, script.url));
         const scriptsPrinted = await Promise.all(scripts.map(script => this.getOneScriptString(script)));
         return scriptsPrinted.join('\n');
     }
@@ -58,7 +58,7 @@ export class DotScriptCommand {
         const clientPath = script.developmentSource.identifier.textRepresentation;
         if (script.developmentSource !== script.runtimeSource) result += ` (${clientPath})`;
 
-        return this._dependencies.allSourcePathDetails(script.developmentSource.identifier.canonicalized).then(sourcePathDetails => {
+        return this._sourceMapTransformer.allSourcePathDetails(script.developmentSource.identifier.canonicalized).then(sourcePathDetails => {
             let mappedSourcesStr = sourcePathDetails.map(details => `    - ${details.originalPath} (${details.inferredPath})`).join('\n');
             if (sourcePathDetails.length) mappedSourcesStr = '\n' + mappedSourcesStr;
 
@@ -67,5 +67,7 @@ export class DotScriptCommand {
     }
 
     constructor(private readonly _dependencies: IDotScriptCommandDependencies,
+        @inject(BaseSourceMapTransformer) private readonly _sourceMapTransformer: BaseSourceMapTransformer,
+        @inject(DeleteMeScriptsRegistry) private readonly _scriptsLogic: DeleteMeScriptsRegistry,
         @inject(EventSender) private readonly _eventsToClientReporter: IEventsToClientReporter) { }
 }

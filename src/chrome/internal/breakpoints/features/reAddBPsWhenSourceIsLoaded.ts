@@ -3,7 +3,7 @@ import { ILoadedSource } from '../../sources/loadedSource';
 import { asyncMap } from '../../../collections/async';
 import { BPRecipieIsUnbinded, BPRecipieIsBinded } from '../bpRecipieStatus';
 import { newResourceIdentifierMap, IResourceIdentifier } from '../../sources/resourceIdentifier';
-import { BPStatusChangedParameters, IEventsToClientReporter, EventSender } from '../../../client/eventSender';
+import { IEventsToClientReporter, EventSender } from '../../../client/eventSender';
 import { PromiseDefer, promiseDefer } from '../../../../utils';
 import { IComponent } from '../../features/feature';
 import { injectable, inject } from 'inversify';
@@ -12,7 +12,6 @@ import { IBreakpointsInLoadedSource, BPRecipieInLoadedSourceLogic } from '../bpR
 export interface ReAddBPsWhenSourceIsLoadedDependencies {
     onLoadedSourceIsAvailable(listener: (source: ILoadedSource) => Promise<void>): void;
     notifyNoPendingBPs(): void;
-    sendClientBPStatusChanged(statusChanges: BPStatusChangedParameters): Promise<void>;
 }
 
 @injectable()
