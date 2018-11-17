@@ -1,11 +1,10 @@
 import { UnconnectedCDACommonLogic } from './unconnectedCDACommonLogic';
-import { ILaunchRequestArgs, ITelemetryPropertyCollector, IAttachRequestArgs, ChromeDebugLogic, IDebugAdapterState, ChromeDebugSession, BasePathTransformer, BaseSourceMapTransformer, LineColTransformer } from '../../..';
-import { ScenarioType } from '../targetConnectionCreator';
+import { ILaunchRequestArgs, ITelemetryPropertyCollector, IAttachRequestArgs, ChromeDebugLogic, IDebugAdapterState, ChromeDebugSession, BasePathTransformer, BaseSourceMapTransformer, LineColTransformer, chromeConnection } from '../../..';
 import { ChromeConnection } from '../../chromeConnection';
 import { IClientCapabilities } from '../../../debugAdapterInterfaces';
 import { IExtensibilityPoints } from '../../extensibility/extensibilityPoints';
 import { InitializedEvent, Logger } from 'vscode-debugadapter';
-import { LoggingConfiguration } from '../../internal/services/logging';
+import { LoggingConfiguration, Logging } from '../../internal/services/logging';
 import { DependencyInjection } from '../../dependencyInjection.ts/di';
 import { ConnectedCDA } from './connectedCDA';
 import { ConnectedCDAConfiguration } from './cdaConfiguration';
@@ -14,6 +13,14 @@ import { RemotePathTransformer } from '../../../transformers/remotePathTransform
 import { EagerSourceMapTransformer } from '../../../transformers/eagerSourceMapTransformer';
 import { DelayMessagesUntilInitializedSession } from '../delayMessagesUntilInitializedSession';
 import { DoNotPauseWhileSteppingSession } from '../doNotPauseWhileSteppingSession';
+import { LoggingCommunicator, Communicator } from '../../../../lib/src/chrome/communication/communicator';
+import { ExecutionLogger } from '../../../../lib/src/chrome/logging/executionLogger';
+import { CDTPDiagnostics } from '../../../../lib/src/chrome/target/cdtpDiagnostics';
+
+export enum ScenarioType {
+    Launch,
+    Attach
+}
 
 export class UnconnectedCDA extends UnconnectedCDACommonLogic implements IDebugAdapterState {
     public chromeDebugAdapter(): ChromeDebugLogic {
@@ -36,6 +43,11 @@ export class UnconnectedCDA extends UnconnectedCDACommonLogic implements IDebugA
     }
 
     private async createConnection(scenarioType: ScenarioType, args: ILaunchRequestArgs | IAttachRequestArgs): Promise<IDebugAdapterState> {
+        if (this._clientCapabilities.pathFormat !== 'path') {
+            throw errors.pathFormat();
+        }
+
+        utils.setCaseSensitivePaths(this._clientCapabilities.clientID !== 'visualstudio'); // TODO DIEGO: Find a way to remove this
         this._session.sendEvent(new InitializedEvent());
         const di = new DependencyInjection();
 
@@ -44,9 +56,12 @@ export class UnconnectedCDA extends UnconnectedCDACommonLogic implements IDebugA
             : this._extensibilityPoints.pathTransformer || RemotePathTransformer;
         const sourceMapTransformerClass = this._extensibilityPoints.sourceMapTransformer || EagerSourceMapTransformer;
         const lineColTransformerClass = this._extensibilityPoints.lineColTransformer || LineColTransformer;
+        const logging = new Logging().install(this._loggingConfiguration);
 
         return di
             .configureClass(LineColTransformer, lineColTransformerClass)
+            .configureValue('communicator', new LoggingCommunicator(new Communicator(), new ExecutionLogger(logging)))
+            .configureValue('chromeConnection.api', chromeConnection.api);
             .configureValue(ISession, new DelayMessagesUntilInitializedSession(new DoNotPauseWhileSteppingSession(this._session)))
             .configureClass(BasePathTransformer, pathTransformerClass)
             .configureClass(BaseSourceMapTransformer, sourceMapTransformerClass)

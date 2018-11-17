@@ -5,7 +5,8 @@ import { InformationAboutPausedProvider, } from '../../features/takeProperAction
 import { IComponent } from '../../features/feature';
 import { PausedEvent } from '../../../target/events';
 import { Abstained, Vote } from '../../../communication/collaborativeDecision';
-import { injectable } from 'inversify';
+import { injectable, inject } from 'inversify';
+import { CDTPDebugger, IDebugeeStepping, IDebugeeExecutionControl } from '../../../target/cdtpDebugger';
 
 type SteppingAction = () => Promise<void>;
 
@@ -27,12 +28,6 @@ class CurrentlyIdle implements SyncSteppingStatus {
 }
 
 export interface SyncSteppingDependencies {
-    stepOverDebugee(): Promise<void>;
-    stepIntoDebugee(params: { breakOnAsyncCall: boolean }): Promise<void>;
-    stepOutInDebugee(): Promise<void>;
-    resumeDebugee(): Promise<void>;
-    pauseDebugee(): Promise<void>;
-    restartFrameInDebugee(callFrame: ICallFrame<IScript>): Promise<void>;
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
 }
 
@@ -40,16 +35,16 @@ export interface SyncSteppingDependencies {
 export class SyncStepping implements IComponent {
     private _status: SyncSteppingStatus = new CurrentlyIdle();
 
-    public stepOver = this.createSteppingMethod(() => this._dependencies.stepOverDebugee());
-    public stepInto = this.createSteppingMethod(() => this._dependencies.stepIntoDebugee({ breakOnAsyncCall: true }));
-    public stepOut = this.createSteppingMethod(() => this._dependencies.stepOutInDebugee());
+    public stepOver = this.createSteppingMethod(() => this._debugeeStepping.stepOver());
+    public stepInto = this.createSteppingMethod(() => this._debugeeStepping.stepInto({ breakOnAsyncCall: true }));
+    public stepOut = this.createSteppingMethod(() => this._debugeeStepping.stepOut());
 
     public continue(): Promise<void> {
-        return this._dependencies.resumeDebugee();
+        return this._debugeeExecutionControl.resume();
     }
 
     public pause(): Promise<void> {
-        return this._dependencies.pauseDebugee();
+        return this._debugeeExecutionControl.pause();
     }
 
     private async askForInformationAboutPaused(_paused: PausedEvent): Promise<Vote<void>> {
@@ -58,8 +53,8 @@ export class SyncStepping implements IComponent {
 
     public async restartFrame(callFrame: ICallFrame<IScript>): Promise<void> {
         this._status = this._status.startStepping();
-        await this._dependencies.restartFrameInDebugee(callFrame);
-        await this._dependencies.stepIntoDebugee({ breakOnAsyncCall: true });
+        await this._debugeeStepping.restartFrame(callFrame);
+        await this._debugeeStepping.stepInto({ breakOnAsyncCall: true });
     }
 
     private createSteppingMethod(steppingAction: SteppingAction): (() => Promise<void>) {
@@ -74,5 +69,7 @@ export class SyncStepping implements IComponent {
         this._dependencies.subscriberForAskForInformationAboutPaused(paused => this.askForInformationAboutPaused(paused));
     }
 
-    constructor(private readonly _dependencies: SyncSteppingDependencies) { }
+    constructor(private readonly _dependencies: SyncSteppingDependencies,
+        @inject(CDTPDebugger) private readonly _debugeeStepping: IDebugeeStepping,
+        @inject(CDTPDebugger) private readonly _debugeeExecutionControl: IDebugeeExecutionControl) { }
 }

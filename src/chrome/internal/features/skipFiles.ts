@@ -11,16 +11,10 @@ import { LocationInLoadedSource } from '../locations/location';
 import { ICallFramePresentationDetails } from '../stackTraces/callFramePresentation';
 import { Abstained, Vote, ReturnValue } from '../../communication/collaborativeDecision';
 import * as nls from 'vscode-nls';
-import { injectable } from 'inversify';
+import { injectable, inject } from 'inversify';
 const localize = nls.loadMessageBundle();
 
 export interface ISkipFilesLogicDependencies {
-    // TODO DIEGO: Refactor these dependencies
-    readonly chrome: CDTPDiagnostics;
-    readonly stackTracesLogic: StackTracesLogic;
-    readonly sourceMapTransformer: BaseSourceMapTransformer;
-    readonly pathTransformer: BasePathTransformer;
-
     getScriptByUrl(url: IResourceIdentifier<string>): IScript[];
     onScriptParsed(listener: (scriptEvent: ScriptParsedEvent) => Promise<void>): void;
     listenToCallFrameAdditionalPresentationDetailsElection(listener: (locationInLoadedSource: LocationInLoadedSource) => Promise<Vote<ICallFramePresentationDetails>>): void;
@@ -100,13 +94,13 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration> {
         }
 
         const aPath = args.source;
-        const generatedPath = parseResourceIdentifier(await this._dependencies.sourceMapTransformer.getGeneratedPathFromAuthoredPath(aPath.canonicalized));
+        const generatedPath = parseResourceIdentifier(await this.sourceMapTransformer.getGeneratedPathFromAuthoredPath(aPath.canonicalized));
         if (!generatedPath) {
             logger.log(`Can't toggle the skipFile status for: ${aPath} - haven't seen it yet.`);
             return;
         }
 
-        const sources = parseResourceIdentifiers(await this._dependencies.sourceMapTransformer.allSources(generatedPath.canonicalized));
+        const sources = parseResourceIdentifiers(await this.sourceMapTransformer.allSources(generatedPath.canonicalized));
         if (generatedPath.isEquivalent(aPath) && sources.length) {
             // Ignore toggling skip status for generated scripts with sources
             logger.log(`Can't toggle skipFile status for ${aPath} - it's a script with a sourcemap`);
@@ -117,7 +111,7 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration> {
         logger.log(`Setting the skip file status for: ${aPath} to ${newStatus}`);
         this._skipFileStatuses.set(aPath, newStatus);
 
-        const targetPath = this._dependencies.pathTransformer.getTargetPathFromClientPath(generatedPath) || generatedPath;
+        const targetPath = this.pathTransformer.getTargetPathFromClientPath(generatedPath) || generatedPath;
         const script = this.getScriptByUrl(targetPath)[0];
 
         await this.resolveSkipFiles(script, generatedPath, sources, /*toggling=*/true);
@@ -149,13 +143,13 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration> {
 
     private refreshBlackboxPatterns(): void {
         // Make sure debugging domain is enabled before calling refreshBlackboxPatterns()
-        this._dependencies.chrome.Debugger.setBlackboxPatterns({
+        this.chrome.Debugger.setBlackboxPatterns({
             patterns: this._blackboxedRegexes.map(regex => regex.source)
         }).catch(() => this.warnNoSkipFiles());
     }
 
     private async isInCurrentStack(args: IToggleSkipFileStatusArgs): Promise<boolean> {
-        const currentStack = await this._dependencies.stackTracesLogic.stackTrace({ threadId: undefined });
+        const currentStack = await this.stackTracesLogic.stackTrace({ threadId: undefined });
 
         return currentStack.stackFrames.some(frame => {
             return frame.hasCodeFlow()
@@ -194,7 +188,7 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration> {
                 this._skipFileStatuses.set(s, isSkippedFile);
 
                 if ((isSkippedFile && !inLibRange) || (!isSkippedFile && inLibRange)) {
-                    const details = await this._dependencies.sourceMapTransformer.allSourcePathDetails(mappedUrl.canonicalized);
+                    const details = await this.sourceMapTransformer.allSourcePathDetails(mappedUrl.canonicalized);
                     const detail = details.find(d => parseResourceIdentifier(d.inferredPath).isEquivalent(s));
                     libPositions.push({
                         lineNumber: detail.startPosition.line,
@@ -219,10 +213,10 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration> {
                     };
                 }
 
-                await this._dependencies.chrome.Debugger.setBlackboxedRanges(script, []).catch(() => this.warnNoSkipFiles());
+                await this.chrome.Debugger.setBlackboxedRanges(script, []).catch(() => this.warnNoSkipFiles());
 
                 if (libPositions.length) {
-                    this._dependencies.chrome.Debugger.setBlackboxedRanges(script, libPositions).catch(() => this.warnNoSkipFiles());
+                    this.chrome.Debugger.setBlackboxedRanges(script, libPositions).catch(() => this.warnNoSkipFiles());
                 }
             }
         } else {
@@ -230,7 +224,7 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration> {
             const skippedByPattern = this.matchesSkipFilesPatterns(mappedUrl);
             if (typeof status === 'boolean' && status !== skippedByPattern) {
                 const positions = status ? [{ lineNumber: 0, columnNumber: 0 }] : [];
-                this._dependencies.chrome.Debugger.setBlackboxedRanges(script, positions).catch(() => this.warnNoSkipFiles());
+                this.chrome.Debugger.setBlackboxedRanges(script, positions).catch(() => this.warnNoSkipFiles());
             }
         }
     }
@@ -286,5 +280,10 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration> {
     }
 
     constructor(
-        private readonly _dependencies: ISkipFilesLogicDependencies) { }
+        private readonly _dependencies: ISkipFilesLogicDependencies,
+        @inject(CDTPDiagnostics) private readonly chrome: CDTPDiagnostics,
+        @inject(StackTracesLogic) private readonly stackTracesLogic: StackTracesLogic,
+        @inject(BaseSourceMapTransformer) private readonly sourceMapTransformer: BaseSourceMapTransformer,
+        @inject(BasePathTransformer) private readonly pathTransformer: BasePathTransformer,
+    ) { }
 }

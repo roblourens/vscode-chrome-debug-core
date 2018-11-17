@@ -24,7 +24,19 @@ export interface ITargetBreakpoints {
     removeBreakpoint(bpRecipie: BPRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp>): Promise<void>;
 }
 
-export class CDTPDebugger extends CDTPEventsEmitterDiagnosticsModule<Crdp.DebuggerApi> implements ITargetBreakpoints {
+export interface IDebugeeStepping {
+    stepOver(): Promise<void>;
+    stepInto(params: { breakOnAsyncCall: boolean }): Promise<void>;
+    stepOut(): Promise<void>;
+    restartFrame(callFrame: ICallFrame<IScript>): Promise<void>;
+}
+
+export interface IDebugeeExecutionControl {
+    resume(): Promise<void>;
+    pause(): Promise<void>;
+}
+
+export class CDTPDebugger extends CDTPEventsEmitterDiagnosticsModule<Crdp.DebuggerApi> implements ITargetBreakpoints, IDebugeeStepping, IDebugeeExecutionControl {
     private _firstScriptWasParsed = utils.promiseDefer<Crdp.Runtime.ScriptId>();
 
     public readonly onBreakpointResolved = this.addApiListener('breakpointResolved', async (params: Crdp.Debugger.BreakpointResolvedEvent) => {
