@@ -1,5 +1,5 @@
 import { UnconnectedCDACommonLogic } from './unconnectedCDACommonLogic';
-import { ILaunchRequestArgs, ITelemetryPropertyCollector, IAttachRequestArgs, ChromeDebugLogic, IDebugAdapterState, ChromeDebugSession, BasePathTransformer, BaseSourceMapTransformer, LineColTransformer, chromeConnection } from '../../..';
+import { ILaunchRequestArgs, ITelemetryPropertyCollector, IAttachRequestArgs, ChromeDebugLogic, IDebugAdapterState, ChromeDebugSession, BasePathTransformer, BaseSourceMapTransformer, LineColTransformer, chromeConnection, utils } from '../../..';
 import { ChromeConnection } from '../../chromeConnection';
 import { IClientCapabilities } from '../../../debugAdapterInterfaces';
 import { IExtensibilityPoints } from '../../extensibility/extensibilityPoints';
@@ -56,12 +56,12 @@ export class UnconnectedCDA extends UnconnectedCDACommonLogic implements IDebugA
             : this._extensibilityPoints.pathTransformer || RemotePathTransformer;
         const sourceMapTransformerClass = this._extensibilityPoints.sourceMapTransformer || EagerSourceMapTransformer;
         const lineColTransformerClass = this._extensibilityPoints.lineColTransformer || LineColTransformer;
-        const logging = new Logging().install(this._loggingConfiguration);
+        const logging = new Logging().install(this.parseLoggingConfiguration(args));
 
         return di
             .configureClass(LineColTransformer, lineColTransformerClass)
             .configureValue('communicator', new LoggingCommunicator(new Communicator(), new ExecutionLogger(logging)))
-            .configureValue('chromeConnection.api', chromeConnection.api);
+            .configureValue('chromeConnection.api', chromeConnection.api)
             .configureValue(ISession, new DelayMessagesUntilInitializedSession(new DoNotPauseWhileSteppingSession(this._session)))
             .configureClass(BasePathTransformer, pathTransformerClass)
             .configureClass(BaseSourceMapTransformer, sourceMapTransformerClass)

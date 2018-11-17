@@ -4,8 +4,6 @@ import { LoadedSourceEvent, OutputEvent, BreakpointEvent } from 'vscode-debugada
 import { InternalToClient } from './internalToClient';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { LocationInLoadedSource } from '../internal/locations/location';
-import { ICommunicator } from '../communication/communicator';
-import { Client } from '../communication/clientChannels';
 import { IBPRecipieStatus } from '../internal/breakpoints/bpRecipieStatus';
 import { IFormattedExceptionLineDescription } from '../internal/formattedExceptionParser';
 import { StoppedEvent2, ReasonType } from '../stoppedEvent';
@@ -87,15 +85,6 @@ export class EventSender implements IEventsToClientReporter {
 
     public async sendDebugeeIsStopped(params: DebugeeIsStoppedParameters): Promise<void> {
         return this._session.sendEvent(new StoppedEvent2(params.reason, /*threadId=*/ChromeDebugLogic.THREAD_ID, params.exception));
-    }
-
-    public static createWithHandlers(communicator: ICommunicator, session: ISession, internalToClient: InternalToClient): EventSender {
-        const eventSender = new EventSender(session, internalToClient);
-        communicator.registerHandler(Client.EventSender.SendOutput, (params: OutputParameters) => eventSender.sendOutput(params));
-        communicator.registerHandler(Client.EventSender.SendSourceWasLoaded, (params: SourceWasLoadedParameters) => eventSender.sendSourceWasLoaded(params));
-        communicator.registerHandler(Client.EventSender.SendBPStatusChanged, params => eventSender.sendBPStatusChanged(params));
-        communicator.registerHandler(Client.EventSender.SendDebugeeIsStopped, params => eventSender.sendDebugeeIsStopped(params));
-        return eventSender;
     }
 
     constructor(private readonly _session: ISession, private readonly _internalToClient: InternalToClient) { }

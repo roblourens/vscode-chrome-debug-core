@@ -5,7 +5,6 @@ import { IScript } from '../../scripts/script';
 import { parseResourceIdentifier } from '../../../..';
 
 import { OutputParameters, EventSender, IEventsToClientReporter } from '../../../client/eventSender';
-import { ISourcePathDetails } from '../../../../sourceMaps/sourceMap';
 import { determineOrderingOfStrings } from '../../../collections/utilities';
 import { inject } from 'inversify';
 import { BaseSourceMapTransformer } from '../../../../transformers/baseSourceMapTransformer';

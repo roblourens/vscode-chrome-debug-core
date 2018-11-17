@@ -28,7 +28,7 @@ export interface IDebugeeStepping {
     stepOver(): Promise<void>;
     stepInto(params: { breakOnAsyncCall: boolean }): Promise<void>;
     stepOut(): Promise<void>;
-    restartFrame(callFrame: ICallFrame<IScript>): Promise<void>;
+    restartFrame(callFrame: ICallFrame<IScript>): Promise<Crdp.Debugger.RestartFrameResponse>;
 }
 
 export interface IDebugeeExecutionControl {
