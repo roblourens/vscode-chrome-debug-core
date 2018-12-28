@@ -1,4 +1,4 @@
-import { CDTPDiagnosticsModule, CDTPEventsEmitterDiagnosticsModule } from './cdtpDiagnosticsModule';
+import { CDTPEnableableDiagnosticsModule, CDTPEventsEmitterDiagnosticsModule, IEnableableApi } from './cdtpDiagnosticsModule';
 import { Crdp } from '../..';
 import { CDTPStackTraceParser } from './cdtpStackTraceParser';
 import { injectable, inject } from 'inversify';
@@ -8,23 +8,17 @@ import { TYPES } from '../dependencyInjection.ts/types';
 export class CDTPConsole extends CDTPEventsEmitterDiagnosticsModule<Crdp.ConsoleApi> {
     public readonly onMessageAdded = this.addApiListener('messageAdded', (params: Crdp.Console.MessageAddedEvent) => params);
 
-    public enable(): Promise<void> {
-        return this.api.enable();
-
-    }
     constructor(protected api: Crdp.ConsoleApi) {
         super();
     }
 }
 
-export class CDTPSchema extends CDTPDiagnosticsModule<Crdp.SchemaApi> {
+export class CDTPSchema {
     public async getDomains(): Promise<Crdp.Schema.Domain[]> {
         return (await this.api.getDomains()).domains;
     }
 
-    constructor(protected api: Crdp.SchemaApi) {
-        super();
-    }
+    constructor(protected api: Crdp.SchemaApi) {}
 }
 
 export interface IDOMInstrumentationBreakpoints {
@@ -33,7 +27,7 @@ export interface IDOMInstrumentationBreakpoints {
 }
 
 @injectable()
-export class CDTPDOMDebugger extends CDTPDiagnosticsModule<Crdp.DOMDebuggerApi> implements IDOMInstrumentationBreakpoints {
+export class CDTPDOMDebugger implements IDOMInstrumentationBreakpoints {
     protected api = this._protocolApi.DOMDebugger;
 
     public setInstrumentationBreakpoint(params: Crdp.DOMDebugger.SetInstrumentationBreakpointRequest): Promise<void> {
@@ -44,17 +38,20 @@ export class CDTPDOMDebugger extends CDTPDiagnosticsModule<Crdp.DOMDebuggerApi> 
         return this.api.removeInstrumentationBreakpoint(params);
     }
 
-    constructor(@inject(TYPES.CDTPClient) protected _protocolApi: Crdp.ProtocolApi) {
-        super();
-    }
+    constructor(@inject(TYPES.CDTPClient) protected _protocolApi: Crdp.ProtocolApi) {}
 }
 
-export class CDTPPage extends CDTPEventsEmitterDiagnosticsModule<Crdp.PageApi> {
-    public readonly onMessageAdded = this.addApiListener('frameNavigated', (params: Crdp.Page.FrameNavigatedEvent) => params);
+export interface IBrowserNavigation extends IEnableableApi<void, void> {
+    navigate(params: Crdp.Page.NavigateRequest): Promise<Crdp.Page.NavigateResponse>;
+    reload(params: Crdp.Page.ReloadRequest): Promise<void>;
+    onFrameNavigated(listener: (params: Crdp.Page.FrameNavigatedEvent) => void): void;
+}
 
-    public enable(): Promise<void> {
-        return this.api.enable();
-    }
+@injectable()
+export class CDTPPage extends CDTPEventsEmitterDiagnosticsModule<Crdp.PageApi> implements IBrowserNavigation {
+    protected api = this._protocolApi.Page;
+
+    public readonly onFrameNavigated = this.addApiListener('frameNavigated', (params: Crdp.Page.FrameNavigatedEvent) => params);
 
     public navigate(params: Crdp.Page.NavigateRequest): Promise<Crdp.Page.NavigateResponse> {
         return this.api.navigate(params);
@@ -64,18 +61,18 @@ export class CDTPPage extends CDTPEventsEmitterDiagnosticsModule<Crdp.PageApi> {
         return this.api.reload(params);
     }
 
-    constructor(protected api: Crdp.PageApi) {
+    constructor(@inject(TYPES.CDTPClient) protected _protocolApi: Crdp.ProtocolApi) {
         super();
     }
 }
 
-export class CDTPNetwork extends CDTPDiagnosticsModule<Crdp.NetworkApi> {
+export interface INetworkCacheConfiguration {
+    setCacheDisabled(params: Crdp.Network.SetCacheDisabledRequest): Promise<void>;
+}
+
+export class CDTPNetwork extends CDTPEventsEmitterDiagnosticsModule<Crdp.NetworkApi, Crdp.Network.EnableRequest> implements INetworkCacheConfiguration {
     public disable(): Promise<void> {
         return this.api.disable();
-    }
-
-    public enable(params: Crdp.Network.EnableRequest): Promise<void> {
-        return this.api.enable(params);
     }
 
     public setCacheDisabled(params: Crdp.Network.SetCacheDisabledRequest): Promise<void> {
@@ -87,17 +84,27 @@ export class CDTPNetwork extends CDTPDiagnosticsModule<Crdp.NetworkApi> {
     }
 }
 
-export class CDTPBrowser extends CDTPDiagnosticsModule<Crdp.BrowserApi> {
+export interface IDebugeeVersionProvider {
+    getVersion(): Promise<Crdp.Browser.GetVersionResponse>;
+}
+
+@injectable()
+export class CDTPBrowser implements IDebugeeVersionProvider {
+    protected api = this._protocolApi.Browser;
+
     public getVersion(): Promise<Crdp.Browser.GetVersionResponse> {
         return this.api.getVersion();
     }
 
-    constructor(protected api: Crdp.BrowserApi) {
-        super();
+    constructor(@inject(TYPES.CDTPClient) protected _protocolApi: Crdp.ProtocolApi) {
     }
 }
 
-export class CDTPOverlay extends CDTPDiagnosticsModule<Crdp.OverlayApi> {
+export interface IPausedOverlay {
+    setPausedInDebuggerMessage(params: Crdp.Overlay.SetPausedInDebuggerMessageRequest): Promise<void>;
+}
+
+export class CDTPOverlay extends CDTPEnableableDiagnosticsModule<Crdp.OverlayApi> implements IPausedOverlay {
     public setPausedInDebuggerMessage(params: Crdp.Overlay.SetPausedInDebuggerMessageRequest): Promise<void> {
         return this.api.setPausedInDebuggerMessage(params);
     }
@@ -109,10 +116,6 @@ export class CDTPOverlay extends CDTPDiagnosticsModule<Crdp.OverlayApi> {
 
 export class CDTPLog extends CDTPEventsEmitterDiagnosticsModule<Crdp.LogApi> {
     public readonly onEntryAdded = this.addApiListener('entryAdded', async (params: Crdp.Log.EntryAddedEvent) => await this.toLogEntry(params.entry));
-
-    public enable(): Promise<void> {
-        return this.api.enable();
-    }
 
     private async toLogEntry(entry: Crdp.Log.LogEntry): Promise<LogEntry> {
         return {

@@ -78,7 +78,7 @@ class LoggingSocket extends WebSocket {
         }
 
         super.send.apply(this, arguments);
-        logger.verbose('→ To DIEGO target: ' + msgStr);
+        logger.verbose('→ To target: ' + msgStr);
     }
 }
 

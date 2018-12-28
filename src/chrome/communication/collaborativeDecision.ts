@@ -43,6 +43,10 @@ export class Abstained<T> extends VoteCommonLogic<T> {
     public async execute(): Promise<T> {
         throw new Error(`An abstained vote cannot be executed`);
     }
+
+    constructor(public readonly voter: unknown /* Used for debugging purposes only */) {
+        super();
+    }
 }
 
 export class ExecuteDecisionBasedOnVotes<T> {
@@ -54,10 +58,11 @@ export class ExecuteDecisionBasedOnVotes<T> {
         const fallbackVotes = this.getVotesWithCertainRelevance(VoteRelevance.FallbackVote);
 
         // If we have override or normal votes use those, if not use the fallback ones
-        let allRelevatVotes = overrideVotes.concat(normalVotes) || fallbackVotes;
+        let allRelevatVotes = overrideVotes.concat(normalVotes);
+        let allVotes = allRelevatVotes.concat(fallbackVotes);
 
-        if (allRelevatVotes.length > 0) {
-            const winningVote = allRelevatVotes[0]; // We'd normally expect to have a single piece in this array
+        if (allVotes.length > 0) {
+            const winningVote = allVotes[0]; // We'd normally expect to have a single piece in this array
             return winningVote.execute(allRelevatVotes);
         } else {
             return await this._actionIfNoOneVoted();

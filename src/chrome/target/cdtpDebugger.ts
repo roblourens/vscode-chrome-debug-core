@@ -22,12 +22,8 @@ export interface IScriptSources {
 }
 
 @injectable()
-export class CDTPDebugger extends CDTPEventsEmitterDiagnosticsModule<Crdp.DebuggerApi> implements IPauseOnExceptions, IScriptSources, IAsyncDebuggingConfiguration {
+export class CDTPDebugger extends CDTPEventsEmitterDiagnosticsModule<Crdp.DebuggerApi, void, Crdp.Debugger.EnableResponse> implements IPauseOnExceptions, IScriptSources, IAsyncDebuggingConfiguration {
     protected readonly api = this._protocolApi.Debugger;
-
-    public enable(): Promise<Crdp.Debugger.EnableResponse> {
-        return this.api.enable();
-    }
 
     public setAsyncCallStackDepth(maxDepth: Crdp.integer): Promise<void> {
         return this.api.setAsyncCallStackDepth({ maxDepth });

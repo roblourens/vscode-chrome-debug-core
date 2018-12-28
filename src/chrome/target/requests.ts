@@ -1,5 +1,5 @@
 import { Crdp } from '../..';
-import { LocationInScript, ScriptOrSource } from '../internal/locations/location';
+import { LocationInScript, ScriptOrLoadedSource } from '../internal/locations/location';
 import { ICallFrame } from '../internal/stackTraces/callFrame';
 
 export interface INewSetBreakpointResult {
@@ -13,7 +13,7 @@ export interface INewAddBreakpointsResult {
 }
 
 export interface EvaluateOnCallFrameRequest {
-    readonly frame: ICallFrame<ScriptOrSource>;
+    readonly frame: ICallFrame<ScriptOrLoadedSource>;
     readonly expression: string;
     readonly objectGroup?: string;
     readonly includeCommandLineAPI?: boolean;

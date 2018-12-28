@@ -1,18 +1,17 @@
-import { IToggleSkipFileStatusArgs, utils, Crdp, BaseSourceMapTransformer, parseResourceIdentifier } from '../../..';
+import { IToggleSkipFileStatusArgs, utils, Crdp, BaseSourceMapTransformer, parseResourceIdentifier, ConnectedCDAConfiguration } from '../../..';
 import { logger } from 'vscode-debugadapter/lib/logger';
 import { IScript } from '../scripts/script';
-import { BasePathTransformer } from '../../../transformers/basePathTransformer';
 import { CDTPDiagnostics } from '../../target/cdtpDiagnostics';
 import { StackTracesLogic, IStackTracePresentationLogicProvider } from '../stackTraces/stackTracesLogic';
-import { newResourceIdentifierMap, IResourceIdentifier, parseResourceIdentifiers } from '../sources/resourceIdentifier';
+import { newResourceIdentifierMap, IResourceIdentifier } from '../sources/resourceIdentifier';
 import { IComponent } from './feature';
 import { ScriptParsedEvent } from '../../target/events';
 import { LocationInLoadedSource } from '../locations/location';
 import { ICallFramePresentationDetails } from '../stackTraces/callFramePresentation';
 import * as nls from 'vscode-nls';
 import { injectable, inject, LazyServiceIdentifer } from 'inversify';
-import { DeleteMeScriptsRegistry } from '../scripts/scriptsRegistry';
 import { TYPES } from '../../dependencyInjection.ts/types';
+import { ClientToInternal } from '../../client/clientToInternal';
 const localize = nls.loadMessageBundle();
 
 export interface EventsConsumedBySkipFilesLogic {
@@ -84,45 +83,40 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration>, ISta
             ]
         }
     */
-    public async toggleSkipFileStatus(args: IToggleSkipFileStatusArgs): Promise<void> {
-        if (!await this.isInCurrentStack(args)) {
-            // Only valid for files that are in the current stack
-            const logName = args.source;
-            logger.log(`Can't toggle the skipFile status for ${logName} - it's not in the current stack.`);
-            return;
-        }
+    public async toggleSkipFileStatus(clientArgs: IToggleSkipFileStatusArgs): Promise<void> {
+        const args = this._clientToInternal.toSource(clientArgs);
+        await args.tryResolving(async resolvedSource => {
+            if (!await this.isInCurrentStack(clientArgs)) {
+                // Only valid for files that are in the current stack
+                const logName = resolvedSource;
+                logger.log(`Can't toggle the skipFile status for ${logName} - it's not in the current stack.`);
+                return;
+            }
 
-        const aPath = args.source;
-        const generatedPath = parseResourceIdentifier(await this.sourceMapTransformer.getGeneratedPathFromAuthoredPath(aPath.canonicalized));
-        if (!generatedPath) {
-            logger.log(`Can't toggle the skipFile status for: ${aPath} - haven't seen it yet.`);
-            return;
-        }
+            if (resolvedSource === resolvedSource.script.developmentSource && resolvedSource.script.mappedSources.length < 0) {
+                // Ignore toggling skip status for generated scripts with sources
+                logger.log(`Can't toggle skipFile status for ${resolvedSource} - it's a script with a sourcemap`);
+                return;
+            }
 
-        const sources = parseResourceIdentifiers(await this.sourceMapTransformer.allSources(generatedPath.canonicalized));
-        if (generatedPath.isEquivalent(aPath) && sources.length) {
-            // Ignore toggling skip status for generated scripts with sources
-            logger.log(`Can't toggle skipFile status for ${aPath} - it's a script with a sourcemap`);
-            return;
-        }
+            const newStatus = !this.shouldSkipSource(resolvedSource.identifier);
+            logger.log(`Setting the skip file status for: ${resolvedSource} to ${newStatus}`);
+            this._skipFileStatuses.set(resolvedSource.identifier, newStatus);
 
-        const newStatus = !this.shouldSkipSource(aPath);
-        logger.log(`Setting the skip file status for: ${aPath} to ${newStatus}`);
-        this._skipFileStatuses.set(aPath, newStatus);
+            await this.resolveSkipFiles(resolvedSource.script, resolvedSource.script.developmentSource.identifier,
+                resolvedSource.script.mappedSources.map(s => s.identifier), /*toggling=*/true);
 
-        const targetPath = this.pathTransformer.getTargetPathFromClientPath(generatedPath) || generatedPath;
-        const script = this.getScriptByUrl(targetPath)[0];
+            if (newStatus) {
+                // TODO: Verify that using targetPath works here. We need targetPath to be this.getScriptByUrl(targetPath).url
+                this.makeRegexesSkip(resolvedSource.script.runtimeSource.identifier.textRepresentation);
+            } else {
+                this.makeRegexesNotSkip(resolvedSource.script.runtimeSource.identifier.textRepresentation);
+            }
 
-        await this.resolveSkipFiles(script, generatedPath, sources, /*toggling=*/true);
-
-        if (newStatus) {
-            // TODO: Verify that using targetPath works here. We need targetPath to be this.getScriptByUrl(targetPath).url
-            this.makeRegexesSkip(script.runtimeSource.identifier.textRepresentation);
-        } else {
-            this.makeRegexesNotSkip(script.runtimeSource.identifier.textRepresentation);
-        }
-
-        this.reprocessPausedEvent();
+            this.reprocessPausedEvent();
+        }, async sourceIdentifier => {
+            logger.log(`Can't toggle the skipFile status for: ${sourceIdentifier} - haven't seen it yet.`);
+        });
     }
 
     private makeRegexesSkip(skipPath: string): void {
@@ -147,14 +141,21 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration>, ISta
         }).catch(() => this.warnNoSkipFiles());
     }
 
-    private async isInCurrentStack(args: IToggleSkipFileStatusArgs): Promise<boolean> {
-        const currentStack = await this.stackTracesLogic.stackTrace({ threadId: undefined });
+    private async isInCurrentStack(clientArgs: IToggleSkipFileStatusArgs): Promise<boolean> {
+        const args = this._clientToInternal.toSource(clientArgs);
+        return args.tryResolving(async resolvedSource => {
+            const currentStack = await this.stackTracesLogic.stackTrace({ threadId: undefined });
 
-        return currentStack.stackFrames.some(frame => {
-            return frame.hasCodeFlow()
-                && frame.codeFlow.location.source
-                && frame.codeFlow.location.source.identifier.isEquivalent(args.source);
-        });
+            return currentStack.stackFrames.some(frame => {
+                return frame.hasCodeFlow()
+                    && frame.codeFlow.location.source
+                    && frame.codeFlow.location.source.isEquivalent(resolvedSource);
+            });
+
+        },
+            async () => {
+                return false;
+            });
     }
 
     private makeRegexesNotSkip(noSkipPath: string): void {
@@ -232,23 +233,20 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration>, ISta
         logger.log('Warning: this runtime does not support skipFiles');
     }
 
-    private getScriptByUrl(url: IResourceIdentifier): IScript[] {
-        return this._scriptsRegistry.getScriptsByPath(url);
-    }
-
     private async onScriptParsed(scriptEvent: ScriptParsedEvent): Promise<void> {
         const script = scriptEvent.script;
         const sources = script.mappedSources;
         await this.resolveSkipFiles(script, script.developmentSource.identifier, sources.map(source => source.identifier));
     }
 
-    public install(_launchAttachArgs: ISkipFilesConfiguration): this {
+    public install(): this {
         this._dependencies.onScriptParsed(scriptParsed => this.onScriptParsed(scriptParsed));
-        this.configure(_launchAttachArgs);
+        this.configure();
         return this;
     }
 
-    private configure(_launchAttachArgs: ISkipFilesConfiguration): SkipFilesLogic {
+    private configure(): SkipFilesLogic {
+        const _launchAttachArgs: ISkipFilesConfiguration = this._configuration.args;
         let patterns: string[] = [];
 
         if (_launchAttachArgs.skipFiles) {
@@ -279,9 +277,9 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration>, ISta
     constructor(
         @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: EventsConsumedBySkipFilesLogic,
         @inject(TYPES.CDTPDiagnostics) private readonly chrome: CDTPDiagnostics,
-        @inject(TYPES.DeleteMeScriptsRegistry) private readonly _scriptsRegistry: DeleteMeScriptsRegistry,
         @inject(new LazyServiceIdentifer(() => TYPES.StackTracesLogic)) private readonly stackTracesLogic: StackTracesLogic,
         @inject(TYPES.BaseSourceMapTransformer) private readonly sourceMapTransformer: BaseSourceMapTransformer,
-        @inject(TYPES.BasePathTransformer) private readonly pathTransformer: BasePathTransformer,
+        @inject(TYPES.ClientToInternal) private readonly _clientToInternal: ClientToInternal,
+        @inject(TYPES.ConnectedCDAConfiguration) private readonly _configuration: ConnectedCDAConfiguration
     ) { }
 }

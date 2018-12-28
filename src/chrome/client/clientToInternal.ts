@@ -1,7 +1,7 @@
 import { ILoadedSource } from '../internal/sources/loadedSource';
 import { BPRecipieInUnresolvedSource } from '../internal/breakpoints/bpRecipie';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { ISourceResolver, ResolveSourceUsingLoadedSource } from '../internal/sources/sourceResolver';
+import { IUnresolvedSource, SourceAlreadyResolvedToLoadedSource } from '../internal/sources/unresolvedSource';
 import { SourcesLogic } from '../internal/sources/sourcesLogic';
 import { Coordinates, LocationInUnresolvedSource } from '../internal/locations/location';
 import { LineColTransformer } from '../../transformers/lineNumberTransformer';
@@ -44,13 +44,13 @@ export class ClientToInternal {
         return this._handlesRegistry.sources.getObjectById(handle);
     }
 
-    public toSource(clientSource: DebugProtocol.Source): ISourceResolver {
+    public toSource(clientSource: DebugProtocol.Source): IUnresolvedSource {
         if (clientSource.path && !clientSource.sourceReference) {
             const identifier = parseResourceIdentifier(clientSource.path);
             return this._sourcesLogic.createSourceResolver(identifier);
         } else if (clientSource.sourceReference) {
             const source = this.getSourceFromId(clientSource.sourceReference);
-            return new ResolveSourceUsingLoadedSource(source);
+            return new SourceAlreadyResolvedToLoadedSource(source);
         } else {
             throw new Error(`Expected the source to have a path (${clientSource.path}) either-or a source reference (${clientSource.sourceReference})`);
         }
@@ -62,7 +62,7 @@ export class ClientToInternal {
         return new BPRecipiesInUnresolvedSource(source, breakpoints);
     }
 
-    public toBPRecipie(source: ISourceResolver, clientBreakpoint: DebugProtocol.SourceBreakpoint): BPRecipieInUnresolvedSource {
+    public toBPRecipie(source: IUnresolvedSource, clientBreakpoint: DebugProtocol.SourceBreakpoint): BPRecipieInUnresolvedSource {
         return new BPRecipieInUnresolvedSource(
             new LocationInUnresolvedSource(source, this.toLocation(clientBreakpoint)),
             this.toBPActionWhenHit(clientBreakpoint));
@@ -98,6 +98,6 @@ export class ClientToInternal {
 
     constructor(
         private readonly _handlesRegistry: HandlesRegistry,
-        @inject(TYPES.LineColTransformer) private readonly _lineColTransformer: NonNullable<LineColTransformer>,
+        @inject(TYPES.LineColTransformer) private readonly _lineColTransformer: LineColTransformer,
         private readonly _sourcesLogic: SourcesLogic) { }
 }

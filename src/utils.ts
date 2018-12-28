@@ -667,3 +667,7 @@ export function adaptToSinglIntoToMulti<T, R>(thisObject: object, toSingle: (sin
 export function asyncAdaptToSinglIntoToMulti<T, R>(thisObject: object, toSingle: (single: T) => Promise<R>): (multi: T[]) => Promise<R[]> {
     return (multi: T[]) => Promise.all(multi.map(single => toSingle.call(thisObject, single)));
 }
+
+export function defaultIfUndefined<T>(value: T | undefined, defaultValue: T): T {
+    return value !== undefined ? value : defaultValue;
+}

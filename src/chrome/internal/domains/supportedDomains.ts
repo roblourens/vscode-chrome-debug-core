@@ -6,9 +6,17 @@ export interface SupportedDomainsDependencies {
     getTargetDebuggerDomainsSchemas(): Promise<Crdp.Schema.Domain[]>;
 }
 
+export interface ISupportedDomains {
+    isSupported(domainName: string): boolean;
+}
+
 @injectable()
-export class SupportedDomains implements IComponent {
+export class SupportedDomains implements IComponent, ISupportedDomains {
     private readonly _domains = new Map<string, Crdp.Schema.Domain>();
+
+    public isSupported(domainName: string): boolean {
+        return this._domains.has(domainName);
+    }
 
     public async install(): Promise<this> {
         await this.initSupportedDomains();

@@ -41,7 +41,7 @@ export class NotifyClientOfLoadedSources implements IComponent {
                     return; // We processed the events out of order, and this event got here after we destroyed the context. ignore it.
                 }
 
-                if (this._notifiedSourceByUrl.get(script.url)) {
+                if (this._notifiedSourceByUrl.tryGetting(script.url) !== undefined) {
                     const exists = await utils.existsAsync(script.developmentSource.identifier.canonicalized);
                     if (exists) {
                         // We only need to send changed events for dynamic scripts. The client tracks files on storage on it's own, so this notification is not needed
@@ -70,6 +70,7 @@ export class NotifyClientOfLoadedSources implements IComponent {
         this._eventsToClientReporter.sendSourceWasLoaded({ reason: loadedSourceEventReason, source: script.developmentSource });
     }
 
-    constructor(private readonly _dependencies: NotifyClientOfLoadedSourcesDependencies,
+    constructor(
+        @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: NotifyClientOfLoadedSourcesDependencies,
         @inject(TYPES.EventSender) private readonly _eventsToClientReporter: IEventsToClientReporter) { }
 }

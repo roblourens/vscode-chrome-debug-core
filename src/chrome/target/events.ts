@@ -2,7 +2,7 @@ import { IScript } from '../internal/scripts/script';
 
 import { Crdp } from '../..';
 
-import { ScriptOrSource, ScriptOrSourceOrIdentifierOrUrlRegexp } from '../internal/locations/location';
+import { ScriptOrLoadedSource, ScriptOrSourceOrUrlRegexp } from '../internal/locations/location';
 import { CodeFlowStackTrace } from '../internal/stackTraces/stackTrace';
 import { ICallFrame } from '../internal/stackTraces/callFrame';
 import { IBPRecipie } from '../internal/breakpoints/bpRecipie';
@@ -28,7 +28,7 @@ export interface ScriptParsedEvent {
 }
 
 export class PausedEvent {
-    public cloneButWithHitBreakpoints(hitBreakpoints: IBPRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp>[]): PausedEvent {
+    public cloneButWithHitBreakpoints(hitBreakpoints: IBPRecipie<ScriptOrSourceOrUrlRegexp>[]): PausedEvent {
         return new PausedEvent(
             this.callFrames,
             this.reason,
@@ -40,10 +40,10 @@ export class PausedEvent {
     }
 
     constructor(
-        public readonly callFrames: NonNullable<ICallFrame<IScript>[]>,
+        public readonly callFrames: ICallFrame<IScript>[],
         public readonly reason: ('XHR' | 'DOM' | 'EventListener' | 'exception' | 'assert' | 'debugCommand' | 'promiseRejection' | 'OOM' | 'other' | 'ambiguous'),
         public readonly data?: any,
-        public readonly hitBreakpoints?: IBPRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp>[], // TODO DIEGO: Make this readonly
+        public readonly hitBreakpoints?: IBPRecipie<ScriptOrSourceOrUrlRegexp>[], // TODO DIEGO: Make this readonly
         public readonly asyncStackTrace?: CodeFlowStackTrace<IScript>,
         public readonly asyncStackTraceId?: Crdp.Runtime.StackTraceId,
         public readonly asyncCallStackTraceId?: Crdp.Runtime.StackTraceId) { }
@@ -79,7 +79,7 @@ export interface SetVariableValueRequest {
     readonly scopeNumber: integer;
     readonly variableName: string;
     readonly newValue: Crdp.Runtime.CallArgument;
-    readonly frame: ICallFrame<ScriptOrSource>;
+    readonly frame: ICallFrame<ScriptOrLoadedSource>;
 }
 
 export type LogEntrySource = 'xml' | 'javascript' | 'network' | 'storage' | 'appcache' | 'rendering' | 'security' | 'deprecation' | 'worker' | 'violation' | 'intervention' | 'recommendation' | 'other';

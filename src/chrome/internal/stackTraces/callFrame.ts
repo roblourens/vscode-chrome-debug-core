@@ -1,4 +1,4 @@
-import { ScriptOrSource, Location } from '../locations/location';
+import { ScriptOrLoadedSource, Location } from '../locations/location';
 import { integer } from '../../target/events';
 import { ILoadedSource } from '../sources/loadedSource';
 import { IScript } from '../scripts/script';
@@ -7,21 +7,21 @@ import { ICallFrameName } from './callFrameName';
 import { Scope } from './scopes';
 
 /** This interface represents the code flow (which code was executed) of a call frame  */
-export class CodeFlowFrame<TResource extends ScriptOrSource> {
+export class CodeFlowFrame<TResource extends ScriptOrLoadedSource> {
     constructor(
         public readonly index: integer,
-        public readonly nameStrategy: NonNullable<ICallFrameName>,
-        public readonly location: NonNullable<Location<TResource>>) { }
+        public readonly nameStrategy: ICallFrameName,
+        public readonly location: Location<TResource>) { }
 
-    public get source(): TResource extends ILoadedSource ? NonNullable<TResource> : never {
+    public get source(): TResource extends ILoadedSource ? TResource : never {
         return this.location.resource as any;
     }
 
-    public get script(): TResource extends IScript ? NonNullable<TResource> : never {
+    public get script(): TResource extends IScript ? TResource : never {
         return this.location.resource as any;
     }
 
-    public get lineNumber(): NonNullable<number> {
+    public get lineNumber(): number {
         return this.location.lineNumber;
     }
 
@@ -34,34 +34,34 @@ export class CodeFlowFrame<TResource extends ScriptOrSource> {
     }
 }
 
-export interface ICallFrame<TResource extends ScriptOrSource> {
+export interface ICallFrame<TResource extends ScriptOrLoadedSource> {
     readonly index: number;
-    readonly source: TResource extends ILoadedSource ? NonNullable<TResource> : never;
-    readonly location: NonNullable<Location<TResource>>;
-    readonly lineNumber: NonNullable<number>;
+    readonly source: TResource extends ILoadedSource ? TResource : never;
+    readonly location: Location<TResource>;
+    readonly lineNumber: number;
     readonly columnNumber: number;
     readonly name: string;
-    readonly codeFlow: NonNullable<CodeFlowFrame<TResource>>;
-    readonly scopeChain: NonNullable<Scope[]>;
+    readonly codeFlow: CodeFlowFrame<TResource>;
+    readonly scopeChain: Scope[];
     readonly frameThis?: Crdp.Runtime.RemoteObject;
     readonly returnValue?: Crdp.Runtime.RemoteObject;
     readonly unmappedCallFrame: ICallFrame<IScript>;
 }
 
-abstract class CallFrameCommonLogic<TResource extends ScriptOrSource> implements ICallFrame<TResource> {
+abstract class CallFrameCommonLogic<TResource extends ScriptOrLoadedSource> implements ICallFrame<TResource> {
     public abstract get scopeChain(): Scope[];
     public abstract get unmappedCallFrame(): ICallFrame<IScript>;
     public abstract get codeFlow(): CodeFlowFrame<TResource>;
 
-    public get source(): TResource extends ILoadedSource ? NonNullable<TResource> : never {
+    public get source(): TResource extends ILoadedSource ? TResource : never {
         return this.codeFlow.source;
     }
 
-    public get location(): NonNullable<Location<TResource>> {
+    public get location(): Location<TResource> {
         return this.codeFlow.location;
     }
 
-    public get lineNumber(): NonNullable<number> {
+    public get lineNumber(): number {
         return this.codeFlow.lineNumber;
     }
 
@@ -84,10 +84,10 @@ export class ScriptCallFrame extends CallFrameCommonLogic<IScript> {
     }
 
     constructor(
-        public readonly codeFlow: NonNullable<CodeFlowFrame<IScript>>,
-        public readonly scopeChain: NonNullable<Scope[]>,
-        public readonly frameThis?: NonNullable<Crdp.Runtime.RemoteObject>, // This is optional only to support Runtime.StackTraces aka StackTraceCodeFlow
-        public readonly returnValue?: NonNullable<Crdp.Runtime.RemoteObject>) {
+        public readonly codeFlow: CodeFlowFrame<IScript>,
+        public readonly scopeChain: Scope[],
+        public readonly frameThis?: Crdp.Runtime.RemoteObject, // This is optional only to support Runtime.StackTraces aka StackTraceCodeFlow
+        public readonly returnValue?: Crdp.Runtime.RemoteObject) {
         super();
     }
 }
@@ -107,7 +107,7 @@ export class LoadedSourceCallFrame extends CallFrameCommonLogic<ILoadedSource> {
 
     constructor(
         public readonly unmappedCallFrame: ICallFrame<IScript>,
-        public readonly codeFlow: NonNullable<CodeFlowFrame<ILoadedSource>>) {
+        public readonly codeFlow: CodeFlowFrame<ILoadedSource>) {
         super();
     }
 }

@@ -1,5 +1,5 @@
 import { InitializedEvent, Logger } from 'vscode-debugadapter';
-import { ChromeDebugLogic, ChromeDebugSession, IAttachRequestArgs, IDebugAdapterState, ILaunchRequestArgs, ITelemetryPropertyCollector, LineColTransformer, utils } from '../../..';
+import { ChromeDebugLogic, ChromeDebugSession, IAttachRequestArgs, IDebugAdapterState, ILaunchRequestArgs, ITelemetryPropertyCollector, LineColTransformer, utils, BaseSourceMapTransformer, BasePathTransformer } from '../../..';
 import { IClientCapabilities } from '../../../debugAdapterInterfaces';
 import * as errors from '../../../errors';
 import { EagerSourceMapTransformer } from '../../../transformers/eagerSourceMapTransformer';
@@ -18,6 +18,7 @@ import { ConnectedCDAConfiguration } from './cdaConfiguration';
 import { ConnectedCDA } from './connectedCDA';
 import { ConnectedCDAEventsCreator } from './connectedCDAEvents';
 import { UnconnectedCDACommonLogic } from './unconnectedCDACommonLogic';
+import { IDebuggeeLauncher } from '../../debugee/debugeeLauncher';
 
 export enum ScenarioType {
     Launch,
@@ -25,6 +26,10 @@ export enum ScenarioType {
 }
 
 export class UnconnectedCDA extends UnconnectedCDACommonLogic implements IDebugAdapterState {
+    private readonly _session = new DelayMessagesUntilInitializedSession(new DoNotPauseWhileSteppingSession(this._basicSession));
+
+    private configuration: ConnectedCDAConfiguration;
+
     public chromeDebugAdapter(): ChromeDebugLogic {
         throw new Error('The chrome debug adapter can only be used when the debug adapter is connected');
     }
@@ -57,45 +62,67 @@ export class UnconnectedCDA extends UnconnectedCDACommonLogic implements IDebugA
             : this._extensibilityPoints.pathTransformer || RemotePathTransformer;
         const sourceMapTransformerClass = this._extensibilityPoints.sourceMapTransformer || EagerSourceMapTransformer;
         const lineColTransformerClass = this._extensibilityPoints.lineColTransformer || LineColTransformer;
-        const logging = new Logging().install(this.parseLoggingConfiguration(args));
+        const logging = new Logging().install(this._extensibilityPoints, this.parseLoggingConfiguration(args));
 
         const chromeConnection = new (this._chromeConnectionClass)(undefined, args.targetFilter || this._extensibilityPoints.targetFilter);
         const communicator = new LoggingCommunicator(new Communicator(), new ExecutionLogger(logging));
 
-        const debugeeLauncher = new this._extensibilityPoints.debugeeLauncher();
+        const diContainer = this.getDIContainer(di, lineColTransformerClass, communicator, chromeConnection, pathTransformerClass, sourceMapTransformerClass, args, scenarioType);
+
+        const debugeeLauncher = diContainer.createComponent<IDebuggeeLauncher>(TYPES.IDebuggeeLauncher);
+
+        diContainer.unconfigure(TYPES.IDebuggeeLauncher); // TODO DIEGO: Remove this line and do this properly
+        diContainer.configureValue(TYPES.IDebuggeeLauncher, debugeeLauncher); // TODO DIEGO: Remove this line and do this properly
+
         const result = await debugeeLauncher.launch(args, telemetryPropertyCollector);
         await chromeConnection.attach(result.address, result.port, result.url, args.timeout, args.extraCRDPChannelPort);
 
-        di
-            .bindAll()
-            .configureClass(LineColTransformer, lineColTransformerClass)
-            // .configureClass(TYPES.IDebugeeLauncher, debugeeLauncher)
-            .configureValue(TYPES.communicator, communicator)
-            .configureValue(TYPES.EventsConsumedByConnectedCDA, new ConnectedCDAEventsCreator(communicator).create())
-            .configureValue(TYPES.CDTPClient, chromeConnection.api)
-            .configureValue(TYPES.ISession, new DelayMessagesUntilInitializedSession(new DoNotPauseWhileSteppingSession(this._session)))
-            .configureValue(TYPES.BasePathTransformer, new pathTransformerClass())
-            .configureValue(TYPES.BaseSourceMapTransformer, new sourceMapTransformerClass())
-            .configureValue(TYPES.ChromeConnection, chromeConnection)
-            .configureValue(TYPES.ConnectedCDAConfiguration, new ConnectedCDAConfiguration(this._extensibilityPoints,
-                this.parseLoggingConfiguration(args),
-                this._session,
-                this._clientCapabilities,
-                this._chromeConnectionClass,
-                scenarioType,
-                args));
+        if (chromeConnection.api === undefined) {
+            throw new Error('Expected the Chrome API object to be properly initialized by now');
+        }
+
+        diContainer.configureValue(TYPES.CDTPClient, chromeConnection.api);
+
+        const newState = di.createClassWithDI<ConnectedCDA>(ConnectedCDA);
+        await newState.install();
+
+        await chromeConnection.api.Runtime.enable();
 
         this._session.sendEvent(new InitializedEvent());
 
-        return di.createClassWithDI<ConnectedCDA>(ConnectedCDA);
+        return newState;
     }
 
     constructor(
         private readonly _extensibilityPoints: IExtensibilityPoints,
-        private readonly _session: ChromeDebugSession,
+        private readonly _basicSession: ChromeDebugSession,
         private readonly _clientCapabilities: IClientCapabilities,
         private readonly _chromeConnectionClass: typeof ChromeConnection
     ) {
         super();
+    }
+
+    private getDIContainer(di: DependencyInjection, lineColTransformerClass: typeof LineColTransformer, communicator: LoggingCommunicator, chromeConnection: ChromeConnection, pathTransformerClass: (new (configuration: ConnectedCDAConfiguration) => BasePathTransformer), sourceMapTransformerClass: new (configuration: ConnectedCDAConfiguration) => BaseSourceMapTransformer, args: ILaunchRequestArgs | IAttachRequestArgs, scenarioType: ScenarioType): DependencyInjection {
+        const configuration = this.createConfiguration(args, scenarioType);
+        return di
+            .bindAll()
+            .configureClass(LineColTransformer, lineColTransformerClass)
+            .configureClass(TYPES.IDebugeeRunner, this._extensibilityPoints.debugeeRunner)
+            .configureClass(TYPES.IDebuggeeLauncher, this._extensibilityPoints.debugeeLauncher)
+            // .configureClass(TYPES.IDebugeeLauncher, debugeeLauncher)
+            .configureValue(TYPES.communicator, communicator)
+            .configureValue(TYPES.EventsConsumedByConnectedCDA, new ConnectedCDAEventsCreator(communicator).create())
+            .configureValue(TYPES.ISession, this._session)
+            .configureValue(TYPES.BasePathTransformer, new pathTransformerClass(configuration))
+            .configureValue(TYPES.BaseSourceMapTransformer, new sourceMapTransformerClass(configuration))
+            .configureValue(TYPES.ChromeConnection, chromeConnection)
+            .configureValue(TYPES.ConnectedCDAConfiguration, configuration);
+    }
+
+    private createConfiguration(args: ILaunchRequestArgs | IAttachRequestArgs, scenarioType: ScenarioType): ConnectedCDAConfiguration {
+        if (this.configuration === undefined) {
+            this.configuration = new ConnectedCDAConfiguration(this._extensibilityPoints, this.parseLoggingConfiguration(args), this._session, this._clientCapabilities, this._chromeConnectionClass, scenarioType, args);
+        }
+        return this.configuration;
     }
 }

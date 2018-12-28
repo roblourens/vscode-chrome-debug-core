@@ -4,7 +4,7 @@ import { BPRecipieInUnresolvedSource, IBPRecipie } from '../bpRecipie';
 import { BreakOnHitCount } from '../bpActionWhenHit';
 import { ValidatedMap } from '../../../collections/validatedMap';
 import { HitCountConditionParser, HitCountConditionFunction } from '../hitCountConditionParser';
-import { ScriptOrSourceOrIdentifierOrUrlRegexp } from '../../locations/location';
+import { ScriptOrSourceOrUrlRegexp } from '../../locations/location';
 import {  NotifyStoppedCommonLogic, InformationAboutPausedProvider } from '../../features/takeProperActionOnPausedEvent';
 import { ReasonType } from '../../../stoppedEvent';
 import { Vote, Abstained, VoteRelevance } from '../../../communication/collaborativeDecision';
@@ -20,6 +20,7 @@ export interface HitCountBreakpointsDependencies {
     notifyBPWasHit(bpRecipie: BPRecipieInUnresolvedSource): Promise<void>;
 
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
+    publishGoingToPauseClient(): void;
 }
 
 class HitCountBPData {
@@ -40,14 +41,16 @@ export class HitAndSatisfiedCountBPCondition extends NotifyStoppedCommonLogic {
     public readonly relevance = VoteRelevance.NormalVote;
     protected reason: ReasonType = 'breakpoint';
 
-    constructor(protected readonly _eventsToClientReporter: IEventsToClientReporter) {
+    constructor(protected readonly _eventsToClientReporter: IEventsToClientReporter,
+        protected readonly _publishGoingToPauseClient: () => void) {
         super();
     }
 }
 
+// TODO DIEGO: Install and use this feature
 @injectable()
 export class HitCountBreakpoints implements IComponent {
-    private readonly underlyingToBPRecipie = new ValidatedMap<IBPRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp>, HitCountBPData>();
+    private readonly underlyingToBPRecipie = new ValidatedMap<IBPRecipie<ScriptOrSourceOrUrlRegexp>, HitCountBPData>();
 
     public install(): void {
         this._dependencies.registerAddBPRecipieHandler(
@@ -69,8 +72,8 @@ export class HitCountBreakpoints implements IComponent {
 
         const individualDecisions = hitCountBPData.map(data => data.notifyBPHit());
         return individualDecisions.indexOf(VoteRelevance.NormalVote) >= 0
-            ? new HitAndSatisfiedCountBPCondition(this._eventsToClientReporter)
-            : new Abstained();
+            ? new HitAndSatisfiedCountBPCondition(this._eventsToClientReporter, this._dependencies.publishGoingToPauseClient)
+            : new Abstained(this);
     }
 
     constructor(private readonly _dependencies: HitCountBreakpointsDependencies,

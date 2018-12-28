@@ -9,5 +9,8 @@ export interface ILaunchResult {
 
 export interface IDebuggeeLauncher  {
     launch(args: ILaunchRequestArgs, telemetryPropertyCollector: ITelemetryPropertyCollector): Promise<ILaunchResult>;
-    waitForDebugeeToBeReady(): Promise<void>;
+}
+
+export interface IDebuggeeRunner  {
+    run(telemetryPropertyCollector: ITelemetryPropertyCollector): Promise<void>;
 }

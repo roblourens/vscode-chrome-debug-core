@@ -18,6 +18,7 @@ import { ExecutionTimingsReporter, StepProgressEventsEmitter, IObservableEvents,
 import { ChromeDebugAdapter } from './client/chromeDebugAdapter/chromeDebugAdapterV2';
 import { AvailableCommands, CommandText } from './client/requests';
 import { IExtensibilityPoints } from './extensibility/extensibilityPoints';
+import { ConnectedCDAConfiguration } from './client/chromeDebugAdapter/cdaConfiguration';
 
 export interface IChromeDebugAdapterOpts {
     targetFilter?: ITargetFilter;
@@ -26,9 +27,9 @@ export interface IChromeDebugAdapterOpts {
 
     // Override services
     chromeConnection?: typeof ChromeConnection;
-    pathTransformer?: { new(): BasePathTransformer };
-    sourceMapTransformer?: { new(enableSourcemapCaching?: boolean): BaseSourceMapTransformer };
-    lineColTransformer?: { new(session: any): LineColTransformer };
+    pathTransformer?: { new(configuration: ConnectedCDAConfiguration): BasePathTransformer };
+    sourceMapTransformer?: { new(configuration: ConnectedCDAConfiguration): BaseSourceMapTransformer };
+    lineColTransformer?: { new(configuration: ConnectedCDAConfiguration): LineColTransformer };
 }
 
 export interface INewChromeDebugAdapterOpts {

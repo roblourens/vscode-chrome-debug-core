@@ -32,13 +32,15 @@ export interface IExceptionInformation {
 
 export interface EventsConsumedByPauseOnException {
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
+    publishGoingToPauseClient(): void;
 }
 
 export class ExceptionWasThrown extends NotifyStoppedCommonLogic {
     public readonly relevance = VoteRelevance.NormalVote;
     public readonly reason = 'exception'; // There is an issue of how the .d.ts is generated for this file, so we need to type that explicitly
 
-    constructor(protected readonly _eventsToClientReporter: IEventsToClientReporter) {
+    constructor(protected readonly _eventsToClientReporter: IEventsToClientReporter,
+        protected readonly _publishGoingToPauseClient: () => void) {
         super();
     }
 }
@@ -47,7 +49,8 @@ export class PromiseWasRejected extends NotifyStoppedCommonLogic {
     public readonly relevance = VoteRelevance.NormalVote;
     public readonly reason: 'promise_rejection' = 'promise_rejection'; // There is an issue of how the .d.ts is generated for this file, so we need to type that explicitly
 
-    constructor(protected readonly _eventsToClientReporter: IEventsToClientReporter) {
+    constructor(protected readonly _eventsToClientReporter: IEventsToClientReporter,
+        protected readonly _publishGoingToPauseClient: () => void) {
         super();
     }
 }
@@ -70,14 +73,14 @@ export class PauseOnExceptionOrRejection implements IComponent {
         if (paused.reason === 'exception') {
             // If we are here is because we either configured the debugee to pauser on unhandled or handled exceptions
             this._lastException = paused.data;
-            return new ExceptionWasThrown(this._eventsToClientReporter);
+            return new ExceptionWasThrown(this._eventsToClientReporter, this._dependencies.publishGoingToPauseClient);
         } else if (paused.reason === 'promiseRejection' && this._promiseRejectionsStrategy.shouldPauseOnRejections()) {
             // TODO: Figure out if it makes sense to move this into it's own class
             this._lastException = paused.data;
-            return new PromiseWasRejected(this._eventsToClientReporter);
+            return new PromiseWasRejected(this._eventsToClientReporter, this._dependencies.publishGoingToPauseClient);
         } else {
             this._lastException = null;
-            return new Abstained();
+            return new Abstained(this);
         }
     }
 

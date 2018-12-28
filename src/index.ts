@@ -35,10 +35,18 @@ import { IOnPausedResult } from './chrome/internal/breakpoints/breakpointsLogic'
 import { parseResourceIdentifier } from './chrome/internal/sources/resourceIdentifier';
 import { ChromeDebugAdapter } from './chrome/client/chromeDebugAdapter/chromeDebugAdapterV2';
 import { IExtensibilityPoints, OnlyProvideCustomLauncherExtensibilityPoints } from './chrome/extensibility/extensibilityPoints';
-import { IDebuggeeLauncher, ILaunchResult } from './chrome/debugee/debugeeLauncher';
-import { inject } from 'inversify';
+import { IDebuggeeLauncher, ILaunchResult, IDebuggeeRunner } from './chrome/debugee/debugeeLauncher';
+import { inject, injectable, postConstruct } from 'inversify';
 import { ConnectedCDAConfiguration } from './chrome/client/chromeDebugAdapter/cdaConfiguration';
 import { IComponent } from './chrome/internal/features/feature';
+import { TYPES } from './chrome/dependencyInjection.ts/types';
+import { IInspectDebugeeState } from './chrome/target/inspectDebugeeState';
+import { CDTPEventsEmitterDiagnosticsModule } from './chrome/target/cdtpDiagnosticsModule';
+import { INetworkCacheConfiguration, IDebugeeVersionProvider, IPausedOverlay, IBrowserNavigation } from './chrome/target/cdtpSmallerModules';
+import { ICommunicator } from './chrome/communication/communicator';
+import { ISupportedDomains } from './chrome/internal/domains/supportedDomains';
+import { Internal } from './chrome/communication/internalChannels';
+import { ISession } from './chrome/client/session';
 
 export {
     chromeConnection,
@@ -59,26 +67,47 @@ export {
     OnlyProvideCustomLauncherExtensibilityPoints,
 
     IDebuggeeLauncher,
+    IDebuggeeRunner,
     ILaunchResult,
     ConnectedCDAConfiguration,
     inject,
+    injectable,
     IComponent,
+
+    postConstruct,
 
     UrlPathTransformer,
     BasePathTransformer,
     LineColTransformer,
     BaseSourceMapTransformer,
 
+    CDTPEventsEmitterDiagnosticsModule,
     utils,
     telemetry,
     variables,
     NullLogger,
     executionTimingsReporter,
 
+    ISupportedDomains,
+    IPausedOverlay,
+
     Version,
     TargetVersions,
 
+    ICommunicator,
+
+    Internal,
+
+    INetworkCacheConfiguration,
+    IDebugeeVersionProvider,
+
     parseResourceIdentifier,
+    IBrowserNavigation,
+
+    ISession,
+    TYPES,
+
+    IInspectDebugeeState,
 
     Crdp
 };

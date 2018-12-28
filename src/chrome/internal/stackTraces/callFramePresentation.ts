@@ -1,4 +1,4 @@
-import { ScriptOrSource, Location } from '../locations/location';
+import { ScriptOrLoadedSource, Location } from '../locations/location';
 
 import { ILoadedSource } from '../sources/loadedSource';
 
@@ -14,16 +14,16 @@ export interface ICallFramePresentationDetails {
     readonly sourcePresentationHint: SourcePresentationHint;
 }
 
-export interface ICodeFlowFramePresentation<TResource extends ScriptOrSource> extends CodeFlowFramePresentationRow<TResource> {
+export interface ICodeFlowFramePresentation<TResource extends ScriptOrLoadedSource> extends CodeFlowFramePresentationRow<TResource> {
     readonly name: string;
     readonly source: ILoadedSource;
-    readonly location: NonNullable<Location<TResource>>;
-    readonly lineNumber: NonNullable<number>;
+    readonly location: Location<TResource>;
+    readonly lineNumber: number;
     readonly columnNumber: number;
 }
 
-export abstract class CodeFlowFramePresentationCommonLogic<TResource extends ScriptOrSource> implements ICodeFlowFramePresentation<TResource> {
-    public abstract get codeFlow(): NonNullable<CodeFlowFrame<TResource>>;
+export abstract class CodeFlowFramePresentationCommonLogic<TResource extends ScriptOrLoadedSource> implements ICodeFlowFramePresentation<TResource> {
+    public abstract get codeFlow(): CodeFlowFrame<TResource>;
     public abstract hasCallFrame(): this is CallFramePresentation<TResource>;
 
     public get name(): string {
@@ -34,11 +34,11 @@ export abstract class CodeFlowFramePresentationCommonLogic<TResource extends Scr
         return this.codeFlow.source;
     }
 
-    public get location(): NonNullable<Location<TResource>> {
+    public get location(): Location<TResource> {
         return this.codeFlow.location;
     }
 
-    public get lineNumber(): NonNullable<number> {
+    public get lineNumber(): number {
         return this.codeFlow.lineNumber;
     }
 
@@ -55,7 +55,7 @@ export abstract class CodeFlowFramePresentationCommonLogic<TResource extends Scr
         public readonly presentationHint?: CallFramePresentationHint) { }
 }
 
-export class CallFramePresentation<TResource extends ScriptOrSource> extends CodeFlowFramePresentationCommonLogic<TResource> implements CodeFlowFramePresentationRow<TResource> {
+export class CallFramePresentation<TResource extends ScriptOrLoadedSource> extends CodeFlowFramePresentationCommonLogic<TResource> implements CodeFlowFramePresentationRow<TResource> {
     public get codeFlow(): CodeFlowFrame<TResource> {
         return this.callFrame.codeFlow;
     }
@@ -65,20 +65,20 @@ export class CallFramePresentation<TResource extends ScriptOrSource> extends Cod
     }
 
     constructor(
-        public readonly callFrame: NonNullable<ICallFrame<TResource>>,
+        public readonly callFrame: ICallFrame<TResource>,
         additionalPresentationDetails?: ICallFramePresentationDetails,
         presentationHint?: CallFramePresentationHint) {
         super(additionalPresentationDetails, presentationHint);
     }
 }
 
-export class CodeFlowFramePresentation<TResource extends ScriptOrSource> extends CodeFlowFramePresentationCommonLogic<TResource> implements CodeFlowFramePresentationRow<TResource> {
+export class CodeFlowFramePresentation<TResource extends ScriptOrLoadedSource> extends CodeFlowFramePresentationCommonLogic<TResource> implements CodeFlowFramePresentationRow<TResource> {
     public hasCallFrame(): this is CallFramePresentation<TResource> {
         return false;
     }
 
     constructor(
-        public readonly codeFlow: NonNullable<CodeFlowFrame<TResource>>,
+        public readonly codeFlow: CodeFlowFrame<TResource>,
         additionalPresentationDetails?: ICallFramePresentationDetails,
         presentationHint?: CallFramePresentationHint) {
         super(additionalPresentationDetails, presentationHint);

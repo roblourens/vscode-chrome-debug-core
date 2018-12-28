@@ -49,7 +49,7 @@ export class SyncStepping implements IComponent {
     }
 
     private async askForInformationAboutPaused(_paused: PausedEvent): Promise<Vote<void>> {
-        return new Abstained();
+        return new Abstained(this);
     }
 
     public async restartFrame(callFrame: ICallFrame<IScript>): Promise<void> {

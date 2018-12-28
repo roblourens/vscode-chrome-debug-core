@@ -9,7 +9,12 @@ export class DependencyInjection {
     }
 
     public configureClass<T>(interfaceClass: interfaces.Newable<T> | symbol, value: interfaces.Newable<T>): this {
-        this._container.bind(interfaceClass).toConstructor(value);
+        this._container.bind(interfaceClass).to(value).inSingletonScope();
+        return this;
+    }
+
+    public unconfigure<T>(interfaceClass: interfaces.Newable<T> | symbol): this {
+        this._container.unbind(interfaceClass);
         return this;
     }
 

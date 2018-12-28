@@ -26,7 +26,7 @@ export class AsyncStepping implements IComponent {
             return new PausedBecauseAsyncCallWasScheduled(this._debugeeExecutionControl);
         }
 
-        return new Abstained();
+        return new Abstained(this);
     }
 
     public install(): void {

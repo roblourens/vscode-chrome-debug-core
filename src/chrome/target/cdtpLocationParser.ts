@@ -1,8 +1,9 @@
 import { Coordinates, LocationInScript } from '../internal/locations/location';
 import { LineNumber, ColumnNumber } from '../internal/locations/subtypes';
 import { CDTPScriptsRegistry } from './cdtpScriptsRegistry';
+import { injectable, inject } from 'inversify';
+import { TYPES } from '../dependencyInjection.ts/types';
 import { Crdp } from '../..';
-import { injectable } from 'inversify';
 
 interface HasLocation {
     lineNumber: number;
@@ -27,5 +28,5 @@ export class CDTPLocationParser {
     }
 
     constructor(
-        private readonly _scriptsRegistry: CDTPScriptsRegistry) { }
+        @inject(TYPES.CDTPScriptsRegistry) private _scriptsRegistry: CDTPScriptsRegistry) { }
 }

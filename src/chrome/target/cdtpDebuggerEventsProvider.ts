@@ -1,19 +1,28 @@
 import { CDTPEventsEmitterDiagnosticsModule } from './cdtpDiagnosticsModule';
-import { Crdp } from '../..';
 import { asyncMap } from '../collections/async';
 import { PausedEvent } from './events';
 import { CDTPStackTraceParser } from './cdtpStackTraceParser';
 import { adaptToSinglIntoToMulti } from '../../utils';
 import { IBPRecipie } from '../internal/breakpoints/bpRecipie';
-import { ScriptOrSourceOrIdentifierOrUrlRegexp } from '../internal/locations/location';
+import { ScriptOrSourceOrUrlRegexp } from '../internal/locations/location';
 import { BreakpointIdRegistry } from './breakpointIdRegistry';
 import { ScriptCallFrame, ICallFrame, CodeFlowFrame } from '../internal/stackTraces/callFrame';
 import { asyncUndefinedOnFailure } from '../utils/failures';
 import { CDTPLocationParser } from './cdtpLocationParser';
 import { Scope } from '../internal/stackTraces/scopes';
 import { IScript } from '../internal/scripts/script';
+import { injectable, inject } from 'inversify';
+import { TYPES } from '../dependencyInjection.ts/types';
+import { Crdp } from '../..';
 
-export class CDTPDebuggerEventsProvider extends CDTPEventsEmitterDiagnosticsModule<Crdp.DebuggerApi> {
+export interface ICDTPDebuggerEventsProvider {
+    onPaused(listener: (event: PausedEvent) => void): void;
+}
+
+@injectable()
+export class CDTPDebuggerEventsProvider extends CDTPEventsEmitterDiagnosticsModule<Crdp.DebuggerApi, void, Crdp.Debugger.EnableResponse> implements ICDTPDebuggerEventsProvider {
+    protected readonly api = this._protocolApi.Debugger;
+
     private getBPsFromIDs = adaptToSinglIntoToMulti(this, this.getBPFromID);
 
     public readonly onPaused = this.addApiListener('paused', async (params: Crdp.Debugger.PausedEvent) => {
@@ -32,7 +41,7 @@ export class CDTPDebuggerEventsProvider extends CDTPEventsEmitterDiagnosticsModu
 
     public readonly onScriptFailedToParse = this.addApiListener('resumed', (params: Crdp.Debugger.ScriptFailedToParseEvent) => params);
 
-    private getBPFromID(hitBreakpoint: Crdp.Debugger.BreakpointId): IBPRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp> {
+    private getBPFromID(hitBreakpoint: Crdp.Debugger.BreakpointId): IBPRecipie<ScriptOrSourceOrUrlRegexp> {
         return this._breakpointIdRegistry.getRecipieByBreakpointId(hitBreakpoint);
     }
 
@@ -58,10 +67,10 @@ export class CDTPDebuggerEventsProvider extends CDTPEventsEmitterDiagnosticsModu
     }
 
     constructor(
-        protected readonly api: Crdp.DebuggerApi,
-        private readonly _crdpToInternal: CDTPStackTraceParser,
-        private readonly _breakpointIdRegistry: BreakpointIdRegistry,
-        private readonly _cdtpLocationParser: CDTPLocationParser) {
+        @inject(TYPES.CDTPClient) private readonly _protocolApi: Crdp.ProtocolApi,
+        @inject(TYPES.CDTPStackTraceParser) private readonly _crdpToInternal: CDTPStackTraceParser,
+        @inject(TYPES.CDTPLocationParser) private readonly _cdtpLocationParser: CDTPLocationParser,
+        @inject(TYPES.BreakpointIdRegistry) private readonly _breakpointIdRegistry: BreakpointIdRegistry) {
         super();
     }
 }

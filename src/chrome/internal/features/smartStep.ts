@@ -5,7 +5,7 @@ import { ICallFrame } from '../stackTraces/callFrame';
 import { PausedEvent } from '../../target/events';
 import { InformationAboutPausedProvider } from './takeProperActionOnPausedEvent';
 import { logger } from 'vscode-debugadapter';
-import { IComponent, ComponentConfiguration } from './feature';
+import { IComponent } from './feature';
 import { LocationInLoadedSource } from '../locations/location';
 import { ICallFramePresentationDetails } from '../stackTraces/callFramePresentation';
 import { Abstained, VoteRelevance, VoteCommonLogic, Vote } from '../../communication/collaborativeDecision';
@@ -13,6 +13,7 @@ import * as nls from 'vscode-nls';
 import { injectable, inject } from 'inversify';
 import { IStackTracePresentationLogicProvider } from '../stackTraces/stackTracesLogic';
 import { TYPES } from '../../dependencyInjection.ts/types';
+import { utils, ConnectedCDAConfiguration } from '../../..';
 const localize = nls.loadMessageBundle();
 
 export interface EventsConsumedBySmartStepLogic {
@@ -67,7 +68,7 @@ export class SmartStepLogic implements IComponent, IStackTracePresentationLogicP
                 logger.log(`SmartStep: Skipped ${this._smartStepCount} steps`);
                 this._smartStepCount = 0;
             }
-            return new Abstained();
+            return new Abstained(this);
         }
     }
 
@@ -101,20 +102,21 @@ export class SmartStepLogic implements IComponent, IStackTracePresentationLogicP
             : [];
     }
 
-    public install(configuration: ComponentConfiguration): this {
+    public install(): this {
         this._dependencies.subscriberForAskForInformationAboutPaused(paused => this.askForInformationAboutPaused(paused));
-        this.configure(configuration);
+        this.configure();
         return this;
     }
 
-    public configure(configuration: ComponentConfiguration): void {
-        this._isEnabled = !!configuration.args.smartStep;
+    public configure(): void {
+        this._isEnabled = !!utils.defaultIfUndefined(this._configuration.args.smartStep, this._configuration.isVSClient);
     }
 
     constructor(
         @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: EventsConsumedBySmartStepLogic,
         @inject(TYPES.BasePathTransformer) private readonly _pathTransformer: BasePathTransformer,
-        @inject(TYPES.BaseSourceMapTransformer) private readonly _sourceMapTransformer: BaseSourceMapTransformer
+        @inject(TYPES.BaseSourceMapTransformer) private readonly _sourceMapTransformer: BaseSourceMapTransformer,
+        @inject(TYPES.ConnectedCDAConfiguration) private readonly _configuration: ConnectedCDAConfiguration
     ) {
     }
 }

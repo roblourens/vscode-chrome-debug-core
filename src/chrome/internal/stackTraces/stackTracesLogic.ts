@@ -1,5 +1,5 @@
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { injectable, inject, LazyServiceIdentifer } from 'inversify';
+import { injectable, inject } from 'inversify';
 
 import * as errors from '../../../errors';
 import * as path from 'path';
@@ -20,6 +20,8 @@ import { InformationAboutPausedProvider } from '../features/takeProperActionOnPa
 import { asyncMap } from '../../collections/async';
 import { TYPES } from '../../dependencyInjection.ts/types';
 import { IAsyncDebuggingConfiguration } from '../../target/cdtpDebugger';
+import { ConnectedCDAConfiguration } from '../../..';
+import { Vote, Abstained } from '../../communication/collaborativeDecision';
 
 export interface EventsConsumedByStackTrace {
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
@@ -44,8 +46,9 @@ export class StackTracesLogic implements IComponent {
         this._currentPauseEvent = null;
     }
 
-    public onPaused(pausedEvent: PausedEvent): any {
+    public async onPaused(pausedEvent: PausedEvent): Promise<Vote<void>> {
         this._currentPauseEvent = pausedEvent;
+        return new Abstained(this);
     }
 
     public async stackTrace(args: DebugProtocol.StackTraceArguments): Promise<StackTracePresentation> {
@@ -105,13 +108,14 @@ export class StackTracesLogic implements IComponent {
     private async toPresentation(frame: ICallFrame<IScript>, formatArgs?: DebugProtocol.StackFrameFormat): Promise<CallFramePresentation<ILoadedSource>> {
         // DIEGO TODO: Make getReadonlyOrigin work again
         // this.getReadonlyOrigin(frame.location.script.runtimeSource.identifier.textRepresentation)
-        const locationInLoadedSource = frame.location.asLocationInLoadedSource();
+        const locationInLoadedSource = frame.location.mappedToSource();
 
         let presentationHint: CallFramePresentationHint = 'normal';
 
         // Apply hints to skipped frames
         const getSkipReason = (reason: string) => localize('skipReason', "(skipped by '{0}')", reason);
-        const providedDetails: ICallFramePresentationDetails[] = [].concat(await asyncMap(this._stackTracePresentationLogicProviders, provider => provider.getCallFrameAdditionalDetails(locationInLoadedSource)));
+        const providedDetails: ICallFramePresentationDetails[] = [].concat(await asyncMap([this._stackTracePresentationLogicProviders], provider =>
+            provider.getCallFrameAdditionalDetails(locationInLoadedSource)));
         const actualDetails = providedDetails.length === 0
             ? [{
                 additionalSourceOrigins: [] as string[],
@@ -132,10 +136,10 @@ export class StackTracesLogic implements IComponent {
         return new CallFramePresentation<ILoadedSource>(callFrame, presentationDetails, presentationHint);
     }
 
-    public async install(configuration: ComponentConfiguration): Promise<this> {
+    public async install(): Promise<this> {
         this._dependencies.subscriberForAskForInformationAboutPaused(params => this.onPaused(params));
         this._dependencies.onResumed(() => this.onResumed());
-        return await this.configure(configuration);
+        return await this.configure(this._configuration);
     }
 
     private async configure(configuration: ComponentConfiguration): Promise<this> {
@@ -153,7 +157,8 @@ export class StackTracesLogic implements IComponent {
     constructor(
         @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: EventsConsumedByStackTrace,
         // TODO DIEGO: @multiInject(new LazyServiceIdentifer(() => TYPES.IStackTracePresentationLogicProvider)) private readonly _stackTracePresentationLogicProviders: IStackTracePresentationLogicProvider[],
-        @inject(new LazyServiceIdentifer(() => TYPES.IStackTracePresentationLogicProvider)) private readonly _stackTracePresentationLogicProviders: IStackTracePresentationLogicProvider[],
-        @inject(TYPES.IAsyncDebuggingConfiguration) private readonly _breakpointFeaturesSupport: IAsyncDebuggingConfiguration) {
+        @inject(TYPES.IStackTracePresentationLogicProvider) private readonly _stackTracePresentationLogicProviders: IStackTracePresentationLogicProvider,
+        @inject(TYPES.IAsyncDebuggingConfiguration) private readonly _breakpointFeaturesSupport: IAsyncDebuggingConfiguration,
+        @inject(TYPES.ConnectedCDAConfiguration) private readonly _configuration: ConnectedCDAConfiguration) {
     }
 }

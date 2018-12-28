@@ -12,8 +12,8 @@ import { injectable, inject } from 'inversify';
 import { TYPES } from '../dependencyInjection.ts/types';
 
 export interface OutputParameters {
-    readonly output: NonNullable<string>;
-    readonly category: NonNullable<string>;
+    readonly output: string;
+    readonly category: string;
     readonly variablesReference?: number;
     readonly location?: LocationInLoadedSource;
 }

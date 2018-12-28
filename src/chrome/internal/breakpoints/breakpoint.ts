@@ -1,16 +1,16 @@
-import { LocationInScript, ScriptOrSourceOrIdentifierOrUrlRegexp } from '../locations/location';
+import { LocationInScript, ScriptOrSourceOrUrlRegexp } from '../locations/location';
 import { URLRegexp, IBPRecipie } from './bpRecipie';
 import { ILoadedSource } from '../sources/loadedSource';
 import { IScript } from '../scripts/script';
 import { IResourceIdentifier } from '../sources/resourceIdentifier';
 
 // Should we rename this to ActionPoint? Given that it can be a LogPoint too?
-export interface IBreakpoint<TResource extends ScriptOrSourceOrIdentifierOrUrlRegexp> {
+export interface IBreakpoint<TResource extends ScriptOrSourceOrUrlRegexp> {
     readonly recipie: IBPRecipie<TResource>;
     readonly actualLocation: LocationInScript;
 }
 
-export class Breakpoint<TResource extends ScriptOrSourceOrIdentifierOrUrlRegexp> implements IBreakpoint<TResource>{
+export class Breakpoint<TResource extends ScriptOrSourceOrUrlRegexp> implements IBreakpoint<TResource>{
     public toString(): string {
         return `${this.recipie} actual location is ${this.actualLocation}`;
     }

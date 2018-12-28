@@ -38,10 +38,10 @@ import { IScript } from './internal/scripts/script';
 
 import { EvaluateOnCallFrameRequest } from './target/requests';
 import { PausedEvent, ConsoleAPICalledEvent, ExceptionThrownEvent, LogEntry } from './target/events';
-import { LocationInLoadedSource, ScriptOrSource } from './internal/locations/location';
+import { LocationInLoadedSource, ScriptOrLoadedSource } from './internal/locations/location';
 import { EvaluateArguments, CompletionsArguments } from './internal/requests';
 import { EventSender } from './client/eventSender';
-import { parseResourceIdentifier } from '..';
+import { parseResourceIdentifier, ConnectedCDAConfiguration } from '..';
 import { ICallFrame } from './internal/stackTraces/callFrame';
 import { CodeFlowStackTrace } from './internal/stackTraces/stackTrace';
 import { IResourceIdentifier } from './internal/sources/resourceIdentifier';
@@ -178,7 +178,7 @@ export class ChromeDebugLogic {
     public _hasTerminated: boolean;
     public _inShutdown: boolean;
     public _attachMode: boolean;
-    public _launchAttachArgs: ICommonRequestArgs;
+    public readonly _launchAttachArgs: ICommonRequestArgs = this._configuration.args;
     public _port: number;
 
     private _currentStep = Promise.resolve();
@@ -212,6 +212,7 @@ export class ChromeDebugLogic {
         @inject(TYPES.ExecutionContextEventsProvider) private readonly _executionContextEventsProvider: ExecutionContextEventsProvider,
         @inject(TYPES.IInspectDebugeeState) private readonly _inspectDebugeeState: IInspectDebugeeState,
         @inject(TYPES.IUpdateDebugeeState) private readonly _updateDebugeeState: IUpdateDebugeeState,
+        @inject(TYPES.ConnectedCDAConfiguration) private readonly _configuration: ConnectedCDAConfiguration,
     ) {
         telemetry.setupEventHandler(e => session.sendEvent(e));
         this._batchTelemetryReporter = new BatchTelemetryReporter(telemetry);
@@ -302,8 +303,8 @@ export class ChromeDebugLogic {
      * Hook up all connection events
      */
     public install(): ChromeDebugLogic {
-        this.chrome.DebuggerEvents.onResumed(() => this.onResumed());
-        this.chrome.DebuggerEvents.onPaused(paused => this.onPaused(paused));
+        this.chrome.debuggerEvents.onResumed(() => this.onResumed());
+        this.chrome.debuggerEvents.onPaused(paused => this.onPaused(paused));
         this.chrome.Console.onMessageAdded(params => this.onMessageAdded(params));
         this.chrome.Console.enable();
         this.chrome.Runtime.onConsoleAPICalled(params => this.onConsoleAPICalled(params));
@@ -406,7 +407,7 @@ export class ChromeDebugLogic {
 
                 let location: LocationInLoadedSource = null;
                 if (stackTrace && stackTrace.codeFlowFrames.length) {
-                    location = stackTrace.codeFlowFrames[0].location.asLocationInLoadedSource();
+                    location = stackTrace.codeFlowFrames[0].location.mappedToSource();
                 }
 
                 // Shortcut the common log case to reduce unnecessary back and forth
@@ -443,7 +444,7 @@ export class ChromeDebugLogic {
             let location: LocationInLoadedSource = null;
             const stackTrace = params.exceptionDetails.stackTrace;
             if (stackTrace && stackTrace.codeFlowFrames.length) {
-                location = stackTrace.codeFlowFrames[0].location.asLocationInLoadedSource();
+                location = stackTrace.codeFlowFrames[0].location.mappedToSource();
             }
 
             this._eventSender.sendExceptionThrown({ exceptionStackTrace: exceptionStackTrace, category: 'stderr', location });
@@ -555,7 +556,7 @@ export class ChromeDebugLogic {
             ]
         }
     */
-    public scopes(currentFrame: ICallFrame<ScriptOrSource>): IScopesResponseBody {
+    public scopes(currentFrame: ICallFrame<ScriptOrLoadedSource>): IScopesResponseBody {
         if (!currentFrame || !currentFrame.location) {
             throw errors.stackFrameNotValid();
         }
@@ -841,13 +842,13 @@ export class ChromeDebugLogic {
         return this._inspectDebugeeState.evaluate(args);
     }
 
-    private async waitThenDoEvaluate(expression: string, frame?: ICallFrame<ScriptOrSource>, extraArgs?: Partial<Crdp.Runtime.EvaluateRequest>): Promise<Crdp.Debugger.EvaluateOnCallFrameResponse | Crdp.Runtime.EvaluateResponse> {
+    private async waitThenDoEvaluate(expression: string, frame?: ICallFrame<ScriptOrLoadedSource>, extraArgs?: Partial<Crdp.Runtime.EvaluateRequest>): Promise<Crdp.Debugger.EvaluateOnCallFrameResponse | Crdp.Runtime.EvaluateResponse> {
         const waitThenEval = this._waitAfterStep.then(() => this.doEvaluate(expression, frame, extraArgs));
         this._waitAfterStep = waitThenEval.then(() => { }, () => { }); // to Promise<void> and handle failed evals
         return waitThenEval;
     }
 
-    private async doEvaluate(expression: string, frame: ICallFrame<ScriptOrSource>, extraArgs?: Partial<Crdp.Runtime.EvaluateRequest>): Promise<Crdp.Debugger.EvaluateOnCallFrameResponse | Crdp.Runtime.EvaluateResponse> {
+    private async doEvaluate(expression: string, frame: ICallFrame<ScriptOrLoadedSource>, extraArgs?: Partial<Crdp.Runtime.EvaluateRequest>): Promise<Crdp.Debugger.EvaluateOnCallFrameResponse | Crdp.Runtime.EvaluateResponse> {
         if (frame) {
             if (!frame) {
                 return utils.errP(errors.evalNotAvailableMsg);
@@ -871,7 +872,7 @@ export class ChromeDebugLogic {
         }
     }
 
-    public async evaluateOnCallFrame(expression: string, frame: ICallFrame<ScriptOrSource>, extraArgs?: Partial<Crdp.Runtime.EvaluateRequest>): Promise<Crdp.Debugger.EvaluateOnCallFrameResponse | Crdp.Runtime.EvaluateResponse> {
+    public async evaluateOnCallFrame(expression: string, frame: ICallFrame<ScriptOrLoadedSource>, extraArgs?: Partial<Crdp.Runtime.EvaluateRequest>): Promise<Crdp.Debugger.EvaluateOnCallFrameResponse | Crdp.Runtime.EvaluateResponse> {
         let args: EvaluateOnCallFrameRequest = {
             frame,
             expression,
@@ -905,7 +906,7 @@ export class ChromeDebugLogic {
             .then(value => ({ value }));
     }
 
-    public setVariableValue(frame: ICallFrame<ScriptOrSource>, scopeNumber: number, variableName: string, value: string): Promise<string> {
+    public setVariableValue(frame: ICallFrame<ScriptOrLoadedSource>, scopeNumber: number, variableName: string, value: string): Promise<string> {
         let evalResultObject: Crdp.Runtime.RemoteObject;
         return this._inspectDebugeeState.evaluateOnCallFrame({ frame, expression: value, silent: true }).then(evalResponse => {
             if (evalResponse.exceptionDetails) {

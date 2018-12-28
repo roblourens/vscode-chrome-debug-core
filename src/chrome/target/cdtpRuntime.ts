@@ -1,18 +1,15 @@
 import { Crdp } from '../..';
-import { CDTPEventsEmitterDiagnosticsModule } from './cdtpDiagnosticsModule';
+import { CDTPEventsEmitterDiagnosticsModule, IEnableableApi } from './cdtpDiagnosticsModule';
 import { CDTPStackTraceParser } from './cdtpStackTraceParser';
 
-export class CDTPRuntime extends CDTPEventsEmitterDiagnosticsModule<Crdp.RuntimeApi> {
+export interface ICDTPRuntime extends IEnableableApi<void, void> {}
 
+export class CDTPRuntime extends CDTPEventsEmitterDiagnosticsModule<Crdp.RuntimeApi> implements ICDTPRuntime {
     public readonly onConsoleAPICalled = this.addApiListener('consoleAPICalled', async (params: Crdp.Runtime.ConsoleAPICalledEvent) =>
         ({
             args: params.args, context: params.context, executionContextId: params.executionContextId,
             stackTrace: params.stackTrace && await this._crdpToInternal.toStackTraceCodeFlow(params.stackTrace), timestamp: params.timestamp, type: params.type
         }));
-
-    public enable(): Promise<void> {
-        return this.api.enable();
-    }
 
     public async runIfWaitingForDebugger(): Promise<void> {
         // This is a CDP version difference which will have to be handled more elegantly with others later...

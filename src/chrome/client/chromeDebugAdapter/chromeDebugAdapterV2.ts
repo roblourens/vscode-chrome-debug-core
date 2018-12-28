@@ -4,7 +4,7 @@ import {
     IEvaluateResponseBody, IExceptionInfoResponseBody, IGetLoadedSourcesResponseBody, IDebugAdapterState
 } from '../../..';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { IChromeDebugAdapterOpts, ChromeDebugSession } from '../../chromeDebugSession';
+import { ChromeDebugSession, IChromeDebugSessionOpts } from '../../chromeDebugSession';
 import { ChromeConnection } from '../../chromeConnection';
 import { StepProgressEventsEmitter } from '../../../executionTimingsReporter';
 import { UninitializedCDA } from './uninitializedCDA';
@@ -14,13 +14,14 @@ export class ChromeDebugAdapter implements IDebugAdapter {
 
     public events = new StepProgressEventsEmitter();
 
-    constructor(args: IChromeDebugAdapterOpts, originalSession: ChromeDebugSession) {
+    constructor(args: IChromeDebugSessionOpts, originalSession: ChromeDebugSession) {
         // Copy the arguments to keep backwards compatibility. TODO DIEGO remove this
         args.extensibilityPoints.chromeConnection = args.extensibilityPoints.chromeConnection || args.chromeConnection;
         args.extensibilityPoints.pathTransformer = args.extensibilityPoints.pathTransformer || args.pathTransformer;
         args.extensibilityPoints.sourceMapTransformer = args.extensibilityPoints.sourceMapTransformer || args.sourceMapTransformer;
         args.extensibilityPoints.lineColTransformer = args.extensibilityPoints.lineColTransformer || args.lineColTransformer;
         args.extensibilityPoints.targetFilter = args.extensibilityPoints.targetFilter || args.targetFilter;
+        args.extensibilityPoints.logFilePath = args.logFilePath;
 
         this._state = new UninitializedCDA(args.extensibilityPoints, originalSession, args.chromeConnection || ChromeConnection);
     }

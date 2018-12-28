@@ -1,4 +1,4 @@
-import { ScriptOrSourceOrIdentifierOrUrlRegexp } from '../internal/locations/location';
+import { ScriptOrSourceOrUrlRegexp } from '../internal/locations/location';
 import { NotificationChannelIdentifier } from './notificationsCommunicator';
 import { Breakpoint } from '../internal/breakpoints/breakpoint';
 import { ScriptParsedEvent, PausedEvent } from '../target/events';
@@ -6,7 +6,7 @@ import { registerChannels } from './channel';
 
 const _debugger = {
     // Notifications
-    OnAsyncBreakpointResolved: new NotificationChannelIdentifier<Breakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>>(),
+    OnAsyncBreakpointResolved: new NotificationChannelIdentifier<Breakpoint<ScriptOrSourceOrUrlRegexp>>(),
     OnScriptParsed: new NotificationChannelIdentifier<ScriptParsedEvent>(),
     OnPaused: new NotificationChannelIdentifier<PausedEvent, void>(),
     OnResumed: new NotificationChannelIdentifier<void, void>(),

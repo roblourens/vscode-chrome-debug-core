@@ -45,6 +45,9 @@ export class CDTPScriptsRegistry {
     public getAllScripts(): IterableIterator<Promise<IScript>> {
         return this._scripts.getAllScripts();
     }
+
+    constructor() {
+    }
 }
 
 export class CDTPCurrentGeneration {

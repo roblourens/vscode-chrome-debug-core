@@ -4,10 +4,9 @@
 
 import { DebugProtocol } from 'vscode-debugprotocol';
 
-import { ILaunchRequestArgs, IAttachRequestArgs } from '../debugAdapterInterfaces';
 import { IResourceIdentifier } from '../chrome/internal/sources/resourceIdentifier';
 import { StackTracePresentation } from '../chrome/internal/stackTraces/stackTracePresentation';
-import { IComponent, ComponentConfiguration, PromiseOrNot } from '../chrome/internal/features/feature';
+import { IComponent } from '../chrome/internal/features/feature';
 import { injectable } from 'inversify';
 
 /**
@@ -15,16 +14,7 @@ import { injectable } from 'inversify';
  */
 @injectable()
 export class BasePathTransformer implements IComponent {
-    public install(configuration: ComponentConfiguration): PromiseOrNot<void | this> {
-        this.launch(configuration.args);
-    }
-
-    public launch(_args: ILaunchRequestArgs): Promise<void> {
-        return Promise.resolve();
-    }
-
-    public attach(_args: IAttachRequestArgs): Promise<void> {
-        return Promise.resolve();
+    public async install(): Promise<void> {
     }
 
     public clearTargetContext(): void {

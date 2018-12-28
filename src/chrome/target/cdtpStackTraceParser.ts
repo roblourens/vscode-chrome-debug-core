@@ -1,4 +1,4 @@
-import { Crdp, } from '../..';
+import { Crdp } from '../..';
 import { IScript, } from '../internal/scripts/script';
 import { CDTPScriptUrl } from '../internal/sources/resourceIdentifierSubtypes';
 import { URLRegexp } from '../internal/breakpoints/bpRecipie';
@@ -7,13 +7,14 @@ import { CodeFlowFrame } from '../internal/stackTraces/callFrame';
 import { createCallFrameName } from '../internal/stackTraces/callFrameName';
 import { IResourceIdentifier } from '../internal/sources/resourceIdentifier';
 import { CDTPLocationParser, HasScriptLocation } from './cdtpLocationParser';
-import { injectable } from 'inversify';
+import { injectable, inject } from 'inversify';
+import { TYPES } from '../dependencyInjection.ts/types';
 
 export type CDTPResource = IScript | URLRegexp | IResourceIdentifier<CDTPScriptUrl>;
 
 @injectable()
 export class CDTPStackTraceParser {
-    public async toStackTraceCodeFlow(stackTrace: NonNullable<Crdp.Runtime.StackTrace>): Promise<CodeFlowStackTrace<IScript>> {
+    public async toStackTraceCodeFlow(stackTrace: Crdp.Runtime.StackTrace): Promise<CodeFlowStackTrace<IScript>> {
         return {
             codeFlowFrames: await Promise.all(stackTrace.callFrames.map((callFrame, index) => this.RuntimetoCallFrameCodeFlow(index, callFrame))),
             description: stackTrace.description, parent: stackTrace.parent && await this.toStackTraceCodeFlow(stackTrace.parent)
@@ -31,5 +32,5 @@ export class CDTPStackTraceParser {
     }
 
     constructor(
-        private readonly _cdtpLocationParser: CDTPLocationParser) { }
+        @inject(TYPES.CDTPLocationParser) private readonly _cdtpLocationParser: CDTPLocationParser) { }
 }

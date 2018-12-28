@@ -1,15 +1,10 @@
-import {
-    ITelemetryPropertyCollector, PromiseOrNot, ILaunchRequestArgs, IAttachRequestArgs, IThreadsResponseBody,
-    ISetBreakpointsResponseBody, IStackTraceResponseBody, IScopesResponseBody, IVariablesResponseBody, ISourceResponseBody,
-    IEvaluateResponseBody, utils, IExceptionInfoResponseBody, IDebugAdapterState
-} from '../../..';
 import * as errors from '../../../errors';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { ChromeDebugLogic } from '../../chromeDebugAdapter';
 import { CDTPDiagnostics } from '../../target/cdtpDiagnostics';
 import { ClientToInternal } from '../clientToInternal';
 import { InternalToClient } from '../internalToClient';
-import { IGetLoadedSourcesResponseBody } from '../../../debugAdapterInterfaces';
+import { IGetLoadedSourcesResponseBody, IDebugAdapterState, PromiseOrNot, ISetBreakpointsResponseBody, IStackTraceResponseBody, IScopesResponseBody, IVariablesResponseBody, ISourceResponseBody, IThreadsResponseBody, IEvaluateResponseBody, IExceptionInfoResponseBody, ILaunchRequestArgs, IAttachRequestArgs } from '../../../debugAdapterInterfaces';
 import { StackTracesLogic } from '../../internal/stackTraces/stackTracesLogic';
 import { SourcesLogic } from '../../internal/sources/sourcesLogic';
 import { BreakpointsLogic } from '../../internal/breakpoints/breakpointsLogic';
@@ -19,10 +14,22 @@ import { Stepping } from '../../internal/stepping/stepping';
 import { DotScriptCommand } from '../../internal/sources/features/dotScriptsCommand';
 import { inject, injectable } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
+import { SkipFilesLogic } from '../../internal/features/skipFiles';
+import { TakeProperActionOnPausedEvent } from '../../internal/features/takeProperActionOnPausedEvent';
+import { SmartStepLogic } from '../../internal/features/smartStep';
+import { NotifyClientOfLoadedSources } from '../../internal/sources/features/notifyClientOfLoadedSources';
+import { CDTPOnScriptParsedEventProvider } from '../../target/cdtpOnScriptParsedEventProvider';
+import { Target } from '../../communication/targetChannels';
+import { IDebuggeeRunner } from '../../debugee/debugeeLauncher';
+import { StepProgressEventsEmitter } from '../../../executionTimingsReporter';
+import { TelemetryPropertyCollector, ITelemetryPropertyCollector } from '../../../telemetry';
+import { ICommunicator, utils } from '../../..';
 
 // TODO DIEGO: Remember to call here and only here         this._lineColTransformer.convertDebuggerLocationToClient(stackFrame); for all responses
 @injectable()
 export class ConnectedCDA implements IDebugAdapterState {
+    private readonly events = new StepProgressEventsEmitter();
+
     public static SCRIPTS_COMMAND = '.scripts';
 
     constructor(
@@ -35,9 +42,33 @@ export class ConnectedCDA implements IDebugAdapterState {
         @inject(TYPES.BreakpointsLogic) protected readonly _breakpointsLogic: BreakpointsLogic,
         @inject(TYPES.PauseOnExceptionOrRejection) public readonly _pauseOnException: PauseOnExceptionOrRejection,
         @inject(TYPES.Stepping) private readonly _stepping: Stepping,
-        @inject(TYPES.DotScriptCommand) public readonly _dotScriptCommand: DotScriptCommand
-    ) {
-        this.chrome.install();
+        @inject(TYPES.DotScriptCommand) public readonly _dotScriptCommand: DotScriptCommand,
+        @inject(SkipFilesLogic) public readonly _skipFilesLogic: SkipFilesLogic,
+        @inject(SmartStepLogic) public readonly _smartStepLogic: SmartStepLogic,
+        @inject(TakeProperActionOnPausedEvent) public readonly _takeProperActionOnPausedEvent: TakeProperActionOnPausedEvent,
+        @inject(NotifyClientOfLoadedSources) public readonly _notifyClientOfLoadedSources: NotifyClientOfLoadedSources,
+        @inject(TYPES.IScriptParsedProvider) public readonly _cdtpOnScriptParsedEventProvider: CDTPOnScriptParsedEventProvider,
+        @inject(TYPES.communicator) public readonly _communicator: ICommunicator,
+        @inject(TYPES.IDebugeeRunner) public readonly _debugeeRunner: IDebuggeeRunner,
+    ) { }
+
+    public async install(): Promise<this> {
+        await this.chrome.install();
+        await this._chromeDebugAdapter.install();
+        await this._sourcesLogic.install();
+        await this._stackTraceLogic.install();
+        await this._breakpointsLogic.install();
+        await this._pauseOnException.install();
+        await this._stepping.install();
+        // await this._dotScriptCommand.install(configuration);
+        await this._skipFilesLogic.install();
+        await this._smartStepLogic.install();
+        await this._takeProperActionOnPausedEvent.install();
+        await this._notifyClientOfLoadedSources.install();
+
+        const publishScriptParsed = this._communicator.getPublisher(Target.Debugger.OnScriptParsed);
+        this._cdtpOnScriptParsedEventProvider.onScriptParsed(publishScriptParsed);
+        return this;
     }
 
     public get chrome(): CDTPDiagnostics {
@@ -69,8 +100,9 @@ export class ConnectedCDA implements IDebugAdapterState {
         this._pauseOnException.setPromiseRejectionStrategy(promiseRejectionsStrategy);
     }
 
-    public configurationDone(): PromiseOrNot<void> {
-        return this._chromeDebugAdapter.configurationDone();
+    public async configurationDone(): Promise<void> {
+        await this._debugeeRunner.run(new TelemetryPropertyCollector());
+        this.events.emitMilestoneReached('RequestedNavigateToUserPage'); // TODO DIEGO: Make sure this is reported
     }
 
     public continue(): PromiseOrNot<void> {

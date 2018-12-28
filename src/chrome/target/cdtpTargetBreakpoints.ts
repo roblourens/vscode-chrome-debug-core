@@ -2,9 +2,9 @@ import { BPRecipieInScript, BPRecipieInUrl, BPRecipieInUrlRegexp, BPRecipie, IBP
 import { AlwaysBreak, ConditionalBreak } from '../internal/breakpoints/bpActionWhenHit';
 import { BreakpointInScript, BreakpointInUrl, BreakpointInUrlRegexp, Breakpoint } from '../internal/breakpoints/breakpoint';
 import { RangeInScript } from '../internal/locations/rangeInScript';
-import { LocationInScript, ScriptOrSourceOrIdentifierOrUrlRegexp } from '../internal/locations/location';
+import { LocationInScript, ScriptOrSourceOrUrlRegexp } from '../internal/locations/location';
 import { CDTPEventsEmitterDiagnosticsModule } from './cdtpDiagnosticsModule';
-import { Crdp, inject } from '../..';
+import { Crdp } from '../..';
 import { BreakpointIdRegistry } from './breakpointIdRegistry';
 import { TYPES } from '../dependencyInjection.ts/types';
 import { asyncMap } from '../collections/async';
@@ -12,20 +12,22 @@ import { IScript } from '../internal/scripts/script';
 import { IResourceIdentifier } from '../internal/sources/resourceIdentifier';
 import { CDTPScriptsRegistry } from './cdtpScriptsRegistry';
 import { CDTPLocationParser } from './cdtpLocationParser';
+import { inject, injectable } from 'inversify';
 
 export interface ITargetBreakpoints {
     setBreakpoint(bpRecipie: BPRecipieInScript<AlwaysBreak | ConditionalBreak>): Promise<BreakpointInScript>;
     setBreakpointByUrl(bpRecipie: BPRecipieInUrl<AlwaysBreak | ConditionalBreak>): Promise<BreakpointInUrl[]>;
     setBreakpointByUrlRegexp(bpRecipie: BPRecipieInUrlRegexp<AlwaysBreak | ConditionalBreak>): Promise<BreakpointInUrlRegexp[]>;
     getPossibleBreakpoints(rangeInScript: RangeInScript): Promise<LocationInScript[]>;
-    removeBreakpoint(bpRecipie: BPRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp>): Promise<void>;
+    removeBreakpoint(bpRecipie: BPRecipie<ScriptOrSourceOrUrlRegexp>): Promise<void>;
 }
 
-interface BreakpointClass<TResource extends ScriptOrSourceOrIdentifierOrUrlRegexp> {
+interface BreakpointClass<TResource extends ScriptOrSourceOrUrlRegexp> {
     new(recipie: BPRecipie<TResource>, actualLocation: LocationInScript): Breakpoint<TResource>;
 }
 
-export class CDTPTargetBreakpoints extends CDTPEventsEmitterDiagnosticsModule<Crdp.DebuggerApi> implements ITargetBreakpoints {
+@injectable()
+export class CDTPTargetBreakpoints extends CDTPEventsEmitterDiagnosticsModule<Crdp.DebuggerApi, void, Crdp.Debugger.EnableResponse> implements ITargetBreakpoints {
     protected readonly api: Crdp.DebuggerApi = this.protocolApi.Debugger;
 
     public readonly onBreakpointResolved = this.addApiListener('breakpointResolved', async (params: Crdp.Debugger.BreakpointResolvedEvent) => {
@@ -81,12 +83,12 @@ export class CDTPTargetBreakpoints extends CDTPEventsEmitterDiagnosticsModule<Cr
         return asyncMap(response.locations, async location => await this.toLocationInScript(location));
     }
 
-    public async removeBreakpoint(bpRecipie: BPRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp>): Promise<void> {
+    public async removeBreakpoint(bpRecipie: BPRecipie<ScriptOrSourceOrUrlRegexp>): Promise<void> {
         await this.api.removeBreakpoint({ breakpointId: this._breakpointIdRegistry.getBreakpointId(bpRecipie) });
         this._breakpointIdRegistry.unregisterRecipie(bpRecipie);
     }
 
-    private getBPRecipieCondition(bpRecipie: IBPRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp, AlwaysBreak | ConditionalBreak>): string | undefined {
+    private getBPRecipieCondition(bpRecipie: IBPRecipie<ScriptOrSourceOrUrlRegexp, AlwaysBreak | ConditionalBreak>): string | undefined {
         return bpRecipie.bpActionWhenHit.basedOnTypeDo({
             alwaysBreak: () => undefined,
             conditionalBreak: conditionalBreak => conditionalBreak.expressionOfWhenToBreak
@@ -97,7 +99,7 @@ export class CDTPTargetBreakpoints extends CDTPEventsEmitterDiagnosticsModule<Cr
         return this.toBreakpoinInResource<URLRegexp>(BreakpointInUrlRegexp, bpRecipie, actualLocation);
     }
 
-    private async toBreakpoinInResource<TResource extends ScriptOrSourceOrIdentifierOrUrlRegexp>(classToUse: BreakpointClass<TResource>,
+    private async toBreakpoinInResource<TResource extends ScriptOrSourceOrUrlRegexp>(classToUse: BreakpointClass<TResource>,
         bpRecipie: BPRecipie<TResource>, actualLocation: Crdp.Debugger.Location): Promise<Breakpoint<TResource>> {
         const breakpoint = new classToUse(bpRecipie, await this.toLocationInScript(actualLocation));
         return breakpoint;

@@ -1,11 +1,11 @@
-import { ScriptOrSourceOrIdentifier } from '../locations/location';
+import { ScriptOrSource } from '../locations/location';
 import { ILoadedSource } from '../sources/loadedSource';
-import { ISourceResolver } from '../sources/sourceResolver';
+import { IUnresolvedSource } from '../sources/unresolvedSource';
 import { BPRecipie } from './bpRecipie';
 import { printArray } from '../../collections/printting';
 import { IResourceIdentifier } from '../sources/resourceIdentifier';
 
-export class BPRecipiesCommonLogic<TResource extends ScriptOrSourceOrIdentifier> {
+export class BPRecipiesCommonLogic<TResource extends ScriptOrSource> {
     constructor(public readonly resource: TResource, public readonly breakpoints: BPRecipie<TResource>[]) {
         this.breakpoints.forEach(breakpoint => {
             const bpResource = breakpoint.location.resource;
@@ -26,7 +26,7 @@ export class BPRecipiesInLoadedSource extends BPRecipiesCommonLogic<ILoadedSourc
     }
 }
 
-export class BPRecipiesInUnresolvedSource extends BPRecipiesCommonLogic<ISourceResolver> {
+export class BPRecipiesInUnresolvedSource extends BPRecipiesCommonLogic<IUnresolvedSource> {
     public tryGettingBPsInLoadedSource<R>(ifSuccesfulDo: (desiredBPsInLoadedSource: BPRecipiesInLoadedSource) => R, ifFaileDo: () => R): R {
         return this.resource.tryResolving(
             loadedSource => {

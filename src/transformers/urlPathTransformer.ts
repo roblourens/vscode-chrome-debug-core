@@ -4,7 +4,7 @@
 
 import { BasePathTransformer } from './basePathTransformer';
 
-import { ILaunchRequestArgs, IAttachRequestArgs, IPathMapping } from '../debugAdapterInterfaces';
+import { IPathMapping } from '../debugAdapterInterfaces';
 import { logger } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import * as ChromeUtils from '../chrome/chromeUtils';
@@ -12,23 +12,22 @@ import * as ChromeUtils from '../chrome/chromeUtils';
 import * as path from 'path';
 import { newResourceIdentifierMap, IResourceIdentifier } from '../chrome/internal/sources/resourceIdentifier';
 import { parseResourceIdentifier } from '..';
+import { injectable, inject } from 'inversify';
+import { TYPES } from '../chrome/dependencyInjection.ts/types';
+import { IConnectedCDAConfiguration } from '../chrome/client/chromeDebugAdapter/cdaConfiguration';
 
 /**
  * Converts a local path from Code to a path on the target.
  */
+@injectable()
 export class UrlPathTransformer extends BasePathTransformer {
     private _pathMapping: IPathMapping;
     private _clientPathToTargetUrl = newResourceIdentifierMap<IResourceIdentifier>();
     private _targetUrlToClientPath = newResourceIdentifierMap<IResourceIdentifier>();
 
-    public launch(args: ILaunchRequestArgs): Promise<void> {
-        this._pathMapping = args.pathMapping;
-        return super.launch(args);
-    }
-
-    public attach(args: IAttachRequestArgs): Promise<void> {
-        this._pathMapping = args.pathMapping;
-        return super.attach(args);
+    constructor(@inject(TYPES.ConnectedCDAConfiguration) configuration: IConnectedCDAConfiguration) {
+        super();
+        this._pathMapping = configuration.args.pathMapping;
     }
 
     public clearTargetContext(): void {

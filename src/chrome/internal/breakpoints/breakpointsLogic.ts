@@ -1,6 +1,6 @@
 import { IBPRecipie } from './bpRecipie';
 import { ITelemetryPropertyCollector, IComponent, ConnectedCDAConfiguration } from '../../..';
-import { ScriptOrSourceOrIdentifierOrUrlRegexp } from '../locations/location';
+import { ScriptOrSourceOrUrlRegexp } from '../locations/location';
 import { BPRecipiesInUnresolvedSource } from './bpRecipies';
 import { Breakpoint } from './breakpoint';
 import { ReAddBPsWhenSourceIsLoaded, EventsConsumedByReAddBPsWhenSourceIsLoaded } from './features/reAddBPsWhenSourceIsLoaded';
@@ -23,13 +23,13 @@ export interface InternalDependencies extends
     EventsConsumedByReAddBPsWhenSourceIsLoaded,
     PauseScriptLoadsToSetBPsDependencies {
 
-    onAsyncBreakpointResolved(listener: (params: Breakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>) => void): void;
+    onAsyncBreakpointResolved(listener: (params: Breakpoint<ScriptOrSourceOrUrlRegexp>) => void): void;
 }
 
 export type EventsConsumedByBreakpointsLogic = RemoveProperty<InternalDependencies,
     'waitUntilUnbindedBPsAreSet' |
     'notifyAllBPsAreBinded' |
-    'tryGettingBreakpointAtLocation'>;
+    'tryGettingBreakpointAtLocation'> & { onNoPendingBreakpoints(listener: () => void): void };
 
 @injectable()
 export class BreakpointsLogic implements IComponent {
@@ -37,12 +37,12 @@ export class BreakpointsLogic implements IComponent {
 
     private readonly _clientBreakpointsRegistry = new ClientCurrentBPRecipiesRegistry();
 
-    protected onAsyncBreakpointResolved(breakpoint: Breakpoint<ScriptOrSourceOrIdentifierOrUrlRegexp>): void {
+    protected onAsyncBreakpointResolved(breakpoint: Breakpoint<ScriptOrSourceOrUrlRegexp>): void {
         this._breakpointRegistry.registerBreakpointAsBinded(breakpoint);
         this.onUnbounBPRecipieIsNowBound(breakpoint.recipie);
     }
 
-    private onUnbounBPRecipieIsNowBound(bpRecipie: IBPRecipie<ScriptOrSourceOrIdentifierOrUrlRegexp>): void {
+    private onUnbounBPRecipieIsNowBound(bpRecipie: IBPRecipie<ScriptOrSourceOrUrlRegexp>): void {
         const bpRecipieStatus = this._breakpointRegistry.getStatusOfBPRecipie(bpRecipie);
         this._eventsToClientReporter.sendBPStatusChanged({ reason: 'changed', bpRecipieStatus });
     }
@@ -86,12 +86,16 @@ export class BreakpointsLogic implements IComponent {
         return bpsDelta.matchesForRequested.map(bpRecipie => this._breakpointRegistry.getStatusOfBPRecipie(bpRecipie));
     }
 
-    public install(configuration: ConnectedCDAConfiguration): this {
-        return this.configure(configuration);
+    public install(): this {
+        this._unbindedBreakpointsLogic.install();
+        this._bpsWhileLoadingLogic.install();
+        this._dependencies.onNoPendingBreakpoints(() => this._bpsWhileLoadingLogic.disableIfNeccesary());
+        this._bprInLoadedSourceLogic.install();
+        return this.configure();
     }
 
-    public configure(configuration: ConnectedCDAConfiguration): this {
-        this._isBpsWhileLoadingEnable = configuration.args.breakOnLoadStrategy !== 'off';
+    public configure(): this {
+        this._isBpsWhileLoadingEnable = this._configuration.args.breakOnLoadStrategy !== 'off';
         return this;
     }
 
@@ -101,7 +105,8 @@ export class BreakpointsLogic implements IComponent {
         @inject(TYPES.ReAddBPsWhenSourceIsLoaded) private readonly _unbindedBreakpointsLogic: ReAddBPsWhenSourceIsLoaded,
         @inject(TYPES.PauseScriptLoadsToSetBPs) private readonly _bpsWhileLoadingLogic: PauseScriptLoadsToSetBPs,
         @inject(TYPES.BPRecipieInLoadedSourceLogic) private readonly _bprInLoadedSourceLogic: BPRecipieInLoadedSourceLogic,
-        @inject(TYPES.EventSender) private readonly _eventsToClientReporter: IEventsToClientReporter) {
+        @inject(TYPES.EventSender) private readonly _eventsToClientReporter: IEventsToClientReporter,
+        @inject(TYPES.ConnectedCDAConfiguration) private readonly _configuration: ConnectedCDAConfiguration) {
         this._dependencies.onAsyncBreakpointResolved(breakpoint => this.onAsyncBreakpointResolved(breakpoint));
     }
 }

@@ -7,6 +7,9 @@ import { UrlPathTransformer } from './urlPathTransformer';
 import * as ChromeUtils from '../chrome/chromeUtils';
 import { ISession } from '../chrome/client/session';
 import { IResourceIdentifier } from '../chrome/internal/sources/resourceIdentifier';
+import { IConnectedCDAConfiguration } from '../chrome/client/chromeDebugAdapter/cdaConfiguration';
+import { inject } from 'inversify';
+import { TYPES } from '../chrome/dependencyInjection.ts/types';
 
 /**
  * Converts a local path from Code to a path on the target. Uses the UrlPathTransforme logic and fallbacks to asking the client if neccesary
@@ -14,8 +17,11 @@ import { IResourceIdentifier } from '../chrome/internal/sources/resourceIdentifi
 export class FallbackToClientPathTransformer extends UrlPathTransformer {
     private static ASK_CLIENT_TO_MAP_URL_TO_FILE_PATH_TIMEOUT = 500;
 
-    constructor(private _session?: ISession) {
-        super();
+    constructor(
+        @inject(TYPES.ConnectedCDAConfiguration) configuration: IConnectedCDAConfiguration,
+        @inject(TYPES.ISession) private readonly _session?: ISession,
+    ) {
+        super(configuration);
     }
 
     protected async targetUrlToClientPath(scriptUrl: IResourceIdentifier): Promise<IResourceIdentifier> {

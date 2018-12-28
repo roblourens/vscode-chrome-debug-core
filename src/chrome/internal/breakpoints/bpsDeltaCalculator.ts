@@ -1,6 +1,6 @@
 import { BPRecipieInUnresolvedSource, BPRecipie } from './bpRecipie';
 import { BPRecipiesInUnresolvedSource } from './bpRecipies';
-import { ISourceResolver } from '../sources/sourceResolver';
+import { IUnresolvedSource } from '../sources/unresolvedSource';
 import { ILoadedSource } from '../sources/loadedSource';
 import { IBPActionWhenHit } from './bpActionWhenHit';
 import { SetUsingProjection } from '../../collections/setUsingProjection';
@@ -22,7 +22,7 @@ export class BPRsDeltaCalculator {
     private readonly _currentBPRecipies: SetUsingProjection<BPRecipieInUnresolvedSource, string>;
 
     constructor(
-        public readonly requestedSourceIdentifier: ISourceResolver,
+        public readonly requestedSourceIdentifier: IUnresolvedSource,
         private readonly _requestedBPRecipies: BPRecipiesInUnresolvedSource,
         currentBPRecipies: BPRecipieInUnresolvedSource[]) {
         this._currentBPRecipies = new SetUsingProjection(canonicalizeBPLocation, currentBPRecipies);
@@ -111,7 +111,7 @@ export class BPRsDeltaCalculator {
     }
 }
 
-export abstract class BPRsDeltaCommonLogic<TResource extends ILoadedSource | ISourceResolver> {
+export abstract class BPRsDeltaCommonLogic<TResource extends ILoadedSource | IUnresolvedSource> {
     constructor(public readonly resource: TResource,
         public readonly existingToBeReplaced: ReplacementForExistingBPR[],
         public readonly matchesForRequested: BPRecipie<TResource>[],
@@ -120,6 +120,6 @@ export abstract class BPRsDeltaCommonLogic<TResource extends ILoadedSource | ISo
         public readonly existingToLeaveAsIs: BPRecipie<TResource>[]) { }
 }
 
-export class BPRsDeltaInRequestedSource extends BPRsDeltaCommonLogic<ISourceResolver> { }
+export class BPRsDeltaInRequestedSource extends BPRsDeltaCommonLogic<IUnresolvedSource> { }
 
 export class BPRsDeltaInLoadedSource extends BPRsDeltaCommonLogic<ILoadedSource> { }

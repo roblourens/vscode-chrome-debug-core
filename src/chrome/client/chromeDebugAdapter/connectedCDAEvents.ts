@@ -8,7 +8,7 @@ import { ILoadedSource } from '../../internal/sources/loadedSource';
 import { asyncMap } from '../../collections/async';
 import { EventsConsumedByPauseOnException } from '../../internal/exceptions/pauseOnException';
 import { EventsConsumedByTakeProperActionOnPausedEvent } from '../../internal/features/takeProperActionOnPausedEvent';
-import { EventsConsumedBySourceResolverLogic } from '../../internal/sources/sourceResolverLogic';
+import { EventsConsumedBySourceResolver } from '../../internal/sources/sourceResolver';
 import { EventsConsumedBySmartStepLogic } from '../../internal/features/smartStep';
 import { EventsConsumedByReAddBPsWhenSourceIsLoaded } from '../../internal/breakpoints/features/reAddBPsWhenSourceIsLoaded';
 import { EventsConsumedByAsyncStepping } from '../../internal/stepping/features/asyncStepping';
@@ -16,7 +16,7 @@ import { EventsConsumedByAsyncStepping } from '../../internal/stepping/features/
 
 export interface EventsConsumedByConnectedCDA extends EventsConsumedByBreakpointsLogic, EventsConsumedByPauseOnException,
     EventsConsumedByStackTrace, EventsConsumedByTakeProperActionOnPausedEvent, EventsConsumedBySkipFilesLogic,
-    EventsConsumedBySourceResolverLogic, EventsConsumedBySmartStepLogic,
+    EventsConsumedBySourceResolver, EventsConsumedBySmartStepLogic,
     EventsConsumedByReAddBPsWhenSourceIsLoaded, EventsConsumedByAsyncStepping { }
 
 export class ConnectedCDAEventsCreator {
@@ -33,15 +33,17 @@ export class ConnectedCDAEventsCreator {
             onLoadedSourceIsAvailable: onLoadedSourceIsAvailable,
 
             notifyNoPendingBPs: this.communicator.getPublisher(Internal.Breakpoints.OnNoPendingBreakpoints),
+            onNoPendingBreakpoints: this.communicator.getSubscriber(Internal.Breakpoints.OnNoPendingBreakpoints),
 
             onResumed: this.communicator.getSubscriber(Target.Debugger.OnResumed),
-            onPaused: this.communicator.getSubscriber(Target.Debugger.OnPaused),
+            // onPaused: this.communicator.getSubscriber(Target.Debugger.OnPaused),
             onAsyncBreakpointResolved: this.communicator.getSubscriber(Target.Debugger.OnAsyncBreakpointResolved),
 
             onScriptParsed: this.communicator.getSubscriber(Target.Debugger.OnScriptParsed),
 
             subscriberForAskForInformationAboutPaused: this.communicator.getSubscriber(Internal.Breakpoints.OnPausedOnBreakpoint),
             askForInformationAboutPause: this.communicator.getPublisher(Internal.Breakpoints.OnPausedOnBreakpoint),
+            publishGoingToPauseClient: this.communicator.getPublisher(Internal.Breakpoints.OnGoingToPauseClient)
         };
     }
 }

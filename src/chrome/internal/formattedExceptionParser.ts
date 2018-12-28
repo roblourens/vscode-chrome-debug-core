@@ -50,7 +50,7 @@ export class FormattedExceptionParser {
                 const scripts = this._scriptsLogic.getScriptsByPath(url);
                 if (scripts.length > 0) {
                     const scriptLocation = new LocationInScript(scripts[0], new Coordinates(zeroBasedLineNumber, zeroBasedColumnNumber));
-                    const location = scriptLocation.asLocationInLoadedSource();
+                    const location = scriptLocation.mappedToSource();
                     return new CodeFlowFrameDescription(line, scriptLocation, location);
                 }
             }

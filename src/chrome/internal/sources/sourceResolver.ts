@@ -1,51 +1,48 @@
-import { IResourceIdentifier } from './resourceIdentifier';
 import { ILoadedSource } from './loadedSource';
-import { SourceResolverLogic } from './sourceResolverLogic';
+import { IUnresolvedSource, SourceToBeResolvedViaPath } from './unresolvedSource';
+import { newResourceIdentifierMap, IResourceIdentifier } from './resourceIdentifier';
+import { IComponent } from '../features/feature';
+import { ScriptParsedEvent } from '../../target/events';
+import { injectable, inject } from 'inversify';
+import { TYPES } from '../../dependencyInjection.ts/types';
 
-export interface ISourceResolver {
-    readonly sourceIdentifier: IResourceIdentifier;
-    isEquivalent(right: ISourceResolver): boolean;
-    tryResolving<R>(whenSuccesfulDo: (resolvedSource: ILoadedSource) => R, whenFailedDo: (sourceIdentifier: IResourceIdentifier) => R): R;
+export interface EventsConsumedBySourceResolver {
+    onScriptParsed(listener: (scriptEvent: ScriptParsedEvent) => Promise<void>): void;
 }
 
-abstract class DoesResolveToSameSourceCommonLogic implements ISourceResolver {
-    public abstract tryResolving<R>(whenSuccesfulDo: (loadedSource: ILoadedSource) => R, whenFailedDo: (identifier: IResourceIdentifier) => R): R;
-    public abstract get sourceIdentifier(): IResourceIdentifier;
+@injectable()
+export class SourceResolver implements IComponent {
+    private _pathToSource = newResourceIdentifierMap<ILoadedSource>();
 
-    public isEquivalent(right: ISourceResolver): boolean {
-        return this.sourceIdentifier.isEquivalent(right.sourceIdentifier);
+    public tryResolving<R>(sourceIdentifier: IResourceIdentifier,
+        succesfulAction: (resolvedSource: ILoadedSource) => R,
+        failedAction: (sourceIdentifier: IResourceIdentifier) => R = path => { throw new Error(`Couldn't find the source at path ${path}`); }): R {
+        const source = this._pathToSource.tryGetting(sourceIdentifier);
+        if (source !== undefined) {
+            return succesfulAction(source);
+        } else {
+            return failedAction(sourceIdentifier);
+        }
     }
-}
 
-// Find the source to resolve to by using the path
-export class ResolveSourceUsingPath extends DoesResolveToSameSourceCommonLogic implements ISourceResolver {
-    public tryResolving<R>(whenSuccesfulDo: (resolvedSource: ILoadedSource) => R, whenFailedDo: (sourceIdentifier: IResourceIdentifier) => R) {
-        return this._sourceManager.tryResolving(this.sourceIdentifier, whenSuccesfulDo, whenFailedDo);
+    public createSourceResolver(sourceIdentifier: IResourceIdentifier): IUnresolvedSource {
+        return new SourceToBeResolvedViaPath(sourceIdentifier, this);
     }
 
     public toString(): string {
-        return `Resolve source using #${this.sourceIdentifier}`;
+        return `Source resolver { path to source: ${this._pathToSource} }`;
     }
 
-    constructor(public readonly sourceIdentifier: IResourceIdentifier, private readonly _sourceManager: SourceResolverLogic) {
-        super();
-    }
-}
+    public install(): this {
+        this._dependencies.onScriptParsed(async params => {
+            params.script.allSources.forEach(source => {
+                this._pathToSource.set(source.identifier, source);
+            });
+        });
 
-export class ResolveSourceUsingLoadedSource extends DoesResolveToSameSourceCommonLogic implements ISourceResolver {
-    public tryResolving<R>(whenSuccesfulDo: (resolvedSource: ILoadedSource) => R, _whenFailedDo: (sourceIdentifier: IResourceIdentifier) => R) {
-        return whenSuccesfulDo(this.loadedSource);
-    }
-
-    public get sourceIdentifier(): IResourceIdentifier {
-        return this.loadedSource.identifier;
+        return this;
     }
 
-    public toString(): string {
-        return `${this.loadedSource}`;
-    }
-
-    constructor(public readonly loadedSource: ILoadedSource) {
-        super();
-    }
+    constructor(
+        @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: EventsConsumedBySourceResolver) { }
 }

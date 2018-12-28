@@ -9,17 +9,19 @@ import * as os from 'os';
 import { TestDebugAdapter } from './testDebugAdapter';
 import { OnlyProvideCustomLauncherExtensibilityPoints } from '../../src/chrome/extensibility/extensibilityPoints';
 import { TestDebugeeLauncher } from './testDebugeeLauncher';
+import { TestDebugeeRunner } from './testDebugeeRunner';
 
 const EXTENSION_NAME = 'debugger-for-chrome';
 
 // Start a ChromeDebugSession configured to only match 'page' targets, which are Chrome tabs.
 // Cast because DebugSession is declared twice - in this repo's vscode-debugadapter, and that of -core... TODO
+const logFilePath = path.resolve(os.tmpdir(), 'vscode-chrome-debug.txt');
 ChromeDebugSession.run(ChromeDebugSession.getSession(
     {
         adapter: TestDebugAdapter,
         extensionName: EXTENSION_NAME,
-        extensibilityPoints: new OnlyProvideCustomLauncherExtensibilityPoints(TestDebugeeLauncher),
-        logFilePath: path.resolve(os.tmpdir(), 'vscode-chrome-debug.txt'),
+        extensibilityPoints: new OnlyProvideCustomLauncherExtensibilityPoints(TestDebugeeLauncher, TestDebugeeRunner, logFilePath),
+        logFilePath: logFilePath,
         // targetFilter: defaultTargetFilter,
 
         pathTransformer: UrlPathTransformer,

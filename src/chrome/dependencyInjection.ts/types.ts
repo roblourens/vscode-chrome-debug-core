@@ -13,7 +13,8 @@ const TYPES = {
     IStackTracePresentationLogicProvider: Symbol.for('IStackTracePresentationLogicProvider'),
     IScriptSources: Symbol.for('IScriptSources'),
     EventsConsumedByConnectedCDA: Symbol.for('EventsConsumedByConnectedCDA'),
-    IDebugeeLauncher: Symbol.for('IDebugeeLauncher'),
+    ICDTPDebuggerEventsProvider: Symbol.for('ICDTPDebuggerEventsProvider'),
+    IDebuggeeLauncher: Symbol.for('IDebuggeeLauncher'),
     CDTPStackTraceParser: Symbol.for('CDTPStackTraceParser'),
     CDTPLocationParser: Symbol.for('CDTPLocationParser'),
     ChromeDebugLogic: Symbol.for('ChromeDebugLogic'),
@@ -47,6 +48,15 @@ const TYPES = {
     LineColTransformer: Symbol.for('LineColTransformer'),
     ChromeConnection: Symbol.for('ChromeConnection'),
     IDebugeeStepping: Symbol.for('IDebugeeStepping'),
+    IDebugeeVersionProvider: Symbol.for('IDebugeeVersionProvider'),
+    IBrowserNavigation: Symbol.for('IBrowserNavigation'),
+    IPausedOverlay: Symbol.for('IPausedOverlay'),
+    INetworkCacheConfiguration: Symbol.for('INetworkCacheConfiguration'),
+    ISupportedDomains: Symbol.for('ISupportedDomains'),
+    IDebugeeRunner: Symbol.for('IDebugeeRunner'),
+    ICDTPRuntime: Symbol.for('ICDTPRuntime'),
+    IScriptParsedProvider: Symbol.for('IScriptParsedProvider'),
+    ITargetBreakpoints: Symbol.for('ITargetBreakpoints'),
 };
 
 export { TYPES };

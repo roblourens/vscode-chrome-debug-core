@@ -1,7 +1,5 @@
-import * as promises from '../../utils/promises';
 import { ConnectedCDAConfiguration } from '../../client/chromeDebugAdapter/cdaConfiguration';
-
-export type PromiseOrNot<T> = promises.PromiseOrNot<T>;
+import { PromiseOrNot } from '../../utils/promises';
 
 export interface IConfigurableFeature<Configuration> {
     install(configuration: Configuration): PromiseOrNot<void | this>;

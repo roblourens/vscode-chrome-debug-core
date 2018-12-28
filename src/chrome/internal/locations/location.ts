@@ -1,6 +1,6 @@
 import * as Validation from '../../../validation';
 import { IScript } from '../scripts/script';
-import { ISourceResolver } from '../sources/sourceResolver';
+import { IUnresolvedSource } from '../sources/unresolvedSource';
 import { ILoadedSource } from '../sources/loadedSource';
 import { URLRegexp } from '../breakpoints/bpRecipie';
 import { CDTPScriptUrl } from '../sources/resourceIdentifierSubtypes';
@@ -32,28 +32,28 @@ export class Coordinates {
     }
 }
 
-export type ScriptOrSource = IScript | ILoadedSource;
-export type ScriptOrSourceOrIdentifier = ScriptOrSource | ISourceResolver;
-export type ScriptOrSourceOrIdentifierOrUrlRegexp = ScriptOrSourceOrIdentifier | IResourceIdentifier | URLRegexp | IResourceIdentifier<CDTPScriptUrl>;
+export type ScriptOrLoadedSource = IScript | ILoadedSource;
+export type ScriptOrSource = ScriptOrLoadedSource | IUnresolvedSource;
+export type ScriptOrSourceOrUrlRegexp = ScriptOrSource | IResourceIdentifier | URLRegexp | IResourceIdentifier<CDTPScriptUrl>;
 
-interface ILocation<T extends ScriptOrSourceOrIdentifierOrUrlRegexp> {
-    readonly lineNumber: NonNullable<integer>;
+interface ILocation<T extends ScriptOrSourceOrUrlRegexp> {
+    readonly lineNumber: integer;
     readonly columnNumber?: integer;
-    readonly coordinates: NonNullable<Coordinates>;
-    readonly resource: NonNullable<T>;
+    readonly coordinates: Coordinates;
+    readonly resource: T;
 }
 
-export type Location<T extends ScriptOrSourceOrIdentifierOrUrlRegexp> =
+export type Location<T extends ScriptOrSourceOrUrlRegexp> =
     T extends IScript ? LocationInScript :
-    T extends ISourceResolver ? LocationInUnresolvedSource :
+    T extends IUnresolvedSource ? LocationInUnresolvedSource :
     T extends ILoadedSource ? LocationInLoadedSource :
     T extends IResourceIdentifier ? ILocation<IResourceIdentifier> :
     T extends IResourceIdentifier<CDTPScriptUrl> ? ILocation<IResourceIdentifier<CDTPScriptUrl>> :
     T extends URLRegexp ? ILocation<URLRegexp> :
     never;
 
-abstract class LocationCommonLogic<T extends ScriptOrSourceOrIdentifierOrUrlRegexp> implements ILocation<T> {
-    public get lineNumber(): NonNullable<LineNumber> {
+abstract class LocationCommonLogic<T extends ScriptOrSourceOrUrlRegexp> implements ILocation<T> {
+    public get lineNumber(): LineNumber {
         return this.coordinates.lineNumber;
     }
 
@@ -66,24 +66,20 @@ abstract class LocationCommonLogic<T extends ScriptOrSourceOrIdentifierOrUrlRege
     }
 
     constructor(
-        public readonly resource: NonNullable<T>,
-        public readonly coordinates: NonNullable<Coordinates>) { }
+        public readonly resource: T,
+        public readonly coordinates: Coordinates) { }
 }
 
-export class LocationInUnresolvedSource extends LocationCommonLogic<ISourceResolver> implements ILocation<ISourceResolver> {
-    public get identifier(): ISourceResolver {
-        return this.resource;
+export class LocationInUnresolvedSource extends LocationCommonLogic<IUnresolvedSource> implements ILocation<IUnresolvedSource> {
+    public tryResolving<R>(
+        succesfulAction: (locationInLoadedSource: Location<ILoadedSource>) => R,
+        failedAction: (locationInUnbindedSource: LocationInUnresolvedSource) => R): R {
+        return this.resource.tryResolving(
+            loadedSource => succesfulAction(new LocationInLoadedSource(loadedSource, this.coordinates)),
+            () => failedAction(this));
     }
 
-    public tryGettingLocationInLoadedSource<R>(
-        whenSuccesfulDo: (locationInLoadedSource: Location<ILoadedSource>) => R,
-        whenFailedDo: (locationInUnbindedSource: LocationInUnresolvedSource) => R): R {
-        return this.identifier.tryResolving(
-            loadedSource => whenSuccesfulDo(new LocationInLoadedSource(loadedSource, this.coordinates)),
-            () => whenFailedDo(this));
-    }
-
-    public asLocationWithLoadedSource(loadedSource: ILoadedSource): LocationInLoadedSource {
+    public resolvedWith(loadedSource: ILoadedSource): LocationInLoadedSource {
         if (this.resource.sourceIdentifier.isEquivalent(loadedSource.identifier)) {
             return new LocationInLoadedSource(loadedSource, this.coordinates);
         } else {
@@ -92,17 +88,17 @@ export class LocationInUnresolvedSource extends LocationCommonLogic<ISourceResol
     }
 }
 
-interface IBindedLocation<T extends ScriptOrSourceOrIdentifierOrUrlRegexp> extends ILocation<T> {
-    asLocationInLoadedSource(): LocationInLoadedSource;
-    asLocationInScript(): LocationInScript;
+interface IBindedLocation<T extends ScriptOrSourceOrUrlRegexp> extends ILocation<T> {
+    mappedToSource(): LocationInLoadedSource;
+    mappedToScript(): LocationInScript;
 }
 
 export class LocationInScript extends LocationCommonLogic<IScript> implements IBindedLocation<IScript> {
-    public get script(): NonNullable<IScript> {
+    public get script(): IScript {
         return this.resource;
     }
 
-    public asLocationInLoadedSource(): LocationInLoadedSource {
+    public mappedToSource(): LocationInLoadedSource {
         const mapped = this.script.sourcesMapper.getPositionInSource({ line: this.lineNumber, column: this.columnNumber });
         if (mapped) {
             const loadedSource = this.script.getSource(parseResourceIdentifier(mapped.source));
@@ -114,11 +110,11 @@ export class LocationInScript extends LocationCommonLogic<IScript> implements IB
         }
     }
 
-    public asLocationInScript(): LocationInScript {
+    public mappedToScript(): LocationInScript {
         return this;
     }
 
-    public asLocationInUrl(): LocationInUrl {
+    public mappedToUrl(): LocationInUrl {
         if (this.script.runtimeSource.doesScriptHasUrl()) {
             return new LocationInUrl(this.script.runtimeSource.identifier, this.coordinates);
         } else {
@@ -141,11 +137,11 @@ export class LocationInLoadedSource extends LocationCommonLogic<ILoadedSource> i
         return this.resource;
     }
 
-    public asLocationInLoadedSource(): LocationInLoadedSource {
+    public mappedToSource(): LocationInLoadedSource {
         return this;
     }
 
-    public asLocationInScript(): LocationInScript {
+    public mappedToScript(): LocationInScript {
         const mapped = this.source.script.sourcesMapper.getPositionInScript({
             source: this.source.identifier.textRepresentation,
             line: this.lineNumber,
@@ -162,21 +158,21 @@ export class LocationInLoadedSource extends LocationCommonLogic<ILoadedSource> i
 }
 
 export class LocationInUrl extends LocationCommonLogic<IResourceIdentifier<CDTPScriptUrl>> implements ILocation<IResourceIdentifier<CDTPScriptUrl>> {
-    public get url(): NonNullable<IResourceIdentifier<CDTPScriptUrl>> {
+    public get url(): IResourceIdentifier<CDTPScriptUrl> {
         return this.resource;
     }
 
     public get source(): never {
-        throw new Error(`LocationInScript doesn't support the source property`);
+        throw new Error(`LocationInUrl doesn't support the source property`);
     }
 }
 
 export class LocationInUrlRegexp extends LocationCommonLogic<URLRegexp> implements ILocation<URLRegexp> {
-    public get urlRegexp(): NonNullable<URLRegexp> {
+    public get urlRegexp(): URLRegexp {
         return this.resource;
     }
 
     public get source(): never {
-        throw new Error(`LocationInScript doesn't support the source property`);
+        throw new Error(`LocationInUrlRegexp doesn't support the source property`);
     }
 }

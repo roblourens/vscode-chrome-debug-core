@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { IAttachRequestArgs, ICommonRequestArgs, ILaunchRequestArgs } from '../debugAdapterInterfaces';
+import { ICommonRequestArgs } from '../debugAdapterInterfaces';
 import * as errors from '../errors';
 import { UrlPathTransformer } from '../transformers/urlPathTransformer';
 import * as utils from '../utils';
@@ -14,6 +14,9 @@ import * as nls from 'vscode-nls';
 
 const localize = nls.loadMessageBundle();
 import { IResourceIdentifier, parseResourceIdentifier } from '../chrome/internal/sources/resourceIdentifier';
+import { inject } from 'inversify';
+import { TYPES } from '../chrome/dependencyInjection.ts/types';
+import { ConnectedCDAConfiguration } from '../chrome/client/chromeDebugAdapter/cdaConfiguration';
 
 /**
  * Converts a local path from Code to a path on the target.
@@ -22,14 +25,9 @@ export class RemotePathTransformer extends UrlPathTransformer {
     private _localRoot: string;
     private _remoteRoot: string;
 
-    public async launch(args: ILaunchRequestArgs): Promise<void> {
-        await super.launch(args);
-        return this.init(args);
-    }
-
-    public async attach(args: IAttachRequestArgs): Promise<void> {
-        await super.attach(args);
-        return this.init(args);
+    constructor(@inject(TYPES.ConnectedCDAConfiguration) configuration: ConnectedCDAConfiguration) {
+        super(configuration);
+        this.init(configuration.args);
     }
 
     private async init(args: ICommonRequestArgs): Promise<void> {

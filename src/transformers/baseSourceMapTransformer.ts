@@ -11,8 +11,11 @@ import { SourceMaps } from '../sourceMaps/sourceMaps';
 import { logger } from 'vscode-debugadapter';
 
 import { ILoadedSource } from '../chrome/internal/sources/loadedSource';
-import { IComponent, ComponentConfiguration, PromiseOrNot } from '../chrome/internal/features/feature';
-import { injectable } from 'inversify';
+import { IComponent } from '../chrome/internal/features/feature';
+import { TYPES } from '../chrome/dependencyInjection.ts/types';
+import { ConnectedCDAConfiguration, IConnectedCDAConfiguration } from '../chrome/client/chromeDebugAdapter/cdaConfiguration';
+// import { injectable, inject } from 'inversify';
+import { inject } from 'inversify';
 
 interface ISavedSetBreakpointsArgs {
     generatedPath: string;
@@ -30,7 +33,6 @@ export interface ISourceLocation {
 /**
  * If sourcemaps are enabled, converts from source files on the client side to runtime files on the target side
  */
-@injectable()
 export class BaseSourceMapTransformer implements IComponent {
     protected _sourceMaps: SourceMaps;
     private _enableSourceMapCaching: boolean;
@@ -45,14 +47,14 @@ export class BaseSourceMapTransformer implements IComponent {
 
     protected _isVSClient = false;
 
-    constructor(enableSourceMapCaching?: boolean) {
-        this._enableSourceMapCaching = enableSourceMapCaching;
+    constructor(@inject(TYPES.ConnectedCDAConfiguration) configuration: IConnectedCDAConfiguration) {
+        this._enableSourceMapCaching = configuration.args.enableSourceMapCaching;
+        this.init(configuration.args);
+        this.isVSClient = configuration._clientCapabilities.clientID === 'visualstudio';
     }
 
-    public install(configuration: ComponentConfiguration): PromiseOrNot<void | this> {
-        this.launch(configuration.args);
-        this._enableSourceMapCaching = configuration.args.enableSourceMapCaching;
-        this.isVSClient = configuration._clientCapabilities.clientID === 'visualstudio';
+    public install(_configuration: ConnectedCDAConfiguration): this {
+        return this;
     }
 
     public get sourceMaps(): SourceMaps {
@@ -61,14 +63,6 @@ export class BaseSourceMapTransformer implements IComponent {
 
     public set isVSClient(newValue: boolean) {
         this._isVSClient = newValue;
-    }
-
-    public launch(args: ILaunchRequestArgs): void {
-        this.init(args);
-    }
-
-    public attach(args: IAttachRequestArgs): void {
-        this.init(args);
     }
 
     protected init(args: ILaunchRequestArgs | IAttachRequestArgs): void {

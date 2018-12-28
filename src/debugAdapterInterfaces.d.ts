@@ -82,7 +82,9 @@ export interface IAttachRequestArgs extends DebugProtocol.AttachRequestArguments
 export interface ISetBreakpointsRequestArgs extends DebugProtocol.SetBreakpointsArguments {}
 
 export interface IToggleSkipFileStatusArgs {
-    source: IResourceIdentifier;
+    /** This requests comes from the debug extension, so it's on a pseudo-vscode protocol format which can be both path or source reference  */
+    path?: string;
+    sourceReference?: number;
 }
 
 export interface ISetBreakpointsArgs extends DebugProtocol.SetBreakpointsArguments {

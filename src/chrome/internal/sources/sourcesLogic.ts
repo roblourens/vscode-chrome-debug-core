@@ -1,8 +1,8 @@
 import { SourceTextLogic } from './sourcesTextLogic';
 import { SourcesTreeNodeLogic } from './sourcesTreeNodeLogic';
-import { SourceResolverLogic } from './sourceResolverLogic';
+import { SourceResolver } from './sourceResolver';
 import { ILoadedSource, ILoadedSourceTreeNode } from './loadedSource';
-import { ISourceResolver } from './sourceResolver';
+import { IUnresolvedSource } from './unresolvedSource';
 import { IScript } from '../scripts/script';
 import { IResourceIdentifier } from './resourceIdentifier';
 import { IComponent } from '../features/feature';
@@ -16,7 +16,7 @@ export class SourcesLogic implements IComponent {
         return this._sourceResolverLogic.tryResolving(sourceIdentifier, ifSuccesfulDo, ifFailedDo);
     }
 
-    public createSourceResolver(sourceIdentifier: IResourceIdentifier): ISourceResolver {
+    public createSourceResolver(sourceIdentifier: IResourceIdentifier): IUnresolvedSource {
         return this._sourceResolverLogic.createSourceResolver(sourceIdentifier);
     }
 
@@ -32,7 +32,7 @@ export class SourcesLogic implements IComponent {
         return await this._sourceTextLogic.text(script.runtimeSource);
     }
 
-    public async getText(source: ISourceResolver): Promise<string> {
+    public async getText(source: IUnresolvedSource): Promise<string> {
         return await source.tryResolving(
             async loadedSource => await this._sourceTextLogic.text(loadedSource),
             identifier => {
@@ -53,7 +53,7 @@ export class SourcesLogic implements IComponent {
     }
 
     constructor(
-        private readonly _sourceResolverLogic: SourceResolverLogic,
+        private readonly _sourceResolverLogic: SourceResolver,
         private readonly _sourceTextLogic: SourceTextLogic,
         private readonly _sourceTreeNodeLogic: SourcesTreeNodeLogic
     ) { }
