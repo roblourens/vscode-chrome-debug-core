@@ -64,7 +64,6 @@ export class EventSender implements IEventsToClientReporter {
     }
 
     public async sendSourceWasLoaded(params: SourceWasLoadedParameters): Promise<void> {
-        // TODO DIEGO: Should we be using the source tree instead of the source here?
         const clientSource = await this._internalToClient.toSource(params.source);
         const event = new LoadedSourceEvent(params.reason, clientSource);
 
