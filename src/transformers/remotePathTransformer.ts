@@ -5,7 +5,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from 'vscode-debugadapter';
-import { DebugProtocol } from 'vscode-debugprotocol';
 import { ICommonRequestArgs } from '../debugAdapterInterfaces';
 import * as errors from '../errors';
 import { UrlPathTransformer } from '../transformers/urlPathTransformer';
@@ -66,20 +65,6 @@ export class RemotePathTransformer extends UrlPathTransformer {
         scriptPath = this.getClientPathFromTargetPath(scriptPath) || scriptPath;
 
         return scriptPath;
-    }
-
-    public async fixSource(source: DebugProtocol.Source): Promise<void> {
-        await super.fixSource(source);
-
-        if (source && source.path) {
-            const remotePath = parseResourceIdentifier(source && source.path);
-            const localPath = this.getClientPathFromTargetPath(remotePath) || remotePath;
-            if (utils.existsSync(localPath.canonicalized)) {
-                source.path = localPath.canonicalized;
-                source.sourceReference = undefined;
-                source.origin = undefined;
-            }
-        }
     }
 
     private shouldMapPaths(remotePath: IResourceIdentifier): boolean {

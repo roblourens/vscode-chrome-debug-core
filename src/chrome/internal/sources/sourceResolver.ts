@@ -2,9 +2,9 @@ import { ILoadedSource } from './loadedSource';
 import { ISource, SourceToBeResolvedViaPath } from './source';
 import { newResourceIdentifierMap, IResourceIdentifier } from './resourceIdentifier';
 import { IComponent } from '../features/feature';
-import { ScriptParsedEvent } from '../../target/events';
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
+import { ScriptParsedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpOnScriptParsedEventProvider';
 
 export interface EventsConsumedBySourceResolver {
     onScriptParsed(listener: (scriptEvent: ScriptParsedEvent) => Promise<void>): void;

@@ -2,8 +2,8 @@ import { NotificationChannelIdentifier } from './notificationsCommunicator';
 import { BPRecipie } from '../internal/breakpoints/bpRecipie';
 import { ScriptOrSourceOrURLOrURLRegexp } from '../internal/locations/location';
 import { registerChannels } from './channel';
-import { PausedEvent } from '../target/events';
 import { Vote } from './collaborativeDecision';
+import { PausedEvent } from '../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
 
 const _breakpoints = {
     // Notifications

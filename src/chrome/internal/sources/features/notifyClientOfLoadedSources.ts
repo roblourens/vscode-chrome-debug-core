@@ -1,6 +1,5 @@
 import { IComponent } from '../../features/feature';
 import { IScript } from '../../scripts/script';
-import { ScriptParsedEvent } from '../../../target/events';
 import { telemetry } from '../../../../telemetry';
 import { SourceWasLoadedParameters, IEventsToClientReporter } from '../../../client/eventSender';
 import { ValidatedMap } from '../../../collections/validatedMap';
@@ -8,6 +7,7 @@ import { CDTPScriptUrl } from '../resourceIdentifierSubtypes';
 import { LoadedSourceEventReason, utils } from '../../../..';
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../../../dependencyInjection.ts/types';
+import { ScriptParsedEvent } from '../../../cdtpDebuggee/eventsProviders/cdtpOnScriptParsedEventProvider';
 
 export interface NotifyClientOfLoadedSourcesDependencies {
     sendSourceWasLoaded(params: SourceWasLoadedParameters): Promise<void>;

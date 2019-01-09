@@ -6,7 +6,6 @@ import { BasePathTransformer } from './basePathTransformer';
 
 import { IPathMapping } from '../debugAdapterInterfaces';
 import { logger } from 'vscode-debugadapter';
-import { DebugProtocol } from 'vscode-debugprotocol';
 import * as ChromeUtils from '../chrome/chromeUtils';
 
 import * as path from 'path';
@@ -38,7 +37,7 @@ export class UrlPathTransformer extends BasePathTransformer {
     public async scriptParsed(scriptUrl: IResourceIdentifier): Promise<IResourceIdentifier> {
         const clientPath = await this.targetUrlToClientPath(scriptUrl);
 
-        if (!clientPath) {
+        if (clientPath.canonicalized === '') {
             // It's expected that eval scripts (eval://) won't be resolved
             if (!scriptUrl.canonicalized.startsWith(ChromeUtils.EVAL_NAME_PREFIX)) {
                 logger.log(`Paths.scriptParsed: could not resolve ${scriptUrl} to a file with pathMapping/webRoot: ${JSON.stringify(this._pathMapping)}. It may be external or served directly from the server's memory (and that's OK).`);
@@ -46,32 +45,15 @@ export class UrlPathTransformer extends BasePathTransformer {
         } else {
             logger.log(`Paths.scriptParsed: resolved ${scriptUrl} to ${clientPath}. pathMapping/webroot: ${JSON.stringify(this._pathMapping)}`);
             const canonicalizedClientPath = clientPath;
-            this._clientPathToTargetUrl.set(canonicalizedClientPath, scriptUrl);
-            this._targetUrlToClientPath.set(scriptUrl, clientPath);
+
+            // an HTML file with multiple script tags will call this method several times with the same scriptUrl, so we use setAndReplaceIfExist
+            this._clientPathToTargetUrl.setAndReplaceIfExist(canonicalizedClientPath, scriptUrl);
+            this._targetUrlToClientPath.setAndReplaceIfExist(scriptUrl, clientPath);
 
             scriptUrl = clientPath;
         }
 
         return Promise.resolve(scriptUrl);
-    }
-
-    public async fixSource(source: DebugProtocol.Source): Promise<void> {
-        // TODO DIEGO: Delete this method
-        if (source && source.path) {
-            // Try to resolve the url to a path in the workspace. If it's not in the workspace,
-            // just use the script.url as-is. It will be resolved or cleared by the SourceMapTransformer.
-            const clientPath = this.getClientPathFromTargetPath(parseResourceIdentifier(source.path)) ||
-                await this.targetUrlToClientPath(parseResourceIdentifier(source.path));
-
-            // Incoming stackFrames have sourceReference and path set. If the path was resolved to a file in the workspace,
-            // clear the sourceReference since it's not needed.
-            if (clientPath) {
-                source.path = clientPath.canonicalized;
-                source.sourceReference = undefined;
-                source.origin = undefined;
-                source.name = path.basename(clientPath.canonicalized);
-            }
-        }
     }
 
     public getTargetPathFromClientPath(clientPath: IResourceIdentifier): IResourceIdentifier {

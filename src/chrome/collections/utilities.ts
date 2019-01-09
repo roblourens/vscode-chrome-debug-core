@@ -15,3 +15,11 @@ export function determineOrderingOfStrings(left: string, right: string): number 
         return 0;
     }
 }
+
+export function singleOne<T>(array: ReadonlyArray<T>): T {
+    if (array.length === 1) {
+        return array[0];
+    } else {
+        throw new Error(`Expected array ${array} to have exactly a single element yet it had ${array.length}`);
+    }
+}

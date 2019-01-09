@@ -1,16 +1,16 @@
 import { IComponent } from './feature';
-import { PausedEvent } from '../../target/events';
+import { PausedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
 import { IEventsToClientReporter } from '../../client/eventSender';
 import { ReasonType } from '../../stoppedEvent';
 import { PromiseOrNot } from '../../utils/promises';
 import { Vote, VoteCommonLogic, VoteRelevance, ExecuteDecisionBasedOnVotes } from '../../communication/collaborativeDecision';
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
-import { IDebugeeExecutionControl } from '../../target/controlDebugeeExecution';
-import { ICDTPDebuggerEventsProvider } from '../../target/cdtpDebuggerEventsProvider';
+import { IDebugeeExecutionController } from '../../cdtpDebuggee/features/cdtpDebugeeExecutionController';
+import { ICDTDebuggeeExecutionEventsProvider } from '../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
 
 export abstract class ResumeCommonLogic extends VoteCommonLogic<void> {
-    protected readonly abstract _debugeeExecutionControl: IDebugeeExecutionControl;
+    protected readonly abstract _debugeeExecutionControl: IDebugeeExecutionController;
 
     public async execute(): Promise<void> {
         this._debugeeExecutionControl.resume();
@@ -54,7 +54,7 @@ export class TakeProperActionOnPausedEvent implements IComponent {
 
     constructor(
         @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: TakeActionBasedOnInformationDependencies,
-        @inject(TYPES.ICDTPDebuggerEventsProvider) private readonly _cdtpDebuggerEventsProvider: ICDTPDebuggerEventsProvider,
+        @inject(TYPES.ICDTPDebuggerEventsProvider) private readonly _cdtpDebuggerEventsProvider: ICDTDebuggeeExecutionEventsProvider,
         @inject(TYPES.IEventsToClientReporter) private readonly _eventsToClientReporter: IEventsToClientReporter) { }
 }
 

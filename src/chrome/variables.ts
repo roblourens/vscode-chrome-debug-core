@@ -6,7 +6,7 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { Handles } from 'vscode-debugadapter';
 
 import { ChromeDebugLogic, VariableContext } from './chromeDebugAdapter';
-import { Protocol as Crdp } from 'devtools-protocol';
+import { Protocol as CDTP } from 'devtools-protocol';
 import * as utils from '../utils';
 import { ICallFrame, ScriptOrLoadedSource } from './internal/stackTraces/callFrame';
 
@@ -35,7 +35,7 @@ export class PropertyContainer extends BaseVariableContainer {
 }
 
 export class LoggedObjects extends BaseVariableContainer {
-    constructor(private args: Crdp.Runtime.RemoteObject[]) {
+    constructor(private args: CDTP.Runtime.RemoteObject[]) {
         super(undefined);
     }
 
@@ -45,12 +45,12 @@ export class LoggedObjects extends BaseVariableContainer {
 }
 
 export class ScopeContainer extends BaseVariableContainer {
-    private _thisObj: Crdp.Runtime.RemoteObject;
-    private _returnValue: Crdp.Runtime.RemoteObject;
+    private _thisObj: CDTP.Runtime.RemoteObject;
+    private _returnValue: CDTP.Runtime.RemoteObject;
     private _frameId: ICallFrame<ScriptOrLoadedSource>;
     private _origScopeIndex: number;
 
-    public constructor(frameId: ICallFrame<ScriptOrLoadedSource>, origScopeIndex: number, objectId: string, thisObj?: Crdp.Runtime.RemoteObject, returnValue?: Crdp.Runtime.RemoteObject) {
+    public constructor(frameId: ICallFrame<ScriptOrLoadedSource>, origScopeIndex: number, objectId: string, thisObj?: CDTP.Runtime.RemoteObject, returnValue?: CDTP.Runtime.RemoteObject) {
         super(objectId, '');
         this._thisObj = thisObj;
         this._returnValue = returnValue;
@@ -83,7 +83,7 @@ export class ScopeContainer extends BaseVariableContainer {
         return adapter.setVariableValue(this._frameId, this._origScopeIndex, name, value);
     }
 
-    private insertRemoteObject(adapter: ChromeDebugLogic, variables: DebugProtocol.Variable[], name: string, obj: Crdp.Runtime.RemoteObject): Promise<DebugProtocol.Variable[]> {
+    private insertRemoteObject(adapter: ChromeDebugLogic, variables: DebugProtocol.Variable[], name: string, obj: CDTP.Runtime.RemoteObject): Promise<DebugProtocol.Variable[]> {
         return adapter.remoteObjectToVariable(name, obj).then(variable => {
             variables.unshift(variable);
             return variables;
@@ -92,9 +92,9 @@ export class ScopeContainer extends BaseVariableContainer {
 }
 
 export class ExceptionContainer extends PropertyContainer {
-    protected _exception: Crdp.Runtime.RemoteObject;
+    protected _exception: CDTP.Runtime.RemoteObject;
 
-    protected constructor(_objectId: string, exception: Crdp.Runtime.RemoteObject) {
+    protected constructor(_objectId: string, exception: CDTP.Runtime.RemoteObject) {
         super(exception.objectId, undefined);
         this._exception = exception;
     }
@@ -102,7 +102,7 @@ export class ExceptionContainer extends PropertyContainer {
     /**
      * Expand the exception as if it were a Scope
      */
-    public static create(exception: Crdp.Runtime.RemoteObject): ExceptionContainer {
+    public static create(exception: CDTP.Runtime.RemoteObject): ExceptionContainer {
         return exception.objectId ?
             new ExceptionContainer(exception.objectId, exception) :
             new ExceptionValueContainer(exception);
@@ -113,7 +113,7 @@ export class ExceptionContainer extends PropertyContainer {
  * For when a value is thrown instead of an object
  */
 export class ExceptionValueContainer extends ExceptionContainer {
-    public constructor(exception: Crdp.Runtime.RemoteObject) {
+    public constructor(exception: CDTP.Runtime.RemoteObject) {
         super('EXCEPTION_ID', exception);
     }
 
@@ -121,7 +121,7 @@ export class ExceptionValueContainer extends ExceptionContainer {
      * Make up a fake 'Exception' property to hold the thrown value, displayed under the Exception Scope
      */
     public expand(adapter: ChromeDebugLogic, _filter?: string, _start?: number, _count?: number): Promise<DebugProtocol.Variable[]> {
-        const excValuePropDescriptor: Crdp.Runtime.PropertyDescriptor = <any>{ name: 'Exception', value: this._exception };
+        const excValuePropDescriptor: CDTP.Runtime.PropertyDescriptor = <any>{ name: 'Exception', value: this._exception };
         return adapter.propertyDescriptorToVariable(excValuePropDescriptor)
             .then(variable => [variable]);
     }
@@ -135,7 +135,7 @@ const PREVIEW_PROPS_DEFAULT = 3;
 const PREVIEW_PROPS_CONSOLE = 8;
 const PREVIEW_PROP_LENGTH = 50;
 const ELLIPSIS = '…';
-function getArrayPreview(object: Crdp.Runtime.RemoteObject, context?: string): string {
+function getArrayPreview(object: CDTP.Runtime.RemoteObject, context?: string): string {
     let value = object.description;
     if (object.preview) {
         const numProps = context === 'repl' ? PREVIEW_PROPS_CONSOLE : PREVIEW_PROPS_DEFAULT;
@@ -175,7 +175,7 @@ function getArrayPreview(object: Crdp.Runtime.RemoteObject, context?: string): s
     return value;
 }
 
-function getObjectPreview(object: Crdp.Runtime.RemoteObject, context?: string): string {
+function getObjectPreview(object: CDTP.Runtime.RemoteObject, context?: string): string {
     let value = object.description;
     if (object.preview) {
         const numProps = context === 'repl' ? PREVIEW_PROPS_CONSOLE : PREVIEW_PROPS_DEFAULT;
@@ -197,7 +197,7 @@ function getObjectPreview(object: Crdp.Runtime.RemoteObject, context?: string): 
     return value;
 }
 
-function propertyPreviewToString(prop: Crdp.Runtime.PropertyPreview): string {
+function propertyPreviewToString(prop: CDTP.Runtime.PropertyPreview): string {
     const value = typeof prop.value === 'undefined' ?
         `<${prop.type}>` :
         trimProperty(prop.value);
@@ -213,7 +213,7 @@ function trimProperty(value: string): string {
         value;
 }
 
-export function getRemoteObjectPreview(object: Crdp.Runtime.RemoteObject, stringify = true, context?: string): string {
+export function getRemoteObjectPreview(object: CDTP.Runtime.RemoteObject, stringify = true, context?: string): string {
     if (object) {
         if (object.type === 'object') {
             return getRemoteObjectPreview_object(object, context);
@@ -227,7 +227,7 @@ export function getRemoteObjectPreview(object: Crdp.Runtime.RemoteObject, string
     return '';
 }
 
-export function getRemoteObjectPreview_object(object: Crdp.Runtime.RemoteObject, context?: string): string {
+export function getRemoteObjectPreview_object(object: CDTP.Runtime.RemoteObject, context?: string): string {
     const objectDescription = object.description || '';
     if ((<string>object.subtype) === 'internal#location') {
         // Could format this nicely later, see #110
@@ -260,7 +260,7 @@ export function getRemoteObjectPreview_object(object: Crdp.Runtime.RemoteObject,
     }
 }
 
-export function getRemoteObjectPreview_primitive(object: Crdp.Runtime.RemoteObject, stringify?: boolean): string {
+export function getRemoteObjectPreview_primitive(object: CDTP.Runtime.RemoteObject, stringify?: boolean): string {
     // The value is a primitive value, or something that has a description (not object, primitive, or undefined). And force to be string
     if (typeof object.value === 'undefined') {
         return object.description + '';
@@ -276,7 +276,7 @@ export function getRemoteObjectPreview_primitive(object: Crdp.Runtime.RemoteObje
     }
 }
 
-export function getRemoteObjectPreview_function(object: Crdp.Runtime.RemoteObject, _context?: string): string {
+export function getRemoteObjectPreview_function(object: CDTP.Runtime.RemoteObject, _context?: string): string {
     const firstBraceIdx = object.description.indexOf('{');
     if (firstBraceIdx >= 0) {
         return object.description.substring(0, firstBraceIdx) + '{ … }';

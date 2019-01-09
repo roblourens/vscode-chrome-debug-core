@@ -3,7 +3,7 @@ import { IScript } from '../scripts/script';
 import { IComponent } from '../features/feature';
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
-import { CDTPScriptsRegistry } from '../../target/cdtpScriptsRegistry';
+import { CDTPScriptsRegistry } from '../../cdtpDebuggee/registries/cdtpScriptsRegistry';
 
 @injectable()
 export class SourcesTreeNodeLogic implements IComponent {

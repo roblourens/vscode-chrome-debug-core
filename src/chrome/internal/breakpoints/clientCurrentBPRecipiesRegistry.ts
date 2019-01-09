@@ -14,7 +14,7 @@ export class ClientCurrentBPRecipiesRegistry {
     }
 
     private registerCurrentBPRecipies(requestedSourceIdentifier: IResourceIdentifier, bpRecipies: BPRecipieInUnresolvedSource[]): void {
-        this._requestedSourcePathToCurrentBPRecipies.set(requestedSourceIdentifier, Array.from(bpRecipies));
+        this._requestedSourcePathToCurrentBPRecipies.setAndReplaceIfExist(requestedSourceIdentifier, Array.from(bpRecipies));
     }
 
     private calculateBPSDeltaFromExistingBPs(requestedBPRecipies: BPRecipiesInUnresolvedSource): BPRsDeltaInRequestedSource {

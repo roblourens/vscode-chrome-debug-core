@@ -1,10 +1,11 @@
 import { IComponent } from '../../features/feature';
-import { PausedEvent } from '../../../target/events';
 import { InformationAboutPausedProvider, ResumeCommonLogic } from '../../features/takeProperActionOnPausedEvent';
 import { VoteRelevance, Vote, Abstained } from '../../../communication/collaborativeDecision';
 import { injectable, inject } from 'inversify';
-import { IDebugeeExecutionControl, IDebugeeStepping } from '../../../target/controlDebugeeExecution';
 import { TYPES } from '../../../dependencyInjection.ts/types';
+import { PausedEvent } from '../../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
+import { IDebugeeExecutionController } from '../../../cdtpDebuggee/features/cdtpDebugeeExecutionController';
+import { IDebugeeSteppingController } from '../../../cdtpDebuggee/features/CDTPDebugeeSteppingController';
 
 export interface EventsConsumedByAsyncStepping {
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
@@ -13,7 +14,7 @@ export interface EventsConsumedByAsyncStepping {
 export class PausedBecauseAsyncCallWasScheduled extends ResumeCommonLogic {
     public readonly relevance = VoteRelevance.FallbackVote;
 
-    constructor(protected _debugeeExecutionControl: IDebugeeExecutionControl) {
+    constructor(protected _debugeeExecutionControl: IDebugeeExecutionController) {
         super();
     }
 }
@@ -35,6 +36,6 @@ export class AsyncStepping implements IComponent {
 
     constructor(
         @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: EventsConsumedByAsyncStepping,
-        @inject(TYPES.IDebugeeExecutionControl) private readonly _debugeeExecutionControl: IDebugeeExecutionControl,
-        @inject(TYPES.IDebugeeStepping) private readonly _debugeeStepping: IDebugeeStepping) { }
+        @inject(TYPES.IDebugeeExecutionControl) private readonly _debugeeExecutionControl: IDebugeeExecutionController,
+        @inject(TYPES.IDebugeeSteppingController) private readonly _debugeeStepping: IDebugeeSteppingController) { }
 }

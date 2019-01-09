@@ -1,6 +1,5 @@
 import { InformationAboutPausedProvider, NotifyStoppedCommonLogic } from '../features/takeProperActionOnPausedEvent';
 import { IComponent } from '../features/feature';
-import { PausedEvent } from '../../target/events';
 import * as errors from '../../../errors';
 import { utils } from '../../..';
 import { FormattedExceptionParser, IFormattedExceptionLineDescription } from '../formattedExceptionParser';
@@ -8,9 +7,10 @@ import { PauseOnPromiseRejectionsStrategy, PauseOnExceptionsStrategy } from './s
 import { VoteRelevance, Vote, Abstained } from '../../communication/collaborativeDecision';
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
-import { IPauseOnExceptions } from '../../target/cdtpDebugger';
 import { IEventsToClientReporter } from '../../client/eventSender';
 import { DeleteMeScriptsRegistry } from '../scripts/scriptsRegistry';
+import { PausedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
+import { IPauseOnExceptionsConfigurer } from '../../cdtpDebuggee/features/CDTPPauseOnExceptionsConfigurer';
 
 type ExceptionBreakMode = 'never' | 'always' | 'unhandled' | 'userUnhandled';
 
@@ -113,6 +113,6 @@ export class PauseOnExceptionOrRejection implements IComponent {
 
     constructor(@inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: EventsConsumedByPauseOnException,
         @inject(TYPES.DeleteMeScriptsRegistry) private readonly _scriptsLogic: DeleteMeScriptsRegistry,
-        @inject(TYPES.IPauseOnExceptions) private readonly _pauseOnExceptions: IPauseOnExceptions,
+        @inject(TYPES.IPauseOnExceptions) private readonly _pauseOnExceptions: IPauseOnExceptionsConfigurer,
         @inject(TYPES.IEventsToClientReporter) private readonly _eventsToClientReporter: IEventsToClientReporter) { }
 }

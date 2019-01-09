@@ -7,7 +7,7 @@
  */
 
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { Protocol as Crdp } from 'devtools-protocol';
+import { Protocol as CDTP } from 'devtools-protocol';
 import { ITelemetryPropertyCollector } from './telemetry';
 import { IStringDictionary } from './utils';
 import { ITargetFilter } from './chrome/chromeConnection';
@@ -100,8 +100,8 @@ export type ISetBreakpointsResponseBody = DebugProtocol.SetBreakpointsResponse['
  * If a breakpoint is set but Chrome returns no locations, actualLocation is not set.
  */
 export interface ISetBreakpointResult {
-    breakpointId?: Crdp.Debugger.BreakpointId;
-    actualLocation?: Crdp.Debugger.Location;
+    breakpointId?: CDTP.Debugger.BreakpointId;
+    actualLocation?: CDTP.Debugger.Location;
 }
 
 export type ISourceResponseBody = DebugProtocol.SourceResponse['body'];
@@ -139,7 +139,7 @@ export interface TimeTravelClient {
     reverse(): Promise<any>;
 }
 
-export interface TimeTravelRuntime extends Crdp.ProtocolApi {
+export interface TimeTravelRuntime extends CDTP.ProtocolApi {
     TimeTravel: TimeTravelClient;
 }
 

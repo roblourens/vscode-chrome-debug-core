@@ -7,7 +7,7 @@ import { IEventsToClientReporter } from '../../../client/eventSender';
 import { PromiseDefer, promiseDefer } from '../../../../utils';
 import { IComponent } from '../../features/feature';
 import { injectable, inject } from 'inversify';
-import { IBreakpointsInLoadedSource } from '../bpRecipieInLoadedSourceLogic';
+import { IBreakpointsInLoadedSource } from '../bpRecipieAtLoadedSourceLogic';
 import { TYPES } from '../../../dependencyInjection.ts/types';
 
 export interface EventsConsumedByReAddBPsWhenSourceIsLoaded {
@@ -52,7 +52,7 @@ export class ReAddBPsWhenSourceIsLoaded implements IComponent {
             const remainingBPRecipies = new Set(unbindBPRecipies.breakpoints);
             await asyncMap(unbindBPRecipies.breakpoints, async bpRecipie => {
                 try {
-                    const bpStatus = await this._breakpointsInLoadedSource.addBreakpointForLoadedSource(bpRecipie.asBreakpointWithLoadedSource(source));
+                    const bpStatus = await this._breakpointsInLoadedSource.addBreakpointAtLoadedSource(bpRecipie.resolvedWithLoadedSource(source));
                     this._eventsToClientReporter.sendBPStatusChanged({
                         bpRecipieStatus: new BPRecipieIsBinded(bpRecipie, bpStatus, 'TODO DIEGO'),
                         reason: 'changed'

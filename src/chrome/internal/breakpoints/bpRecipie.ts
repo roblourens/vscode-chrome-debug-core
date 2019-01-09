@@ -12,8 +12,10 @@ export interface IBPRecipie<TResource extends ScriptOrSourceOrURLOrURLRegexp, TB
     readonly location: Location<TResource>;
     readonly bpActionWhenHit: TBPActionWhenHit;
 
-    readonly unmappedBpRecipie: IBPRecipie<ScriptOrSourceOrURLOrURLRegexp>; // Original bpRecipie before any mapping was done
+    readonly unmappedBPRecipie: AnyBPRecipie; // Original bpRecipie before any mapping was done
 }
+
+export type AnyBPRecipie = IBPRecipie<ScriptOrSourceOrURLOrURLRegexp>;
 
 abstract class BPRecipieCommonLogic<TResource extends ScriptOrSourceOrURLOrURLRegexp, TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit> {
     public abstract get bpActionWhenHit(): TBPActionWhenHit;
@@ -26,10 +28,10 @@ abstract class BPRecipieCommonLogic<TResource extends ScriptOrSourceOrURLOrURLRe
     }
 }
 
-abstract class UnamppedBPRecipieCommonLogic<TResource extends ScriptOrSourceOrURLOrURLRegexp, TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit>
+abstract class UnmappedBPRecipieCommonLogic<TResource extends ScriptOrSourceOrURLOrURLRegexp, TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit>
     extends BPRecipieCommonLogic<TResource, TBPActionWhenHit> {
 
-    public get unmappedBpRecipie(): IBPRecipie<TResource, TBPActionWhenHit> {
+    public get unmappedBPRecipie(): IBPRecipie<TResource, TBPActionWhenHit> {
         return this;
     }
 
@@ -42,10 +44,10 @@ abstract class UnamppedBPRecipieCommonLogic<TResource extends ScriptOrSourceOrUR
 
 abstract class MappedBPRecipieCommonLogic<TResource extends ScriptOrSourceOrURLOrURLRegexp, TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit> {
     public get bpActionWhenHit(): TBPActionWhenHit {
-        return this.unmappedBpRecipie.bpActionWhenHit;
+        return this.unmappedBPRecipie.bpActionWhenHit;
     }
 
-    constructor(public readonly unmappedBpRecipie: IBPRecipie<ISource, TBPActionWhenHit>,
+    constructor(public readonly unmappedBPRecipie: IBPRecipie<ISource, TBPActionWhenHit>,
         public readonly location: Location<TResource>) { }
 
     public toString(): string {
@@ -53,20 +55,12 @@ abstract class MappedBPRecipieCommonLogic<TResource extends ScriptOrSourceOrURLO
     }
 }
 
-export class BPRecipieInLoadedSource<TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit>
-    extends MappedBPRecipieCommonLogic<ILoadedSource, TBPActionWhenHit> implements IBPRecipie<ILoadedSource, TBPActionWhenHit> {
-
-    public asBPInScriptRecipie(): BPRecipieInScript<TBPActionWhenHit> {
-        return new BPRecipieInScript<TBPActionWhenHit>(this.unmappedBpRecipie, this.location.mappedToScript());
-    }
-}
-
-export class BPRecipieInUnresolvedSource<TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit> extends UnamppedBPRecipieCommonLogic<ISource, TBPActionWhenHit> implements IBPRecipie<ISource, TBPActionWhenHit> {
+export class BPRecipieInUnresolvedSource<TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit> extends UnmappedBPRecipieCommonLogic<ISource, TBPActionWhenHit> implements IBPRecipie<ISource, TBPActionWhenHit> {
     public withAlwaysBreakAction(): BPRecipieInUnresolvedSource<AlwaysBreak> {
         return new BPRecipieInUnresolvedSource<AlwaysBreak>(this.location, new AlwaysBreak());
     }
 
-    public tryGettingBreakpointInLoadedSource<R>(
+    public tryResolvingSource<R>(
         succesfulAction: (breakpointInLoadedSource: BPRecipieInLoadedSource) => R,
         failedAction: (breakpointInUnbindedSource: BPRecipieInUnresolvedSource) => R): R {
         return this.location.tryResolvingSource(
@@ -74,20 +68,29 @@ export class BPRecipieInUnresolvedSource<TBPActionWhenHit extends IBPActionWhenH
             () => failedAction(this));
     }
 
-    public asBreakpointInLoadedSource(): BPRecipieInLoadedSource {
-        return this.tryGettingBreakpointInLoadedSource(
+    public resolvedToLoadedSource(): BPRecipieInLoadedSource {
+        return this.tryResolvingSource(
             breakpointInLoadedSource => breakpointInLoadedSource,
             () => { throw new Error(`Failed to convert ${this} into a breakpoint in a loaded source`); });
     }
 
-    public asBreakpointWithLoadedSource(source: ILoadedSource<string>): BPRecipieInLoadedSource {
+    public resolvedWithLoadedSource(source: ILoadedSource<string>): BPRecipieInLoadedSource {
         return new BPRecipieInLoadedSource(this, this.location.resolvedWith(source));
+    }
+}
+
+export class BPRecipieInLoadedSource<TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit>
+    extends MappedBPRecipieCommonLogic<ILoadedSource, TBPActionWhenHit> implements IBPRecipie<ILoadedSource, TBPActionWhenHit> {
+
+    public mappedToScript(): BPRecipieInScript<TBPActionWhenHit> {
+        return new BPRecipieInScript<TBPActionWhenHit>(this.unmappedBPRecipie, this.location.mappedToScript());
     }
 }
 
 export type IBreakpointRecipieInLoadedSource = IBPRecipie<ILoadedSource>;
 export type IBreakpointRecipieInUnbindedSource = IBPRecipie<ISource>;
 
+// TODO: Are we missing the IBPActionWhenHit parameter here?
 export type BPRecipie<TResource extends ScriptOrSourceOrURLOrURLRegexp> =
     TResource extends ISource ? BPRecipieInUnresolvedSource :
     TResource extends ILoadedSource ? BPRecipieInLoadedSource :
@@ -99,19 +102,19 @@ export type BPRecipie<TResource extends ScriptOrSourceOrURLOrURLRegexp> =
 export class BPRecipieInScript<TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit>
     extends MappedBPRecipieCommonLogic<IScript, TBPActionWhenHit> implements IBPRecipie<IScript, TBPActionWhenHit> {
 
-    public atLocation(newLocation: LocationInScript): BPRecipieInScript<TBPActionWhenHit> {
-        return new BPRecipieInScript<TBPActionWhenHit>(this.unmappedBpRecipie, newLocation);
+    public withLocationReplaced(newLocation: LocationInScript): BPRecipieInScript<TBPActionWhenHit> {
+        return new BPRecipieInScript<TBPActionWhenHit>(this.unmappedBPRecipie, newLocation);
     }
 
-    public asBPInUrlRegexpRecipie(): BPRecipieInUrlRegexp<TBPActionWhenHit> {
+    public mappedToUrlRegexp(): BPRecipieInUrlRegexp<TBPActionWhenHit> {
         const urlRegexp = createURLRegexp(utils.pathToRegex(this.location.script.url));
-        return new BPRecipieInUrlRegexp<TBPActionWhenHit>(this.unmappedBpRecipie,
+        return new BPRecipieInUrlRegexp<TBPActionWhenHit>(this.unmappedBPRecipie,
             new LocationInUrlRegexp(urlRegexp, this.location.coordinates));
     }
 
-    public asBPInUrlRecipie(): BPRecipieInUrl<TBPActionWhenHit> {
+    public mappedToUrl(): BPRecipieInUrl<TBPActionWhenHit> {
         const url = this.location.script.runtimeSource.identifier;
-        return new BPRecipieInUrl<TBPActionWhenHit>(this.unmappedBpRecipie,
+        return new BPRecipieInUrl<TBPActionWhenHit>(this.unmappedBPRecipie,
             new LocationInUrl(url, this.location.coordinates));
     }
 }
