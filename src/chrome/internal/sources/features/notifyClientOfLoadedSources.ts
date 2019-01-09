@@ -64,10 +64,7 @@ export class NotifyClientOfLoadedSources implements IComponent {
                 telemetry.reportEvent('LoadedSourceEventError', { issue: 'Unknown reason', reason: loadedSourceEventReason });
         }
 
-        // TODO DIEGO: Should we be using the source tree here?
-        // const sourceTree = this._sourcesLogic.getLoadedSourcesTree(script.script);
-
-        this._eventsToClientReporter.sendSourceWasLoaded({ reason: loadedSourceEventReason, source: script.developmentSource });
+        this._eventsToClientReporter.sendSourceWasLoaded({ reason: loadedSourceEventReason, source: script.runtimeSource });
     }
 
     constructor(
