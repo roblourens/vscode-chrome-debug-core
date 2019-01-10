@@ -35,7 +35,6 @@ import { ChromeDebugLogic } from '../chromeDebugAdapter';
 import { CDTPOnScriptParsedEventProvider, IScriptParsedProvider } from '../target/cdtpOnScriptParsedEventProvider';
 import { CDTPDebuggerEventsProvider, ICDTPDebuggerEventsProvider } from '../target/cdtpDebuggerEventsProvider';
 import { ITargetBreakpoints, CDTPTargetBreakpoints } from '../target/cdtpTargetBreakpoints';
-import { MethodsCalledLogger } from '../logging/methodsCalledLogger';
 
 export function bindAll(di: Container) {
     bind<IDOMInstrumentationBreakpoints>(di, TYPES.IDOMInstrumentationBreakpoints, CDTPDOMDebugger);
@@ -87,6 +86,7 @@ export function bindAll(di: Container) {
 
 function bind<T extends object>(container: Container, serviceIdentifier: interfaces.ServiceIdentifier<T>, newable: interfaces.Newable<T>): void {
     container.bind<T>(serviceIdentifier).to(newable).inSingletonScope().onActivation((_context, object) => {
-        return new MethodsCalledLogger<T>(object, serviceIdentifier.toString()).wrapped();
+        return object;
+        /// return new MethodsCalledLogger<T>(object, serviceIdentifier.toString()).wrapped();
     });
 }
