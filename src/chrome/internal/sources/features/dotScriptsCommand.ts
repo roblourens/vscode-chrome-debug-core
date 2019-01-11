@@ -1,17 +1,22 @@
-import { IScript } from '../../scripts/script';
-
+import { inject, injectable } from 'inversify';
 import { parseResourceIdentifier } from '../../../..';
-
+import { BaseSourceMapTransformer } from '../../../../transformers/baseSourceMapTransformer';
 import { IEventsToClientReporter } from '../../../client/eventSender';
 import { determineOrderingOfStrings } from '../../../collections/utilities';
-import { inject, injectable } from 'inversify';
-import { BaseSourceMapTransformer } from '../../../../transformers/baseSourceMapTransformer';
-import { DeleteMeScriptsRegistry } from '../../scripts/scriptsRegistry';
 import { TYPES } from '../../../dependencyInjection.ts/types';
+import { IScriptSources } from '../../../target/cdtpDebugger';
+import { CDTPScriptsRegistry } from '../../../target/cdtpScriptsRegistry';
+import { IScript } from '../../scripts/script';
 import { IScriptSourcesRetriever } from '../../../cdtpDebuggee/features/CDTPScriptSourcesRetriever';
 
 @injectable()
 export class DotScriptCommand {
+  constructor(
+        @inject(TYPES.BaseSourceMapTransformer) private readonly _sourceMapTransformer: BaseSourceMapTransformer,
+        @inject(TYPES.IScriptSources) private readonly _scriptSources: IScriptSourcesRetriever,
+        @inject(TYPES.EventSender) private readonly _eventsToClientReporter: IEventsToClientReporter,
+        @inject(TYPES.CDTPScriptsRegistry) private readonly _scriptsRegistry: CDTPScriptsRegistry) { }
+
     /**
      * Handle the .scripts command, which can be used as `.scripts` to return a list of all script details,
      * or `.scripts <url>` to show the contents of the given script.
@@ -20,7 +25,7 @@ export class DotScriptCommand {
         let outputStringP: Promise<string>;
         if (scriptsRest) {
             // `.scripts <url>` was used, look up the script by url
-            const requestedScript = this._scriptsLogic.getScriptsByPath(parseResourceIdentifier(scriptsRest));
+            const requestedScript = this._scriptsRegistry.getScriptsByPath(parseResourceIdentifier(scriptsRest));
             if (requestedScript) {
                 outputStringP = this._scriptSources.getScriptSource(requestedScript[0])
                     .then(result => {
@@ -42,27 +47,25 @@ export class DotScriptCommand {
     }
 
     private async getAllScriptsString(): Promise<string> {
-        const scripts = (await this._scriptsLogic.getAllScripts()).sort((left, script) => determineOrderingOfStrings(left.url, script.url));
+        const scripts = (await Promise.all([
+            ...this._scriptsRegistry.getAllScripts()
+        ])).sort((left, script) => determineOrderingOfStrings(left.url, script.url));
+
         const scriptsPrinted = await Promise.all(scripts.map(script => this.getOneScriptString(script)));
         return scriptsPrinted.join('\n');
     }
 
-    private getOneScriptString(script: IScript): Promise<string> {
+    private async getOneScriptString(script: IScript): Promise<string> {
         let result = '› ' + script.runtimeSource.identifier.textRepresentation;
         const clientPath = script.developmentSource.identifier.textRepresentation;
         if (script.developmentSource !== script.runtimeSource) result += ` (${clientPath})`;
 
-        return this._sourceMapTransformer.allSourcePathDetails(script.developmentSource.identifier.canonicalized).then(sourcePathDetails => {
-            let mappedSourcesStr = sourcePathDetails.map(details => `    - ${details.originalPath} (${details.inferredPath})`).join('\n');
-            if (sourcePathDetails.length) mappedSourcesStr = '\n' + mappedSourcesStr;
+        const sourcePathDetails = await this._sourceMapTransformer.allSourcePathDetails(script.runtimeSource.identifier.canonicalized);
+        let mappedSourcesStr = sourcePathDetails.map(details => `    - ${details.originalPath} (${details.inferredPath})`).join('\n');
+        if (sourcePathDetails.length) {
+            mappedSourcesStr = '\n' + mappedSourcesStr;
+        }
 
-            return result + mappedSourcesStr;
-        });
+        return result + mappedSourcesStr;
     }
-
-    constructor(
-        @inject(TYPES.BaseSourceMapTransformer) private readonly _sourceMapTransformer: BaseSourceMapTransformer,
-        @inject(TYPES.DeleteMeScriptsRegistry) private readonly _scriptsLogic: DeleteMeScriptsRegistry,
-        @inject(TYPES.IScriptSources) private readonly _scriptSources: IScriptSourcesRetriever,
-        @inject(TYPES.EventSender) private readonly _eventsToClientReporter: IEventsToClientReporter) { }
 }
