@@ -47,7 +47,7 @@ import { CodeFlowStackTrace } from './internal/stackTraces/stackTrace';
 import { IResourceIdentifier } from './internal/sources/resourceIdentifier';
 import { FormattedExceptionParser } from './internal/formattedExceptionParser';
 import { DeleteMeScriptsRegistry } from './internal/scripts/scriptsRegistry';
-import { ExceptionThrownEventProvider } from './target/ExceptionThrownEventProvider';
+import { ExceptionThrownEventProvider } from './target/exceptionThrownEventProvider';
 import { ExecutionContextEventsProvider } from './target/executionContextEventsProvider';
 import { IInspectDebugeeState } from './target/inspectDebugeeState';
 import { IUpdateDebugeeState } from './target/updateDebugeeState';
