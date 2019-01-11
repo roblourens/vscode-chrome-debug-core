@@ -4,10 +4,9 @@ import { BaseSourceMapTransformer } from '../../../../transformers/baseSourceMap
 import { IEventsToClientReporter } from '../../../client/eventSender';
 import { determineOrderingOfStrings } from '../../../collections/utilities';
 import { TYPES } from '../../../dependencyInjection.ts/types';
-import { IScriptSources } from '../../../target/cdtpDebugger';
-import { CDTPScriptsRegistry } from '../../../target/cdtpScriptsRegistry';
 import { IScript } from '../../scripts/script';
 import { IScriptSourcesRetriever } from '../../../cdtpDebuggee/features/CDTPScriptSourcesRetriever';
+import { CDTPScriptsRegistry } from '../../../cdtpDebuggee/registries/cdtpScriptsRegistry';
 
 @injectable()
 export class DotScriptCommand {
