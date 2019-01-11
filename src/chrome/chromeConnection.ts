@@ -9,11 +9,12 @@ import { StepProgressEventsEmitter, IObservableEvents, IStepStartedEventsEmitter
 import * as errors from '../errors';
 import * as utils from '../utils';
 import { logger } from 'vscode-debugadapter';
-import { ChromeTargetDiscovery, TargetVersions, Version } from './chromeTargetDiscoveryStrategy';
+import { ChromeTargetDiscovery, TargetVersions } from './chromeTargetDiscoveryStrategy';
+import { Version } from "./utils/version";
 
 import { Client } from 'noice-json-rpc';
 
-import { Protocol as Crdp } from 'devtools-protocol';
+import { Protocol as CDTP } from 'devtools-protocol';
 
 export interface ITarget {
     description: string;
@@ -109,7 +110,7 @@ export class ChromeConnection implements IObservableEvents<IStepStartedEventsEmi
 
     public get isAttached(): boolean { return !!this._client; }
 
-    public get api(): Crdp.ProtocolApi {
+    public get api(): CDTP.ProtocolApi {
         return this._client && this._client.api();
     }
 

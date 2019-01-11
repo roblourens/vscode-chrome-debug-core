@@ -1,5 +1,4 @@
 import { asyncMap } from '../../../collections/async';
-import { PausedEvent } from '../../../target/events';
 import { ILoadedSource } from '../../sources/loadedSource';
 import { IComponent } from '../../features/feature';
 import { LocationInScript, ScriptOrSourceOrURLOrURLRegexp } from '../../locations/location';
@@ -8,12 +7,14 @@ import { NotifyStoppedCommonLogic, ResumeCommonLogic, InformationAboutPausedProv
 import { ReasonType } from '../../../stoppedEvent';
 import { VoteRelevance, Vote, Abstained } from '../../../communication/collaborativeDecision';
 import { injectable, inject } from 'inversify';
-import { IDOMInstrumentationBreakpoints, IDebugeeVersionProvider } from '../../../target/cdtpSmallerModules';
 import { TYPES } from '../../../dependencyInjection.ts/types';
 import { IEventsToClientReporter } from '../../../client/eventSender';
-import { IDebugeeExecutionControl } from '../../../target/controlDebugeeExecution';
+import { IDebugeeExecutionController } from '../../../cdtpDebuggee/features/cdtpDebugeeExecutionController';
 import { ReAddBPsWhenSourceIsLoaded } from './reAddBPsWhenSourceIsLoaded';
 import { BreakpointsRegistry } from '../breakpointsRegistry';
+import { IDOMInstrumentationBreakpoints } from '../../../cdtpDebuggee/features/cdtpDOMInstrumentationBreakpoints';
+import { IDebugeeRuntimeVersionProvider } from '../../../cdtpDebuggee/features/cdtpDebugeeRuntimeVersionProvider';
+import { PausedEvent } from '../../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
 export type Dummy = VoteRelevance; // If we don't do this the .d.ts doesn't include VoteRelevance and the compilation fails. Remove this when the issue disappears...
 
 export interface PauseScriptLoadsToSetBPsDependencies {
@@ -37,11 +38,12 @@ export class HitStillPendingBreakpoint extends NotifyStoppedCommonLogic {
 export class PausedWhileLoadingScriptToResolveBreakpoints extends ResumeCommonLogic {
     public readonly relevance = VoteRelevance.FallbackVote;
 
-    constructor(protected readonly _debugeeExecutionControl: IDebugeeExecutionControl) {
+    constructor(protected readonly _debugeeExecutionControl: IDebugeeExecutionController) {
         super();
     }
 }
 
+/// TODO: Move this to a browser-shared package
 @injectable()
 export class PauseScriptLoadsToSetBPs implements IComponent {
     private readonly stopsWhileScriptsLoadInstrumentationName = 'scriptFirstStatement';
@@ -108,20 +110,17 @@ export class PauseScriptLoadsToSetBPs implements IComponent {
         // On version 69 Chrome stopped sending an extra event for DOM Instrumentation: See https://bugs.chromium.org/p/chromium/issues/detail?id=882909
         // On Chrome 68 we were relying on that event to make Break on load work on breakpoints on the first line of a file. On Chrome 69 we need an alternative way to make it work.
         // TODO: Reenable the code that uses Versions.Target.Version when this fails
-        const versions = await this._debugeeVersionProvider.getVersion();
-
-        const version = versions.product.replace(/Chrome\/([0-9]{2})\..*/, '$1');
-        const majorVersionNumber = parseInt(version, 10);
-        this._scriptFirstStatementStopsBeforeFile = majorVersionNumber < 69;
+        const runtimeVersion = await this._debugeeVersionProvider.version();
+        this._scriptFirstStatementStopsBeforeFile = !runtimeVersion.isAtLeastVersion('69.0.0');
         return this;
     }
 
     constructor(
         @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: PauseScriptLoadsToSetBPsDependencies,
         @inject(TYPES.IDOMInstrumentationBreakpoints) private readonly _domInstrumentationBreakpoints: IDOMInstrumentationBreakpoints,
-        @inject(TYPES.IDebugeeExecutionControl) private readonly _debugeeExecutionControl: IDebugeeExecutionControl,
+        @inject(TYPES.IDebugeeExecutionControl) private readonly _debugeeExecutionControl: IDebugeeExecutionController,
         @inject(TYPES.IEventsToClientReporter) protected readonly _eventsToClientReporter: IEventsToClientReporter,
-        @inject(TYPES.IDebugeeVersionProvider) protected readonly _debugeeVersionProvider: IDebugeeVersionProvider,
+        @inject(TYPES.IDebugeeVersionProvider) protected readonly _debugeeVersionProvider: IDebugeeRuntimeVersionProvider,
         @inject(TYPES.ReAddBPsWhenSourceIsLoaded) protected readonly _reAddBPsWhenSourceIsLoaded: ReAddBPsWhenSourceIsLoaded,
         @inject(TYPES.BreakpointsRegistry) protected readonly _breakpointsRegistry: BreakpointsRegistry,
     ) {

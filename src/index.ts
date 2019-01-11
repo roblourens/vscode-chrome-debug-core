@@ -29,24 +29,28 @@ import * as variables from './chrome/variables';
 import { NullLogger } from './nullLogger';
 import * as executionTimingsReporter from './executionTimingsReporter';
 
-import { Protocol as Crdp } from 'devtools-protocol';
-import { Version, TargetVersions } from './chrome/chromeTargetDiscoveryStrategy';
+import { Protocol as CDTP } from 'devtools-protocol';
+import { TargetVersions } from './chrome/chromeTargetDiscoveryStrategy';
+import { Version } from "./chrome/utils/version";
 import { IOnPausedResult } from './chrome/internal/breakpoints/breakpointsLogic';
 import { parseResourceIdentifier } from './chrome/internal/sources/resourceIdentifier';
 import { ChromeDebugAdapter } from './chrome/client/chromeDebugAdapter/chromeDebugAdapterV2';
 import { IExtensibilityPoints, OnlyProvideCustomLauncherExtensibilityPoints } from './chrome/extensibility/extensibilityPoints';
-import { IDebuggeeLauncher, ILaunchResult, IDebuggeeRunner } from './chrome/debugee/debugeeLauncher';
+import { IDebuggeeLauncher, ILaunchResult, IDebuggeeRunner } from './chrome/debugeeStartup/debugeeLauncher';
 import { inject, injectable, postConstruct } from 'inversify';
 import { ConnectedCDAConfiguration } from './chrome/client/chromeDebugAdapter/cdaConfiguration';
 import { IComponent } from './chrome/internal/features/feature';
 import { TYPES } from './chrome/dependencyInjection.ts/types';
-import { IInspectDebugeeState } from './chrome/target/inspectDebugeeState';
-import { CDTPEventsEmitterDiagnosticsModule } from './chrome/target/cdtpDiagnosticsModule';
-import { INetworkCacheConfiguration, IDebugeeVersionProvider, IPausedOverlay, IBrowserNavigation } from './chrome/target/cdtpSmallerModules';
+import { IInspectDebugeeState } from './chrome/cdtpDebuggee/features/cdtpInspectDebugeeState';
+import { CDTPEventsEmitterDiagnosticsModule } from './chrome/cdtpDebuggee/infrastructure/cdtpDiagnosticsModule';
 import { ICommunicator } from './chrome/communication/communicator';
 import { ISupportedDomains } from './chrome/internal/domains/supportedDomains';
 import { Internal } from './chrome/communication/internalChannels';
 import { ISession } from './chrome/client/session';
+import { IPausedOverlay } from './chrome/cdtpDebuggee/features/cdtpPausedOverlay';
+import { INetworkCacheConfiguration } from './chrome/cdtpDebuggee/features/cdtpNetworkCacheConfiguration';
+import { IDebugeeRuntimeVersionProvider } from './chrome/cdtpDebuggee/features/cdtpDebugeeRuntimeVersionProvider';
+import { IBrowserNavigator } from './chrome/cdtpDebuggee/features/cdtpBrowserNavigator';
 
 export {
     chromeConnection,
@@ -99,15 +103,15 @@ export {
     Internal,
 
     INetworkCacheConfiguration,
-    IDebugeeVersionProvider,
+    IDebugeeRuntimeVersionProvider as IDebugeeVersionProvider,
 
     parseResourceIdentifier,
-    IBrowserNavigation,
+    IBrowserNavigator as IBrowserNavigation,
 
     ISession,
     TYPES,
 
     IInspectDebugeeState,
 
-    Crdp
+    CDTP
 };

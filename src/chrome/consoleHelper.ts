@@ -2,12 +2,12 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { Protocol as Crdp } from 'devtools-protocol';
+import { Protocol as CDTP } from 'devtools-protocol';
 import * as Color from 'color';
 import * as variables from './variables';
-import { ExceptionDetails } from './target/events';
 import { IScript } from './internal/scripts/script';
 import { CodeFlowStackTrace } from './internal/stackTraces/stackTrace';
+import { ExceptionDetails } from './cdtpDebuggee/eventsProviders/cdtpExceptionThrownEventsProvider';
 
 export function formatExceptionDetails(e: ExceptionDetails): string {
     if (!e.exception) {
@@ -20,7 +20,7 @@ export function formatExceptionDetails(e: ExceptionDetails): string {
 
 export const clearConsoleCode = '\u001b[2J';
 
-export function formatConsoleArguments(type: Crdp.Runtime.ConsoleAPICalledEvent['type'], args: Crdp.Runtime.RemoteObject[], stackTrace?: CodeFlowStackTrace<IScript>): { args: Crdp.Runtime.RemoteObject[], isError: boolean } {
+export function formatConsoleArguments(type: CDTP.Runtime.ConsoleAPICalledEvent['type'], args: CDTP.Runtime.RemoteObject[], stackTrace?: CodeFlowStackTrace<IScript>): { args: CDTP.Runtime.RemoteObject[], isError: boolean } {
     switch (type) {
         case 'log':
         case 'debug':
@@ -76,7 +76,7 @@ export function formatConsoleArguments(type: Crdp.Runtime.ConsoleAPICalledEvent[
 /**
  * Collapse non-object arguments, and apply format specifiers (%s, %d, etc). Return a reduced a formatted list of RemoteObjects.
  */
-function resolveParams(args: Crdp.Runtime.RemoteObject[], skipFormatSpecifiers?: boolean): Crdp.Runtime.RemoteObject[] {
+function resolveParams(args: CDTP.Runtime.RemoteObject[], skipFormatSpecifiers?: boolean): CDTP.Runtime.RemoteObject[] {
     if (!args.length || args[0].objectId) {
         // If the first arg is not text, nothing is going to happen here
         return args;
@@ -95,7 +95,7 @@ function resolveParams(args: Crdp.Runtime.RemoteObject[], skipFormatSpecifiers?:
         formatSpecifiers = [];
     }
 
-    const processedArgs: Crdp.Runtime.RemoteObject[] = [];
+    const processedArgs: CDTP.Runtime.RemoteObject[] = [];
     const pushStringArg = (strArg: string) => {
         if (typeof strArg === 'string') {
             processedArgs.push({ type: 'string', value: strArg });
@@ -140,7 +140,7 @@ function resolveParams(args: Crdp.Runtime.RemoteObject[], skipFormatSpecifiers?:
     return processedArgs;
 }
 
-function formatArg(formatSpec: string, arg: Crdp.Runtime.RemoteObject): string | Crdp.Runtime.RemoteObject {
+function formatArg(formatSpec: string, arg: CDTP.Runtime.RemoteObject): string | CDTP.Runtime.RemoteObject {
     const paramValue = String(typeof arg.value !== 'undefined' ? arg.value : arg.description);
 
     if (formatSpec === 's') {

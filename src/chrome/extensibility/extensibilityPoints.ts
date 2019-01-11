@@ -4,7 +4,7 @@ import { BaseSourceMapTransformer } from '../../transformers/baseSourceMapTransf
 import { LineColTransformer } from '../../transformers/lineNumberTransformer';
 import { ILaunchRequestArgs, IAttachRequestArgs } from '../../debugAdapterInterfaces';
 import { interfaces } from 'inversify';
-import { IDebuggeeLauncher, IDebuggeeRunner } from '../debugee/debugeeLauncher';
+import { IDebuggeeLauncher, IDebuggeeRunner } from '../debugeeStartup/debugeeLauncher';
 import { ConnectedCDAConfiguration } from '../client/chromeDebugAdapter/cdaConfiguration';
 
 export interface IExtensibilityPoints {

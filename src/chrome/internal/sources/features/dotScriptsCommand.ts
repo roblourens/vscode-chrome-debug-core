@@ -8,7 +8,7 @@ import { inject, injectable } from 'inversify';
 import { BaseSourceMapTransformer } from '../../../../transformers/baseSourceMapTransformer';
 import { DeleteMeScriptsRegistry } from '../../scripts/scriptsRegistry';
 import { TYPES } from '../../../dependencyInjection.ts/types';
-import { IScriptSources } from '../../../target/cdtpDebugger';
+import { IScriptSourcesRetriever } from '../../../cdtpDebuggee/features/CDTPScriptSourcesRetriever';
 
 @injectable()
 export class DotScriptCommand {
@@ -63,6 +63,6 @@ export class DotScriptCommand {
     constructor(
         @inject(TYPES.BaseSourceMapTransformer) private readonly _sourceMapTransformer: BaseSourceMapTransformer,
         @inject(TYPES.DeleteMeScriptsRegistry) private readonly _scriptsLogic: DeleteMeScriptsRegistry,
-        @inject(TYPES.IScriptSources) private readonly _scriptSources: IScriptSources,
+        @inject(TYPES.IScriptSources) private readonly _scriptSources: IScriptSourcesRetriever,
         @inject(TYPES.EventSender) private readonly _eventsToClientReporter: IEventsToClientReporter) { }
 }

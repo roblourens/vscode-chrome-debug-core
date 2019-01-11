@@ -1,4 +1,5 @@
-import { Crdp } from '../../..';
+import { Protocol as CDTP } from 'devtools-protocol';
+
 import { IScript } from './script';
 import { ValidatedMap } from '../../collections/validatedMap';
 import { IResourceIdentifier, newResourceIdentifierMap } from '../sources/resourceIdentifier';
@@ -8,19 +9,19 @@ import { injectable } from 'inversify';
 @injectable()
 export class DeleteMeScriptsRegistry {
     private readonly _scriptsGeneration = new ScriptsGeneration();
-    private readonly _idToExecutionContext = new ValidatedMap<Crdp.Runtime.ExecutionContextId, ExecutionContext>();
+    private readonly _idToExecutionContext = new ValidatedMap<CDTP.Runtime.ExecutionContextId, ExecutionContext>();
 
-    public registerExecutionContext(executionContextId: Crdp.Runtime.ExecutionContextId): IExecutionContext {
+    public registerExecutionContext(executionContextId: CDTP.Runtime.ExecutionContextId): IExecutionContext {
         const executionContext = new ExecutionContext();
         this._idToExecutionContext.set(executionContextId, executionContext);
         return executionContext;
     }
 
-    public getExecutionContextById(executionContextId: Crdp.Runtime.ExecutionContextId): IExecutionContext {
+    public getExecutionContextById(executionContextId: CDTP.Runtime.ExecutionContextId): IExecutionContext {
         return this._idToExecutionContext.get(executionContextId);
     }
 
-    public registerNewScript(scriptId: Crdp.Runtime.ScriptId, obtainScript: () => Promise<IScript>): Promise<IScript> {
+    public registerNewScript(scriptId: CDTP.Runtime.ScriptId, obtainScript: () => Promise<IScript>): Promise<IScript> {
         return this._scriptsGeneration.registerNewScript(scriptId, obtainScript);
     }
 
@@ -28,7 +29,7 @@ export class DeleteMeScriptsRegistry {
         return this._scriptsGeneration.getCdtpId(script);
     }
 
-    public getScriptById(runtimeScriptCrdpId: Crdp.Runtime.ScriptId): Promise<IScript> {
+    public getScriptById(runtimeScriptCrdpId: CDTP.Runtime.ScriptId): Promise<IScript> {
         return this._scriptsGeneration.scriptById(runtimeScriptCrdpId);
     }
 
@@ -42,18 +43,18 @@ export class DeleteMeScriptsRegistry {
 }
 
 export class ScriptsGeneration {
-    private readonly _cdtpIdByScript = new ValidatedMap<Crdp.Runtime.ScriptId, Promise<IScript>>();
-    private readonly _scriptByCdtpId = new ValidatedMap<IScript, Crdp.Runtime.ScriptId>();
+    private readonly _cdtpIdByScript = new ValidatedMap<CDTP.Runtime.ScriptId, Promise<IScript>>();
+    private readonly _scriptByCdtpId = new ValidatedMap<IScript, CDTP.Runtime.ScriptId>();
     private readonly _scriptByPath = newResourceIdentifierMap<IScript[]>();
 
-    private createScriptInitialConfiguration(scriptId: Crdp.Runtime.ScriptId, script: IScript): void {
+    private createScriptInitialConfiguration(scriptId: CDTP.Runtime.ScriptId, script: IScript): void {
         this._scriptByCdtpId.set(script, scriptId);
 
         let scriptsWithSamePath = this._scriptByPath.getOrAdd(script.runtimeSource.identifier, () => []);
         scriptsWithSamePath.push(script);
     }
 
-    public async registerNewScript(scriptId: Crdp.Runtime.ScriptId, obtainScript: () => Promise<IScript>): Promise<IScript> {
+    public async registerNewScript(scriptId: CDTP.Runtime.ScriptId, obtainScript: () => Promise<IScript>): Promise<IScript> {
         const scriptWithConfigurationPromise = obtainScript().then(script => {
             /**
              * We need to configure the script here, so we can guarantee that clients who try to use a script will get
@@ -69,7 +70,7 @@ export class ScriptsGeneration {
         return await scriptWithConfigurationPromise;
     }
 
-    public getCdtpId(script: IScript): Crdp.Runtime.ScriptId {
+    public getCdtpId(script: IScript): CDTP.Runtime.ScriptId {
         const scriptId = this._scriptByCdtpId.get(script);
 
         if (script === undefined) {

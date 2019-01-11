@@ -7,7 +7,7 @@ import { LocationInLoadedSource } from '../internal/locations/location';
 import { IBPRecipieStatus } from '../internal/breakpoints/bpRecipieStatus';
 import { IFormattedExceptionLineDescription } from '../internal/formattedExceptionParser';
 import { StoppedEvent2, ReasonType } from '../stoppedEvent';
-import { Crdp, ChromeDebugLogic } from '../..';
+import { CDTP, ChromeDebugLogic } from '../..';
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../dependencyInjection.ts/types';
 
@@ -36,7 +36,7 @@ export interface ExceptionThrownParameters {
 
 export interface DebugeeIsStoppedParameters {
     reason: ReasonType;
-    exception?: Crdp.Runtime.RemoteObject;
+    exception?: CDTP.Runtime.RemoteObject;
 }
 
 export interface IEventsToClientReporter {

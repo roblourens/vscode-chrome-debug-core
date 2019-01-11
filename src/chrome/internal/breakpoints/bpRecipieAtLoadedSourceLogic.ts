@@ -7,11 +7,11 @@ import { chromeUtils, logger } from '../../..';
 import { createColumnNumber, createLineNumber } from '../locations/subtypes';
 import { RangeInScript } from '../locations/rangeInScript';
 import { BreakpointsRegistry } from './breakpointsRegistry';
-import { PausedEvent } from '../../target/events';
+import { PausedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
 import { VoteRelevance, Vote, Abstained } from '../../communication/collaborativeDecision';
 import { inject, injectable } from 'inversify';
-import { ITargetBreakpoints } from '../../target/cdtpTargetBreakpoints';
-import { IBreakpointFeaturesSupport } from '../../target/breakpointFeaturesSupport';
+import { IDebuggeeBreakpoints } from '../../cdtpDebuggee/features/cdtpDebuggeeBreakpoints';
+import { IBreakpointFeaturesSupport } from '../../cdtpDebuggee/features/cdtpBreakpointFeaturesSupport';
 import { TYPES } from '../../dependencyInjection.ts/types';
 import { InformationAboutPausedProvider, NotifyStoppedCommonLogic } from '../features/takeProperActionOnPausedEvent';
 import { IEventsToClientReporter } from '../../client/eventSender';
@@ -30,16 +30,16 @@ export class HitBreakpoint extends NotifyStoppedCommonLogic {
 }
 
 export interface IBreakpointsInLoadedSource {
-    addBreakpointForLoadedSource(bpRecipie: BPRecipieInLoadedSource<ConditionalBreak | AlwaysBreak>): Promise<IBreakpoint<ScriptOrSourceOrURLOrURLRegexp>[]>;
+    addBreakpointAtLoadedSource(bpRecipie: BPRecipieInLoadedSource<ConditionalBreak | AlwaysBreak>): Promise<IBreakpoint<ScriptOrSourceOrURLOrURLRegexp>[]>;
 }
 
-export interface BPRecipieInLoadedSourceLogicDependencies {
+export interface BPRecipieAtLoadedSourceLogicDependencies {
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
     publishGoingToPauseClient(): void;
 }
 
 @injectable()
-export class BPRecipieInLoadedSourceLogic implements IBreakpointsInLoadedSource {
+export class BPRecipieAtLoadedSourceLogic implements IBreakpointsInLoadedSource {
     private readonly doesTargetSupportColumnBreakpointsCached: Promise<boolean>;
 
     public async askForInformationAboutPaused(paused: PausedEvent): Promise<Vote<void>> {
@@ -53,10 +53,10 @@ export class BPRecipieInLoadedSourceLogic implements IBreakpointsInLoadedSource 
         }
     }
 
-    public async addBreakpointForLoadedSource(bpRecipie: BPRecipieInLoadedSource<ConditionalBreak | AlwaysBreak>): Promise<IBreakpoint<ScriptOrSourceOrURLOrURLRegexp>[]> {
-        const bpInScriptRecipie = bpRecipie.asBPInScriptRecipie();
+    public async addBreakpointAtLoadedSource(bpRecipie: BPRecipieInLoadedSource<ConditionalBreak | AlwaysBreak>): Promise<IBreakpoint<ScriptOrSourceOrURLOrURLRegexp>[]> {
+        const bpInScriptRecipie = bpRecipie.mappedToScript();
         const bestLocation = await this.considerColumnAndSelectBestBPLocation(bpInScriptRecipie.location);
-        const bpRecipieInBestLocation = bpInScriptRecipie.atLocation(bestLocation);
+        const bpRecipieInBestLocation = bpInScriptRecipie.withLocationReplaced(bestLocation);
 
         const runtimeSource = bpInScriptRecipie.location.script.runtimeSource;
         this._breakpointRegistry.registerBPRecipie(bpRecipie);
@@ -65,17 +65,17 @@ export class BPRecipieInLoadedSourceLogic implements IBreakpointsInLoadedSource 
         if (!runtimeSource.doesScriptHasUrl()) {
             breakpoints = [await this._targetBreakpoints.setBreakpoint(bpRecipieInBestLocation)];
         } else if (runtimeSource.identifier.isLocalFilePath()) {
-            breakpoints = await this._targetBreakpoints.setBreakpointByUrlRegexp(bpRecipieInBestLocation.asBPInUrlRegexpRecipie());
+            breakpoints = await this._targetBreakpoints.setBreakpointByUrlRegexp(bpRecipieInBestLocation.mappedToUrlRegexp());
         } else { // The script has a URL and it's not a local file path, so we can leave it as-is
-            breakpoints = await this._targetBreakpoints.setBreakpointByUrl(bpRecipieInBestLocation.asBPInUrlRecipie());
+            breakpoints = await this._targetBreakpoints.setBreakpointByUrl(bpRecipieInBestLocation.mappedToUrl());
         }
 
         breakpoints.forEach(breakpoint => this._breakpointRegistry.registerBreakpointAsBinded(breakpoint));
         return breakpoints;
     }
 
-    public removeBreakpoint(bpRecipie: BPRecipie<ISource>): Promise<void> {
-        return this._targetBreakpoints.removeBreakpoint(bpRecipie);
+    public async removeBreakpoint(_bpRecipie: BPRecipie<ISource>): Promise<void> {
+        // TODO: Implement this method return this._targetBreakpoints.removeBreakpoint(bpRecipie);
     }
 
     private async considerColumnAndSelectBestBPLocation(location: LocationInScript): Promise<LocationInScript> {
@@ -102,10 +102,10 @@ export class BPRecipieInLoadedSourceLogic implements IBreakpointsInLoadedSource 
     }
 
     constructor(
-        @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: BPRecipieInLoadedSourceLogicDependencies,
+        @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: BPRecipieAtLoadedSourceLogicDependencies,
         @inject(TYPES.IBreakpointFeaturesSupport) private readonly _breakpointFeaturesSupport: IBreakpointFeaturesSupport,
         private readonly _breakpointRegistry: BreakpointsRegistry,
-        @inject(TYPES.ITargetBreakpoints) private readonly _targetBreakpoints: ITargetBreakpoints,
+        @inject(TYPES.ITargetBreakpoints) private readonly _targetBreakpoints: IDebuggeeBreakpoints,
         @inject(TYPES.IEventsToClientReporter) private readonly _eventsToClientReporter: IEventsToClientReporter) {
         this.doesTargetSupportColumnBreakpointsCached = this._breakpointFeaturesSupport.supportsColumnBreakpoints;
     }

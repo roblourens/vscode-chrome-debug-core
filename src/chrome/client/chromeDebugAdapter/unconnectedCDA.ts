@@ -18,7 +18,8 @@ import { ConnectedCDAConfiguration } from './cdaConfiguration';
 import { ConnectedCDA } from './connectedCDA';
 import { ConnectedCDAEventsCreator } from './connectedCDAEvents';
 import { UnconnectedCDACommonLogic } from './unconnectedCDACommonLogic';
-import { IDebuggeeLauncher } from '../../debugee/debugeeLauncher';
+import { IDebuggeeLauncher } from '../../debugeeStartup/debugeeLauncher';
+import { IDomainsEnabler } from '../../cdtpDebuggee/infrastructure/cdtpDomainsEnabler';
 
 export enum ScenarioType {
     Launch,
@@ -86,7 +87,9 @@ export class UnconnectedCDA extends UnconnectedCDACommonLogic implements IDebugA
         const newState = di.createClassWithDI<ConnectedCDA>(ConnectedCDA);
         await newState.install();
 
-        await chromeConnection.api.Runtime.enable();
+        const domainsEnabler = di.createComponent<IDomainsEnabler>(TYPES.IDomainsEnabler);
+        await domainsEnabler.enableDomains(); // Enables all the domains that were registered
+        await chromeConnection.api.Runtime.runIfWaitingForDebugger();
 
         this._session.sendEvent(new InitializedEvent());
 

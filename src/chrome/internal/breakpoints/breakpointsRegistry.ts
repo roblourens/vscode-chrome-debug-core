@@ -1,14 +1,14 @@
 import { IBPRecipieStatus, BPRecipieIsBinded, BPRecipieIsUnbinded } from './bpRecipieStatus';
 import { IBreakpoint } from './breakpoint';
 import { ValidatedMultiMap } from '../../collections/validatedMultiMap';
-import { BPRecipie, IBPRecipie } from './bpRecipie';
+import { BPRecipie, AnyBPRecipie } from './bpRecipie';
 import { ScriptOrSourceOrURLOrURLRegexp, LocationInScript } from '../locations/location';
 import { injectable } from 'inversify';
 
 @injectable()
 export class BreakpointsRegistry {
     // TODO DIEGO: Figure out how to handle if two breakpoint rules set a breakpoint in the same location so it ends up being the same breakpoint id
-    private readonly _unmappedRecipieToBreakpoints = new ValidatedMultiMap<IBPRecipie<ScriptOrSourceOrURLOrURLRegexp>,
+    private readonly _unmappedRecipieToBreakpoints = new ValidatedMultiMap<AnyBPRecipie,
         IBreakpoint<ScriptOrSourceOrURLOrURLRegexp>>();
 
     public registerBPRecipie(bpRecipie: BPRecipie<ScriptOrSourceOrURLOrURLRegexp>): void {
@@ -16,10 +16,10 @@ export class BreakpointsRegistry {
     }
 
     public registerBreakpointAsBinded(bp: IBreakpoint<ScriptOrSourceOrURLOrURLRegexp>): void {
-        this._unmappedRecipieToBreakpoints.add(bp.recipie.unmappedBpRecipie, bp);
+        this._unmappedRecipieToBreakpoints.add(bp.recipie.unmappedBPRecipie, bp);
     }
 
-    public getStatusOfBPRecipie(bpRecipie: IBPRecipie<ScriptOrSourceOrURLOrURLRegexp>): IBPRecipieStatus {
+    public getStatusOfBPRecipie(bpRecipie: AnyBPRecipie): IBPRecipieStatus {
         const breakpoints = this._unmappedRecipieToBreakpoints.get(bpRecipie);
         if (breakpoints.size > 0) {
             return new BPRecipieIsBinded(bpRecipie, Array.from(breakpoints), 'TODO DIEGO');

@@ -1,4 +1,4 @@
-import { IBPRecipie } from './bpRecipie';
+import { AnyBPRecipie } from './bpRecipie';
 import { ITelemetryPropertyCollector, IComponent, ConnectedCDAConfiguration } from '../../..';
 import { ScriptOrSourceOrURLOrURLRegexp } from '../locations/location';
 import { BPRecipiesInUnresolvedSource } from './bpRecipies';
@@ -8,7 +8,7 @@ import { asyncMap } from '../../collections/async';
 import { IBPRecipieStatus } from './bpRecipieStatus';
 import { ClientCurrentBPRecipiesRegistry } from './clientCurrentBPRecipiesRegistry';
 import { BreakpointsRegistry } from './breakpointsRegistry';
-import { BPRecipieInLoadedSourceLogic } from './bpRecipieInLoadedSourceLogic';
+import { BPRecipieAtLoadedSourceLogic } from './bpRecipieAtLoadedSourceLogic';
 import { RemoveProperty } from '../../../typeUtils';
 import { IEventsToClientReporter } from '../../client/eventSender';
 import { PauseScriptLoadsToSetBPs, PauseScriptLoadsToSetBPsDependencies } from './features/pauseScriptLoadsToSetBPs';
@@ -42,7 +42,7 @@ export class BreakpointsLogic implements IComponent {
         this.onUnbounBPRecipieIsNowBound(breakpoint.recipie);
     }
 
-    private onUnbounBPRecipieIsNowBound(bpRecipie: IBPRecipie<ScriptOrSourceOrURLOrURLRegexp>): void {
+    private onUnbounBPRecipieIsNowBound(bpRecipie: AnyBPRecipie): void {
         const bpRecipieStatus = this._breakpointRegistry.getStatusOfBPRecipie(bpRecipie);
         this._eventsToClientReporter.sendBPStatusChanged({ reason: 'changed', bpRecipieStatus });
     }
@@ -58,8 +58,8 @@ export class BreakpointsLogic implements IComponent {
                 // Match desired breakpoints to existing breakpoints
 
                 await asyncMap(requestedBPsToAddInLoadedSources.breakpoints, async requestedBP => {
-                    // DIEGO TODO: Do we need to do one breakpoint at a time to avoid issues on Crdp, or can we do them in parallel now that we use a different algorithm?
-                    await this._bprInLoadedSourceLogic.addBreakpointForLoadedSource(requestedBP);
+                    // DIEGO TODO: Do we need to do one breakpoint at a time to avoid issues on CDTP, or can we do them in parallel now that we use a different algorithm?
+                    await this._bprInLoadedSourceLogic.addBreakpointAtLoadedSource(requestedBP);
                 });
                 await Promise.all(bpsDelta.existingToRemove.map(async existingBPToRemove => {
                     await this._bprInLoadedSourceLogic.removeBreakpoint(existingBPToRemove);
@@ -71,7 +71,7 @@ export class BreakpointsLogic implements IComponent {
                     // We need to investigate if we can make the new breakpoint using a pseudo-regexp to make the target think that they are on different locations
                     // and thus workaround this issue
                     await this._bprInLoadedSourceLogic.removeBreakpoint(existingToBeReplaced.existingBP);
-                    await this._bprInLoadedSourceLogic.addBreakpointForLoadedSource(existingToBeReplaced.replacement.asBreakpointInLoadedSource());
+                    await this._bprInLoadedSourceLogic.addBreakpointAtLoadedSource(existingToBeReplaced.replacement.resolvedToLoadedSource());
                 });
             },
             () => {
@@ -104,7 +104,7 @@ export class BreakpointsLogic implements IComponent {
         @inject(TYPES.BreakpointsRegistry) private readonly _breakpointRegistry: BreakpointsRegistry,
         @inject(TYPES.ReAddBPsWhenSourceIsLoaded) private readonly _unbindedBreakpointsLogic: ReAddBPsWhenSourceIsLoaded,
         @inject(TYPES.PauseScriptLoadsToSetBPs) private readonly _bpsWhileLoadingLogic: PauseScriptLoadsToSetBPs,
-        @inject(TYPES.BPRecipieInLoadedSourceLogic) private readonly _bprInLoadedSourceLogic: BPRecipieInLoadedSourceLogic,
+        @inject(TYPES.BPRecipieInLoadedSourceLogic) private readonly _bprInLoadedSourceLogic: BPRecipieAtLoadedSourceLogic,
         @inject(TYPES.EventSender) private readonly _eventsToClientReporter: IEventsToClientReporter,
         @inject(TYPES.ConnectedCDAConfiguration) private readonly _configuration: ConnectedCDAConfiguration) {
         this._dependencies.onAsyncBreakpointResolved(breakpoint => this.onAsyncBreakpointResolved(breakpoint));

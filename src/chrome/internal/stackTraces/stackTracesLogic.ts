@@ -6,7 +6,7 @@ import * as path from 'path';
 
 import * as nls from 'vscode-nls';
 const localize = nls.loadMessageBundle();
-import { PausedEvent } from '../../target/events';
+import { PausedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
 import { StackTracePresentation, FramePresentationOrLabel, StackTraceLabel } from './stackTracePresentation';
 import { ILoadedSource } from '../sources/loadedSource';
 import { CodeFlowStackTrace } from './stackTrace';
@@ -19,9 +19,9 @@ import { IComponent, ComponentConfiguration } from '../features/feature';
 import { InformationAboutPausedProvider } from '../features/takeProperActionOnPausedEvent';
 import { asyncMap } from '../../collections/async';
 import { TYPES } from '../../dependencyInjection.ts/types';
-import { IAsyncDebuggingConfiguration } from '../../target/cdtpDebugger';
 import { ConnectedCDAConfiguration } from '../../..';
 import { Vote, Abstained } from '../../communication/collaborativeDecision';
+import { IAsyncDebuggingConfigurer } from '../../cdtpDebuggee/features/CDTPAsyncDebuggingConfigurer';
 
 export interface EventsConsumedByStackTrace {
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
@@ -158,7 +158,7 @@ export class StackTracesLogic implements IComponent {
         @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: EventsConsumedByStackTrace,
         // TODO DIEGO: @multiInject(new LazyServiceIdentifer(() => TYPES.IStackTracePresentationLogicProvider)) private readonly _stackTracePresentationLogicProviders: IStackTracePresentationLogicProvider[],
         @inject(TYPES.IStackTracePresentationLogicProvider) private readonly _stackTracePresentationLogicProviders: IStackTracePresentationLogicProvider,
-        @inject(TYPES.IAsyncDebuggingConfiguration) private readonly _breakpointFeaturesSupport: IAsyncDebuggingConfiguration,
+        @inject(TYPES.IAsyncDebuggingConfiguration) private readonly _breakpointFeaturesSupport: IAsyncDebuggingConfigurer,
         @inject(TYPES.ConnectedCDAConfiguration) private readonly _configuration: ConnectedCDAConfiguration) {
     }
 }

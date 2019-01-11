@@ -5,16 +5,16 @@
 
 import { EventEmitter } from 'events';
 import { Mock, IMock } from 'typemoq';
-import { Protocol as Crdp } from 'devtools-protocol';
+import { Protocol as CDTP } from 'devtools-protocol';
 
 export interface IMockChromeConnectionAPI {
-    apiObjects: Crdp.ProtocolApi;
+    apiObjects: CDTP.ProtocolApi;
 
-    Console: IMock<Crdp.ConsoleApi>;
-    Debugger: IMock<Crdp.DebuggerApi>;
-    Runtime: IMock<Crdp.RuntimeApi>;
-    Inspector: IMock<Crdp.InspectorApi>;
-    Log: IMock<Crdp.LogApi>;
+    Console: IMock<CDTP.ConsoleApi>;
+    Debugger: IMock<CDTP.DebuggerApi>;
+    Runtime: IMock<CDTP.RuntimeApi>;
+    Inspector: IMock<CDTP.InspectorApi>;
+    Log: IMock<CDTP.LogApi>;
 
     mockEventEmitter: EventEmitter;
 }
@@ -65,31 +65,31 @@ function getLogStubs(mockEventEmitter) {
 export function getMockChromeConnectionApi(): IMockChromeConnectionAPI {
     const mockEventEmitter = new EventEmitter();
 
-    const mockConsole = Mock.ofInstance<Crdp.ConsoleApi>(<any>getConsoleStubs(mockEventEmitter));
+    const mockConsole = Mock.ofInstance<CDTP.ConsoleApi>(<any>getConsoleStubs(mockEventEmitter));
     mockConsole.callBase = true;
     mockConsole
         .setup(x => x.enable())
         .returns(() => Promise.resolve());
 
-    const mockDebugger = Mock.ofInstance<Crdp.DebuggerApi>(<any>getDebuggerStubs(mockEventEmitter));
+    const mockDebugger = Mock.ofInstance<CDTP.DebuggerApi>(<any>getDebuggerStubs(mockEventEmitter));
     mockDebugger.callBase = true;
     mockDebugger
         .setup(x => x.enable())
         .returns(() => Promise.resolve(null));
 
-    const mockRuntime = Mock.ofInstance<Crdp.RuntimeApi>(<any>getRuntimeStubs(mockEventEmitter));
+    const mockRuntime = Mock.ofInstance<CDTP.RuntimeApi>(<any>getRuntimeStubs(mockEventEmitter));
     mockRuntime.callBase = true;
     mockRuntime
         .setup(x => x.enable())
         .returns(() => Promise.resolve());
 
-    const mockInspector = Mock.ofInstance<Crdp.InspectorApi>(<any>getInspectorStubs(mockEventEmitter));
+    const mockInspector = Mock.ofInstance<CDTP.InspectorApi>(<any>getInspectorStubs(mockEventEmitter));
     mockInspector.callBase = true;
 
-    const mockLog = Mock.ofInstance<Crdp.LogApi>(<any>getLogStubs(mockEventEmitter));
+    const mockLog = Mock.ofInstance<CDTP.LogApi>(<any>getLogStubs(mockEventEmitter));
     mockLog.callBase = true;
 
-    const chromeConnectionAPI: Crdp.ProtocolApi = <any>{
+    const chromeConnectionAPI: CDTP.ProtocolApi = <any>{
         Console: mockConsole.object,
         Debugger: mockDebugger.object,
         Runtime: mockRuntime.object,

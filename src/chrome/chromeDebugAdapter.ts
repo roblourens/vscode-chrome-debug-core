@@ -13,7 +13,7 @@ import {
 
 import { ChromeConnection } from './chromeConnection';
 import * as ChromeUtils from './chromeUtils';
-import { Protocol as Crdp } from 'devtools-protocol';
+import { Protocol as CDTP } from 'devtools-protocol';
 import { PropertyContainer, ScopeContainer, ExceptionContainer, isIndexedPropName, IVariableContainer } from './variables';
 import * as variables from './variables';
 import { formatConsoleArguments, formatExceptionDetails, clearConsoleCode } from './consoleHelper';
@@ -32,12 +32,9 @@ import { BreakOnLoadHelper } from './breakOnLoadHelper';
 import * as sourceMapUtils from '../sourceMaps/sourceMapUtils';
 
 import * as nls from 'vscode-nls';
-import { CDTPDiagnostics } from './target/cdtpDiagnostics';
 import { ISession } from './client/session';
 import { IScript } from './internal/scripts/script';
 
-import { EvaluateOnCallFrameRequest } from './target/requests';
-import { PausedEvent, ConsoleAPICalledEvent, ExceptionThrownEvent, LogEntry } from './target/events';
 import { LocationInLoadedSource } from './internal/locations/location';
 import { EvaluateArguments, CompletionsArguments } from './internal/requests';
 import { EventSender } from './client/eventSender';
@@ -47,13 +44,16 @@ import { CodeFlowStackTrace } from './internal/stackTraces/stackTrace';
 import { IResourceIdentifier } from './internal/sources/resourceIdentifier';
 import { FormattedExceptionParser } from './internal/formattedExceptionParser';
 import { DeleteMeScriptsRegistry } from './internal/scripts/scriptsRegistry';
-import { ExceptionThrownEventProvider } from './target/ExceptionThrownEventProvider';
-import { ExecutionContextEventsProvider } from './target/executionContextEventsProvider';
-import { IInspectDebugeeState } from './target/inspectDebugeeState';
-import { IUpdateDebugeeState } from './target/updateDebugeeState';
+import { CDTPExceptionThrownEventsProvider, ExceptionThrownEvent } from './cdtpDebuggee/eventsProviders/cdtpExceptionThrownEventsProvider';
+import { CDTPExecutionContextEventsProvider } from './cdtpDebuggee/eventsProviders/cdtpExecutionContextEventsProvider';
+import { IInspectDebugeeState, EvaluateOnCallFrameRequest } from './cdtpDebuggee/features/cdtpInspectDebugeeState';
+import { IUpdateDebugeeState } from './cdtpDebuggee/features/cdtpUpdateDebugeeState';
 import { injectable, inject } from 'inversify';
 import { TYPES } from './dependencyInjection.ts/types';
-import { ICDTPDebuggerEventsProvider } from './target/cdtpDebuggerEventsProvider';
+import { ICDTDebuggeeExecutionEventsProvider, PausedEvent } from './cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
+import { LogEntry, CDTPLogEventsProvider } from './cdtpDebuggee/eventsProviders/cdtpLogEventsProvider';
+import { IConsoleEventsProvider, ConsoleAPICalledEvent } from './cdtpDebuggee/eventsProviders/cdtpConsoleEventsProvider';
+import { IPauseOnExceptionsConfigurer } from './cdtpDebuggee/features/CDTPPauseOnExceptionsConfigurer';
 
 // export class ChromeDebugAdapter extends ChromeDebugAdapterClass {
 //     /** These methods are called by the ChromeDebugAdapter subclass in chrome-debug. We need to redirect them like this
@@ -71,7 +71,7 @@ import { ICDTPDebuggerEventsProvider } from './target/cdtpDebuggerEventsProvider
 //     protected terminateSession(reason: string, restart?: IRestartRequestArgs): Promise<void> {
 //         return this.chromeDebugAdapter.terminateSession(reason, restart);
 //     }
-//     protected globalEvaluate(args: Crdp.Runtime.EvaluateRequest): Promise<Crdp.Runtime.EvaluateResponse> {
+//     protected globalEvaluate(args: CDTP.Runtime.EvaluateRequest): Promise<CDTP.Runtime.EvaluateResponse> {
 //         return this.chromeDebugAdapter.globalEvaluate(args);
 //     }
 //     protected get _launchAttachArgs(): ICommonRequestArgs {
@@ -80,7 +80,7 @@ import { ICDTPDebuggerEventsProvider } from './target/cdtpDebuggerEventsProvider
 //     protected set _expectingStopReason(value: ReasonType) {
 //         this.chromeDebugAdapter._expectingStopReason = value;
 //     }
-//     protected get _domains(): Map<CrdpDomain, Crdp.Schema.Domain> {
+//     protected get _domains(): Map<CrdpDomain, CDTP.Schema.Domain> {
 //         return this.chromeDebugAdapter._domains;
 //     }
 //     protected get _hasTerminated(): boolean {
@@ -145,7 +145,7 @@ export interface ISourceContainer {
 
 export type VariableContext = 'variables' | 'watch' | 'repl' | 'hover';
 
-export type CrdpScript = Crdp.Debugger.ScriptParsedEvent;
+export type CrdpScript = CDTP.Debugger.ScriptParsedEvent;
 
 export type CrdpDomain = string;
 
@@ -159,9 +159,9 @@ export class ChromeDebugLogic {
     public static THREAD_ID = 1;
 
     public _session: ISession;
-    public _domains = new Map<CrdpDomain, Crdp.Schema.Domain>();
+    public _domains = new Map<CrdpDomain, CDTP.Schema.Domain>();
     private _clientAttached: boolean;
-    private _exception: Crdp.Runtime.RemoteObject | undefined;
+    private _exception: CDTP.Runtime.RemoteObject | undefined;
     private _expectingResumedEvent: boolean;
     public _expectingStopReason: ReasonType | undefined;
     private _waitAfterStep = Promise.resolve();
@@ -188,8 +188,6 @@ export class ChromeDebugLogic {
 
     protected _breakOnLoadHelper: BreakOnLoadHelper | null;
 
-    private readonly _chromeDiagnostics: CDTPDiagnostics;
-
     private readonly _chromeConnection: ChromeConnection;
     private readonly _sourceMapTransformer: BaseSourceMapTransformer;
     public _promiseRejectExceptionFilterEnabled = false;
@@ -202,21 +200,22 @@ export class ChromeDebugLogic {
         @inject(TYPES.BasePathTransformer) pathTransformer: BasePathTransformer,
         @inject(TYPES.ISession) session: ISession,
         @inject(TYPES.ChromeConnection) chromeConnection: ChromeConnection,
-        @inject(TYPES.CDTPDiagnostics) chromeDiagnostics: CDTPDiagnostics,
         @inject(TYPES.DeleteMeScriptsRegistry) private readonly _scriptsLogic: DeleteMeScriptsRegistry,
         @inject(TYPES.EventSender) private readonly _eventSender: EventSender,
-        @inject(TYPES.ExceptionThrownEventProvider) private readonly _exceptionThrownEventProvider: ExceptionThrownEventProvider,
-        @inject(TYPES.ExecutionContextEventsProvider) private readonly _executionContextEventsProvider: ExecutionContextEventsProvider,
+        @inject(TYPES.ExceptionThrownEventProvider) private readonly _exceptionThrownEventProvider: CDTPExceptionThrownEventsProvider,
+        @inject(TYPES.ExecutionContextEventsProvider) private readonly _executionContextEventsProvider: CDTPExecutionContextEventsProvider,
         @inject(TYPES.IInspectDebugeeState) private readonly _inspectDebugeeState: IInspectDebugeeState,
         @inject(TYPES.IUpdateDebugeeState) private readonly _updateDebugeeState: IUpdateDebugeeState,
         @inject(TYPES.ConnectedCDAConfiguration) private readonly _configuration: ConnectedCDAConfiguration,
-        @inject(TYPES.ICDTPDebuggerEventsProvider) private readonly _debuggerEvents: ICDTPDebuggerEventsProvider,
+        @inject(TYPES.ICDTPDebuggerEventsProvider) private readonly _debuggerEvents: ICDTDebuggeeExecutionEventsProvider,
+        @inject(TYPES.IConsoleEventsProvider) private readonly _consoleEventsProvider: IConsoleEventsProvider,
+        @inject(TYPES.ILogEventsProvider) private readonly _logEventsProvider: CDTPLogEventsProvider,
+        @inject(TYPES.IPauseOnExceptions) private readonly _pauseOnExceptions: IPauseOnExceptionsConfigurer,
     ) {
         telemetry.setupEventHandler(e => session.sendEvent(e));
         this._batchTelemetryReporter = new BatchTelemetryReporter(telemetry);
         this._session = session;
         this._chromeConnection = chromeConnection;
-        this._chromeDiagnostics = chromeDiagnostics;
         this.events = new StepProgressEventsEmitter(this._chromeConnection.events ? [this._chromeConnection.events] : []);
 
         this._variableHandles = new variables.VariableHandles();
@@ -226,10 +225,6 @@ export class ChromeDebugLogic {
         this._pathTransformer = pathTransformer;
 
         this.clearTargetContext();
-    }
-
-    public get chrome(): CDTPDiagnostics {
-        return this._chromeDiagnostics;
     }
 
     public get pathTransformer(): BasePathTransformer {
@@ -303,12 +298,11 @@ export class ChromeDebugLogic {
     public install(): ChromeDebugLogic {
         this._debuggerEvents.onResumed(() => this.onResumed());
         this._debuggerEvents.onPaused(paused => this.onPaused(paused));
-        this.chrome.Console.onMessageAdded(params => this.onMessageAdded(params));
-        this.chrome.Console.enable();
-        this.chrome.Runtime.onConsoleAPICalled(params => this.onConsoleAPICalled(params));
+        this._consoleEventsProvider.onMessageAdded(params => this.onMessageAdded(params));
+        this._consoleEventsProvider.onConsoleAPICalled(params => this.onConsoleAPICalled(params));
         this._exceptionThrownEventProvider.onExceptionThrown(params => this.onExceptionThrown(params));
         this._executionContextEventsProvider.onExecutionContextsCleared(() => this.clearTargetContext());
-        this.chrome.Log.onEntryAdded(entry => this.onLogEntryAdded(entry));
+        this._logEventsProvider.onEntryAdded(entry => this.onLogEntryAdded(entry));
 
         this._chromeConnection.onClose(() => this.terminateSession('websocket closed'));
 
@@ -397,7 +391,7 @@ export class ChromeDebugLogic {
         }
     }
 
-    private async logObjects(objs: Crdp.Runtime.RemoteObject[], isError = false, stackTrace?: CodeFlowStackTrace<IScript>): Promise<void> {
+    private async logObjects(objs: CDTP.Runtime.RemoteObject[], isError = false, stackTrace?: CodeFlowStackTrace<IScript>): Promise<void> {
         // This is an asynchronous method, so ensure that we handle one at a time so that they are sent out in the same order that they came in.
         this._currentLogMessage = this._currentLogMessage
             .then(async () => {
@@ -505,7 +499,7 @@ export class ChromeDebugLogic {
             this._pauseOnPromiseRejections = false;
         }
 
-        return this.chrome.Debugger.setPauseOnExceptions({ state })
+        return this._pauseOnExceptions.setPauseOnExceptions({ state })
             .then(() => { });
     }
 
@@ -613,10 +607,6 @@ export class ChromeDebugLogic {
         }
     */
     public variables(args: DebugProtocol.VariablesArguments): Promise<IVariablesResponseBody> {
-        if (!this.chrome) {
-            return utils.errP(errors.runtimeNotConnectedMsg);
-        }
-
         const handle = this._variableHandles.get(args.variablesReference);
         if (!handle) {
             return Promise.resolve<IVariablesResponseBody>(undefined);
@@ -631,12 +621,12 @@ export class ChromeDebugLogic {
             });
     }
 
-    public async propertyDescriptorToVariable(propDesc: Crdp.Runtime.PropertyDescriptor, owningObjectId?: string, parentEvaluateName?: string): Promise<DebugProtocol.Variable> {
+    public async propertyDescriptorToVariable(propDesc: CDTP.Runtime.PropertyDescriptor, owningObjectId?: string, parentEvaluateName?: string): Promise<DebugProtocol.Variable> {
         if (propDesc.get) {
             // Getter
             const grabGetterValue = 'function remoteFunction(propName) { return this[propName]; }';
 
-            let response: Crdp.Runtime.CallFunctionOnResponse;
+            let response: CDTP.Runtime.CallFunctionOnResponse;
             try {
                 response = await this._inspectDebugeeState.callFunctionOn({
                     objectId: owningObjectId,
@@ -678,8 +668,8 @@ export class ChromeDebugLogic {
             this.getRuntimeProperties({ objectId, ownProperties: true, accessorPropertiesOnly: false, generatePreview: true })
         ]).then(getPropsResponses => {
             // Sometimes duplicates will be returned - merge all descriptors by name
-            const propsByName = new Map<string, Crdp.Runtime.PropertyDescriptor>();
-            const internalPropsByName = new Map<string, Crdp.Runtime.InternalPropertyDescriptor>();
+            const propsByName = new Map<string, CDTP.Runtime.PropertyDescriptor>();
+            const internalPropsByName = new Map<string, CDTP.Runtime.InternalPropertyDescriptor>();
             getPropsResponses.forEach(response => {
                 if (response) {
                     response.result.forEach(propDesc =>
@@ -714,7 +704,7 @@ export class ChromeDebugLogic {
         });
     }
 
-    private getRuntimeProperties(params: Crdp.Runtime.GetPropertiesRequest): Promise<Crdp.Runtime.GetPropertiesResponse> {
+    private getRuntimeProperties(params: CDTP.Runtime.GetPropertiesRequest): Promise<CDTP.Runtime.GetPropertiesResponse> {
         return this._inspectDebugeeState.getProperties(params)
             .catch(err => {
                 if (err.message.startsWith('Cannot find context with specified id')) {
@@ -726,7 +716,7 @@ export class ChromeDebugLogic {
             });
     }
 
-    private internalPropertyDescriptorToVariable(propDesc: Crdp.Runtime.InternalPropertyDescriptor, parentEvaluateName: string): Promise<DebugProtocol.Variable> {
+    private internalPropertyDescriptorToVariable(propDesc: CDTP.Runtime.InternalPropertyDescriptor, parentEvaluateName: string): Promise<DebugProtocol.Variable> {
         return this.remoteObjectToVariable(propDesc.name, propDesc.value, parentEvaluateName);
     }
 
@@ -803,10 +793,6 @@ export class ChromeDebugLogic {
         }
     */
     public async evaluate(args: EvaluateArguments): Promise<IEvaluateResponseBody> {
-        if (!this.chrome) {
-            return utils.errP(errors.runtimeNotConnectedMsg);
-        }
-
         const expression = args.expression.startsWith('{') && args.expression.endsWith('}')
             ? `(${args.expression})`
             : args.expression;
@@ -836,17 +822,17 @@ export class ChromeDebugLogic {
     /**
      * Allow consumers to override just because of https://github.com/nodejs/node/issues/8426
      */
-    public globalEvaluate(args: Crdp.Runtime.EvaluateRequest): Promise<Crdp.Runtime.EvaluateResponse> {
+    public globalEvaluate(args: CDTP.Runtime.EvaluateRequest): Promise<CDTP.Runtime.EvaluateResponse> {
         return this._inspectDebugeeState.evaluate(args);
     }
 
-    private async waitThenDoEvaluate(expression: string, frame?: ICallFrame<ScriptOrLoadedSource>, extraArgs?: Partial<Crdp.Runtime.EvaluateRequest>): Promise<Crdp.Debugger.EvaluateOnCallFrameResponse | Crdp.Runtime.EvaluateResponse> {
+    private async waitThenDoEvaluate(expression: string, frame?: ICallFrame<ScriptOrLoadedSource>, extraArgs?: Partial<CDTP.Runtime.EvaluateRequest>): Promise<CDTP.Debugger.EvaluateOnCallFrameResponse | CDTP.Runtime.EvaluateResponse> {
         const waitThenEval = this._waitAfterStep.then(() => this.doEvaluate(expression, frame, extraArgs));
         this._waitAfterStep = waitThenEval.then(() => { }, () => { }); // to Promise<void> and handle failed evals
         return waitThenEval;
     }
 
-    private async doEvaluate(expression: string, frame: ICallFrame<ScriptOrLoadedSource>, extraArgs?: Partial<Crdp.Runtime.EvaluateRequest>): Promise<Crdp.Debugger.EvaluateOnCallFrameResponse | Crdp.Runtime.EvaluateResponse> {
+    private async doEvaluate(expression: string, frame: ICallFrame<ScriptOrLoadedSource>, extraArgs?: Partial<CDTP.Runtime.EvaluateRequest>): Promise<CDTP.Debugger.EvaluateOnCallFrameResponse | CDTP.Runtime.EvaluateResponse> {
         if (frame) {
             if (!frame) {
                 return utils.errP(errors.evalNotAvailableMsg);
@@ -854,7 +840,7 @@ export class ChromeDebugLogic {
 
             return this.evaluateOnCallFrame(expression, frame, extraArgs);
         } else {
-            let args: Crdp.Runtime.EvaluateRequest = {
+            let args: CDTP.Runtime.EvaluateRequest = {
                 expression,
                 // silent because of an issue where node will sometimes hang when breaking on exceptions in console messages. Fixed somewhere between 8 and 8.4
                 silent: true,
@@ -870,7 +856,7 @@ export class ChromeDebugLogic {
         }
     }
 
-    public async evaluateOnCallFrame(expression: string, frame: ICallFrame<ScriptOrLoadedSource>, extraArgs?: Partial<Crdp.Runtime.EvaluateRequest>): Promise<Crdp.Debugger.EvaluateOnCallFrameResponse | Crdp.Runtime.EvaluateResponse> {
+    public async evaluateOnCallFrame(expression: string, frame: ICallFrame<ScriptOrLoadedSource>, extraArgs?: Partial<CDTP.Runtime.EvaluateRequest>): Promise<CDTP.Debugger.EvaluateOnCallFrameResponse | CDTP.Runtime.EvaluateResponse> {
         let args: EvaluateOnCallFrameRequest = {
             frame,
             expression,
@@ -905,7 +891,7 @@ export class ChromeDebugLogic {
     }
 
     public setVariableValue(frame: ICallFrame<ScriptOrLoadedSource>, scopeNumber: number, variableName: string, value: string): Promise<string> {
-        let evalResultObject: Crdp.Runtime.RemoteObject;
+        let evalResultObject: CDTP.Runtime.RemoteObject;
         return this._inspectDebugeeState.evaluateOnCallFrame({ frame, expression: value, silent: true }).then(evalResponse => {
             if (evalResponse.exceptionDetails) {
                 const errMsg = ChromeUtils.errorMessageFromExceptionDetails(evalResponse.exceptionDetails);
@@ -938,7 +924,7 @@ export class ChromeDebugLogic {
             error => Promise.reject<string>(errors.errorFromEvaluate(error.message)));
     }
 
-    public async remoteObjectToVariable(name: string, object: Crdp.Runtime.RemoteObject, parentEvaluateName?: string, stringify = true, context: VariableContext = 'variables'): Promise<DebugProtocol.Variable> {
+    public async remoteObjectToVariable(name: string, object: CDTP.Runtime.RemoteObject, parentEvaluateName?: string, stringify = true, context: VariableContext = 'variables'): Promise<DebugProtocol.Variable> {
         name = name || '""';
 
         if (object) {
@@ -954,7 +940,7 @@ export class ChromeDebugLogic {
         }
     }
 
-    public createFunctionVariable(name: string, object: Crdp.Runtime.RemoteObject, context: VariableContext, parentEvaluateName?: string): DebugProtocol.Variable {
+    public createFunctionVariable(name: string, object: CDTP.Runtime.RemoteObject, context: VariableContext, parentEvaluateName?: string): DebugProtocol.Variable {
         let value: string;
         const firstBraceIdx = object.description.indexOf('{');
         if (firstBraceIdx >= 0) {
@@ -976,7 +962,7 @@ export class ChromeDebugLogic {
         };
     }
 
-    public createObjectVariable(name: string, object: Crdp.Runtime.RemoteObject, parentEvaluateName: string, context: VariableContext): Promise<DebugProtocol.Variable> {
+    public createObjectVariable(name: string, object: CDTP.Runtime.RemoteObject, parentEvaluateName: string, context: VariableContext): Promise<DebugProtocol.Variable> {
         if ((<string>object.subtype) === 'internal#location') {
             // Could format this nicely later, see #110
             return Promise.resolve(this.createPrimitiveVariableWithValue(name, 'internal#location', parentEvaluateName));
@@ -1020,11 +1006,11 @@ export class ChromeDebugLogic {
         }));
     }
 
-    protected createPropertyContainer(object: Crdp.Runtime.RemoteObject, evaluateName: string): IVariableContainer {
+    protected createPropertyContainer(object: CDTP.Runtime.RemoteObject, evaluateName: string): IVariableContainer {
         return new PropertyContainer(object.objectId, evaluateName);
     }
 
-    public createPrimitiveVariable(name: string, object: Crdp.Runtime.RemoteObject, parentEvaluateName?: string, stringify?: boolean): DebugProtocol.Variable {
+    public createPrimitiveVariable(name: string, object: CDTP.Runtime.RemoteObject, parentEvaluateName?: string, stringify?: boolean): DebugProtocol.Variable {
         const value = variables.getRemoteObjectPreview_primitive(object, stringify);
         const variable = this.createPrimitiveVariableWithValue(name, value, parentEvaluateName);
         variable.type = object.type;
@@ -1130,7 +1116,7 @@ export class ChromeDebugLogic {
         return this.getNumPropsByEval(objectId, getNumPropsFn);
     }
 
-    private getArrayNumPropsByPreview(object: Crdp.Runtime.RemoteObject): IPropCount {
+    private getArrayNumPropsByPreview(object: CDTP.Runtime.RemoteObject): IPropCount {
         let indexedVariables = 0;
         const indexedProps = object.preview.properties
             .filter(prop => isIndexedPropName(prop.name));
@@ -1148,7 +1134,7 @@ export class ChromeDebugLogic {
         return this.getNumPropsByEval(objectId, getNumPropsFn);
     }
 
-    private getCollectionNumPropsByPreview(object: Crdp.Runtime.RemoteObject): IPropCount {
+    private getCollectionNumPropsByPreview(object: CDTP.Runtime.RemoteObject): IPropCount {
         let indexedVariables = 0;
         let namedVariables = object.preview.properties.length + 1; // +1 for [[Entries]];
 
