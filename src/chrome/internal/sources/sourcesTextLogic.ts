@@ -4,7 +4,7 @@ import { printIterable } from '../../collections/printting';
 import { IComponent } from '../features/feature';
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
-import { IScriptSources } from '../../target/cdtpDebugger';
+import { IScriptSourcesRetriever } from '../../cdtpDebuggee/features/CDTPScriptSourcesRetriever';
 
 @injectable()
 export class SourceTextLogic implements IComponent {
@@ -29,5 +29,5 @@ export class SourceTextLogic implements IComponent {
         return this;
     }
 
-    constructor(@inject(TYPES.IScriptSources) private readonly _scriptSources: IScriptSources) { }
+    constructor(@inject(TYPES.IScriptSources) private readonly _scriptSources: IScriptSourcesRetriever) { }
 }

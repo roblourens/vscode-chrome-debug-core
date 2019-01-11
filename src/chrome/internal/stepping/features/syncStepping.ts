@@ -3,11 +3,12 @@ import { ICallFrame } from '../../stackTraces/callFrame';
 import { IScript } from '../../scripts/script';
 import { InformationAboutPausedProvider, } from '../../features/takeProperActionOnPausedEvent';
 import { IComponent } from '../../features/feature';
-import { PausedEvent } from '../../../target/events';
 import { Abstained, Vote } from '../../../communication/collaborativeDecision';
 import { injectable, inject } from 'inversify';
-import { IDebugeeStepping, IDebugeeExecutionControl } from '../../../target/controlDebugeeExecution';
+import { IDebugeeExecutionController } from '../../../cdtpDebuggee/features/cdtpDebugeeExecutionController';
 import { TYPES } from '../../../dependencyInjection.ts/types';
+import { PausedEvent } from '../../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
+import { IDebugeeSteppingController } from '../../../cdtpDebuggee/features/CDTPDebugeeSteppingController';
 
 type SteppingAction = () => Promise<void>;
 
@@ -72,6 +73,6 @@ export class SyncStepping implements IComponent {
 
     constructor(
         @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: SyncSteppingDependencies,
-        @inject(TYPES.IDebugeeStepping) private readonly _debugeeStepping: IDebugeeStepping,
-        @inject(TYPES.IDebugeeExecutionControl) private readonly _debugeeExecutionControl: IDebugeeExecutionControl) { }
+        @inject(TYPES.IDebugeeSteppingController) private readonly _debugeeStepping: IDebugeeSteppingController,
+        @inject(TYPES.IDebugeeExecutionControl) private readonly _debugeeExecutionControl: IDebugeeExecutionController) { }
 }

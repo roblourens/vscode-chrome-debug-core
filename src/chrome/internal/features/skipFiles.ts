@@ -1,17 +1,17 @@
-import { IToggleSkipFileStatusArgs, utils, Crdp, BaseSourceMapTransformer, parseResourceIdentifier, ConnectedCDAConfiguration } from '../../..';
+import { IToggleSkipFileStatusArgs, utils, CDTP, BaseSourceMapTransformer, parseResourceIdentifier, ConnectedCDAConfiguration } from '../../..';
 import { logger } from 'vscode-debugadapter/lib/logger';
 import { IScript } from '../scripts/script';
-import { CDTPDiagnostics } from '../../target/cdtpDiagnostics';
 import { StackTracesLogic, IStackTracePresentationLogicProvider } from '../stackTraces/stackTracesLogic';
 import { newResourceIdentifierMap, IResourceIdentifier } from '../sources/resourceIdentifier';
 import { IComponent } from './feature';
-import { ScriptParsedEvent } from '../../target/events';
 import { LocationInLoadedSource } from '../locations/location';
 import { ICallFramePresentationDetails } from '../stackTraces/callFramePresentation';
 import * as nls from 'vscode-nls';
 import { injectable, inject, LazyServiceIdentifer } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
 import { ClientToInternal } from '../../client/clientToInternal';
+import { ScriptParsedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpOnScriptParsedEventProvider';
+import { IBlackboxPatternsConfigurer } from '../../cdtpDebuggee/features/cdtpBlackboxPatternsConfigurer';
 const localize = nls.loadMessageBundle();
 
 export interface EventsConsumedBySkipFilesLogic {
@@ -136,7 +136,7 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration>, ISta
 
     private refreshBlackboxPatterns(): void {
         // Make sure debugging domain is enabled before calling refreshBlackboxPatterns()
-        this.chrome.Debugger.setBlackboxPatterns({
+        this._blackboxPatternsConfigurer.setBlackboxPatterns({
             patterns: this._blackboxedRegexes.map(regex => regex.source)
         }).catch(() => this.warnNoSkipFiles());
     }
@@ -174,7 +174,7 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration>, ISta
     public async resolveSkipFiles(script: IScript, mappedUrl: IResourceIdentifier, sources: IResourceIdentifier[], toggling?: boolean): Promise<void> {
         if (sources && sources.length) {
             const parentIsSkipped = this.shouldSkipSource(script.runtimeSource.identifier);
-            const libPositions: Crdp.Debugger.ScriptPosition[] = [];
+            const libPositions: CDTP.Debugger.ScriptPosition[] = [];
 
             // Figure out skip/noskip transitions within script
             let inLibRange = parentIsSkipped;
@@ -213,10 +213,10 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration>, ISta
                     };
                 }
 
-                await this.chrome.Debugger.setBlackboxedRanges(script, []).catch(() => this.warnNoSkipFiles());
+                await this._blackboxPatternsConfigurer.setBlackboxedRanges(script, []).catch(() => this.warnNoSkipFiles());
 
                 if (libPositions.length) {
-                    this.chrome.Debugger.setBlackboxedRanges(script, libPositions).catch(() => this.warnNoSkipFiles());
+                    this._blackboxPatternsConfigurer.setBlackboxedRanges(script, libPositions).catch(() => this.warnNoSkipFiles());
                 }
             }
         } else {
@@ -224,7 +224,7 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration>, ISta
             const skippedByPattern = this.matchesSkipFilesPatterns(mappedUrl);
             if (typeof status === 'boolean' && status !== skippedByPattern) {
                 const positions = status ? [{ lineNumber: 0, columnNumber: 0 }] : [];
-                this.chrome.Debugger.setBlackboxedRanges(script, positions).catch(() => this.warnNoSkipFiles());
+                this._blackboxPatternsConfigurer.setBlackboxedRanges(script, positions).catch(() => this.warnNoSkipFiles());
             }
         }
     }
@@ -276,10 +276,10 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration>, ISta
 
     constructor(
         @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: EventsConsumedBySkipFilesLogic,
-        @inject(TYPES.CDTPDiagnostics) private readonly chrome: CDTPDiagnostics,
         @inject(new LazyServiceIdentifer(() => TYPES.StackTracesLogic)) private readonly stackTracesLogic: StackTracesLogic,
         @inject(TYPES.BaseSourceMapTransformer) private readonly sourceMapTransformer: BaseSourceMapTransformer,
         @inject(TYPES.ClientToInternal) private readonly _clientToInternal: ClientToInternal,
-        @inject(TYPES.ConnectedCDAConfiguration) private readonly _configuration: ConnectedCDAConfiguration
+        @inject(TYPES.ConnectedCDAConfiguration) private readonly _configuration: ConnectedCDAConfiguration,
+        @inject(TYPES.IBlackboxPatternsConfigurer) private readonly _blackboxPatternsConfigurer: IBlackboxPatternsConfigurer,
     ) { }
 }

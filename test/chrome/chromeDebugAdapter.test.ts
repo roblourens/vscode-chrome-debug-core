@@ -18,7 +18,7 @@ import * as mockery from 'mockery';
 import { EventEmitter } from 'events';
 import * as assert from 'assert';
 import { Mock, MockBehavior, It, IMock, Times } from 'typemoq';
-import { Protocol as Crdp } from 'devtools-protocol';
+import { Protocol as CDTP } from 'devtools-protocol';
 
 import * as testUtils from '../testUtils';
 import * as utils from '../../src/utils';
@@ -136,7 +136,7 @@ suite('ChromeDebugAdapter', () => {
                     Promise.resolve('');
             });
 
-        mockEventEmitter.emit('Debugger.scriptParsed', <Crdp.Debugger.ScriptParsedEvent>{ scriptId, url });
+        mockEventEmitter.emit('Debugger.scriptParsed', <CDTP.Debugger.ScriptParsedEvent>{ scriptId, url });
     }
 
     // Helper to run async asserts inside promises so they can be correctly awaited
@@ -195,7 +195,7 @@ suite('ChromeDebugAdapter', () => {
                     mockChrome.Debugger
                         .setup(x => x.setBreakpointByUrl(It.isValue({ urlRegex, lineNumber, columnNumber, condition })))
                         .returns(() => Promise.resolve(
-                            <Crdp.Debugger.SetBreakpointByUrlResponse>{
+                            <CDTP.Debugger.SetBreakpointByUrlResponse>{
                                 breakpointId: BP_ID + i,
                                 locations: success ? [location] : []
                             }))
@@ -204,7 +204,7 @@ suite('ChromeDebugAdapter', () => {
                     mockChrome.Debugger
                         .setup(x => x.setBreakpoint(It.isValue({ location: { lineNumber, columnNumber, scriptId }, condition })))
                         .returns(() => Promise.resolve(
-                            <Crdp.Debugger.SetBreakpointResponse>{
+                            <CDTP.Debugger.SetBreakpointResponse>{
                                 breakpointId: BP_ID + i,
                                 actualLocation: success ? location : null
                             }))
@@ -342,9 +342,9 @@ suite('ChromeDebugAdapter', () => {
                 .then(response => {
                     expectRemoveBreakpoint([0, 1]);
                     mockEventEmitter.emit('Debugger.globalObjectCleared');
-                    mockEventEmitter.emit('Debugger.scriptParsed', <Crdp.Debugger.ScriptParsedEvent>{ scriptId: 'afterRefreshScriptId', url: FILE_NAME });
-                    mockEventEmitter.emit('Debugger.breakpointResolved', <Crdp.Debugger.BreakpointResolvedEvent>{ breakpointId: BP_ID + 0, location: { scriptId: 'afterRefreshScriptId' } });
-                    mockEventEmitter.emit('Debugger.breakpointResolved', <Crdp.Debugger.BreakpointResolvedEvent>{ breakpointId: BP_ID + 1, location: { scriptId: 'afterRefreshScriptId' } });
+                    mockEventEmitter.emit('Debugger.scriptParsed', <CDTP.Debugger.ScriptParsedEvent>{ scriptId: 'afterRefreshScriptId', url: FILE_NAME });
+                    mockEventEmitter.emit('Debugger.breakpointResolved', <CDTP.Debugger.BreakpointResolvedEvent>{ breakpointId: BP_ID + 0, location: { scriptId: 'afterRefreshScriptId' } });
+                    mockEventEmitter.emit('Debugger.breakpointResolved', <CDTP.Debugger.BreakpointResolvedEvent>{ breakpointId: BP_ID + 1, location: { scriptId: 'afterRefreshScriptId' } });
 
                     breakpoints.push({ line: 321, column: 123 });
                     expectSetBreakpoint(breakpoints, FILE_NAME, 'afterRefreshScriptId');
@@ -359,7 +359,7 @@ suite('ChromeDebugAdapter', () => {
             ];
 
             // Set up the mock to return a different location
-            const location: Crdp.Debugger.Location = {
+            const location: CDTP.Debugger.Location = {
                 scriptId: SCRIPT_ID, lineNumber: breakpoints[0].line + 10, columnNumber: breakpoints[0].column + 10 };
             const expectedResponse: ISetBreakpointsResponseBody = {
                 breakpoints: [{ line: location.lineNumber, column: location.columnNumber, verified: true, id: 1000 }]};
@@ -368,7 +368,7 @@ suite('ChromeDebugAdapter', () => {
             mockChrome.Debugger
                 .setup(x => x.setBreakpointByUrl(It.isValue({ urlRegex: expectedRegex, lineNumber: breakpoints[0].line, columnNumber: breakpoints[0].column, condition: undefined })))
                 .returns(() => Promise.resolve(
-                    <Crdp.Debugger.SetBreakpointByUrlResponse>{ breakpointId: BP_ID, locations: [location] }))
+                    <CDTP.Debugger.SetBreakpointByUrlResponse>{ breakpointId: BP_ID, locations: [location] }))
                 .verifiable();
 
             return chromeDebugAdapter.attach(ATTACH_ARGS)
@@ -715,7 +715,7 @@ suite('ChromeDebugAdapter', () => {
     });
 
     suite('evaluate()', () => {
-        function getExpectedValueResponse(resultObj: Crdp.Runtime.RemoteObject): IEvaluateResponseBody {
+        function getExpectedValueResponse(resultObj: CDTP.Runtime.RemoteObject): IEvaluateResponseBody {
             let result: string;
             let variablesReference = 0;
             if (resultObj.type === 'string') {
@@ -731,21 +731,21 @@ suite('ChromeDebugAdapter', () => {
             };
         }
 
-        function setupEvalMock(expression: string, result: Crdp.Runtime.RemoteObject): void {
+        function setupEvalMock(expression: string, result: CDTP.Runtime.RemoteObject): void {
             mockChrome.Runtime
-                .setup(x => x.evaluate(It.isValue(<Crdp.Runtime.EvaluateRequest>{ expression, silent: true, generatePreview: true, includeCommandLineAPI: true, objectGroup: 'console', userGesture: true })))
-                .returns(() => Promise.resolve(<Crdp.Runtime.EvaluateResponse>{ result }));
+                .setup(x => x.evaluate(It.isValue(<CDTP.Runtime.EvaluateRequest>{ expression, silent: true, generatePreview: true, includeCommandLineAPI: true, objectGroup: 'console', userGesture: true })))
+                .returns(() => Promise.resolve(<CDTP.Runtime.EvaluateResponse>{ result }));
         }
 
-        function setupEvalOnCallFrameMock(expression: string, callFrameId: string, result: Crdp.Runtime.RemoteObject): void {
+        function setupEvalOnCallFrameMock(expression: string, callFrameId: string, result: CDTP.Runtime.RemoteObject): void {
             mockChrome.Debugger
                 .setup(x => x.evaluateOnCallFrame(It.isValue({ expression, callFrameId, silent: true, generatePreview: true, includeCommandLineAPI: true, objectGroup: 'console' })))
-                .returns(() => Promise.resolve(<Crdp.Runtime.EvaluateResponse>{ result }));
+                .returns(() => Promise.resolve(<CDTP.Runtime.EvaluateResponse>{ result }));
         }
 
         test('calls Runtime.evaluate when not paused', () => {
             const expression = '1+1';
-            const result: Crdp.Runtime.RemoteObject = { type: 'string', description: '2' };
+            const result: CDTP.Runtime.RemoteObject = { type: 'string', description: '2' };
             setupEvalMock(expression, result);
 
             return chromeDebugAdapter.evaluate({ expression }).then(response => {
@@ -756,7 +756,7 @@ suite('ChromeDebugAdapter', () => {
         test('calls Debugger.evaluateOnCallFrame when paused', () => {
             const callFrameId = '1';
             const expression = '1+1';
-            const result: Crdp.Runtime.RemoteObject = { type: 'string', description: '2' };
+            const result: CDTP.Runtime.RemoteObject = { type: 'string', description: '2' };
             setupEvalOnCallFrameMock(expression, callFrameId, result);
 
             // Sue me (just easier than sending a Debugger.paused event)
@@ -773,10 +773,10 @@ suite('ChromeDebugAdapter', () => {
             await chromeDebugAdapter.attach(ATTACH_ARGS);
 
             const scriptId = 'script1';
-            const location: Crdp.Debugger.Location = { lineNumber: 0, columnNumber: 0, scriptId };
+            const location: CDTP.Debugger.Location = { lineNumber: 0, columnNumber: 0, scriptId };
             const callFrame = { callFrameId: 'id1', location };
             emitScriptParsed('', scriptId);
-            mockEventEmitter.emit('Debugger.paused', <Crdp.Debugger.PausedEvent>{ callFrames: [callFrame, callFrame] });
+            mockEventEmitter.emit('Debugger.paused', <CDTP.Debugger.PausedEvent>{ callFrames: [callFrame, callFrame] });
 
             const { stackFrames } = await chromeDebugAdapter.stackTrace({ threadId: THREAD_ID });
 
@@ -786,7 +786,7 @@ suite('ChromeDebugAdapter', () => {
             const sourceReference = stackFrames[0].source.sourceReference;
 
             // If it pauses a second time, and we request another stackTrace, should have the same result
-            mockEventEmitter.emit('Debugger.paused', <Crdp.Debugger.PausedEvent>{callFrames: [callFrame, callFrame]});
+            mockEventEmitter.emit('Debugger.paused', <CDTP.Debugger.PausedEvent>{callFrames: [callFrame, callFrame]});
             const { stackFrames: stackFrames2 } = await chromeDebugAdapter.stackTrace({ threadId: THREAD_ID });
 
             assert.equal(stackFrames2.length, 2);
@@ -806,7 +806,7 @@ suite('ChromeDebugAdapter', () => {
         const generatedExceptionStr = getExceptionStr(generatedPath, 6);
         const authoredExceptionStr = getExceptionStr(authoredPath, 12);
 
-        const exceptionEvent: Crdp.Runtime.ExceptionThrownEvent = {
+        const exceptionEvent: CDTP.Runtime.ExceptionThrownEvent = {
             'timestamp': 1490164925297,
             'exceptionDetails': {
                 'exceptionId': 21,

@@ -9,6 +9,7 @@ import { printArray } from '../../collections/printing';
 import { ISourcesMapper } from './sourcesMapper';
 import { IResourceIdentifier, IResourceLocation, newResourceIdentifierMap, parseResourceIdentifier, ResourceName } from '../sources/resourceIdentifier';
 import { IExecutionContext } from './executionContext';
+import { Lazy1 } from '../../utils/lazy';
 
 /** This interface represents a piece of code that is being executed in the debugee. Usually a script matches to a file or a url, but that is not always the case.
  * This interface solves the problem of finding the different loaded sources associated with a script, and being able to identify and compare both scripts and sources easily.
@@ -52,9 +53,11 @@ export class Script implements IScript {
         let developmentSource: (script: IScript) => ILoadedSource;
         if (locationInRuntimeEnvironment.isEquivalent(locationInDevelopmentEnvinronment) || locationInDevelopmentEnvinronment.textRepresentation === '') {
             if (fs.existsSync(locationInRuntimeEnvironment.textRepresentation)) {
-                developmentSource = runtimeSource = script => new ScriptRunFromLocalStorage(script, locationInRuntimeEnvironment, 'TODO DIEGO');
+                developmentSource = runtimeSource = new Lazy1((script: IScript) => // Using Lazy1 will ensure both calls return the same instance
+                    new ScriptRunFromLocalStorage(script, locationInRuntimeEnvironment, 'TODO DIEGO')).function;
             } else {
-                developmentSource = runtimeSource = script => new DynamicScript(script, locationInRuntimeEnvironment, 'TODO DIEGO');
+                developmentSource = runtimeSource = new Lazy1((script: IScript) => // Using Lazy1 will ensure both calls return the same instance
+                    new DynamicScript(script, locationInRuntimeEnvironment, 'TODO DIEGO')).function;
             }
         } else {
             // The script is served from one location, and it's on the workspace on a different location
@@ -65,9 +68,9 @@ export class Script implements IScript {
     }
 
     public static createEval(executionContext: IExecutionContext, name: ResourceName<CDTPScriptUrl>, sourcesMapper: ISourcesMapper): Script {
-        // TODO DIEGO Return the same instance both functions
-        const getNoURLScript = (script: IScript) => new NoURLScriptSource(script, name, 'TODO DIEGO');
-        return new Script(executionContext, getNoURLScript, getNoURLScript, _ => new Map<IResourceIdentifier, MappedSource>(), sourcesMapper);
+        // Using Lazy1 will ensure both calls return the same instance
+        let getNoURLScript = new Lazy1((script: IScript) => new NoURLScriptSource(script, name, 'TODO DIEGO'));
+        return new Script(executionContext, getNoURLScript.function, getNoURLScript.function, _ => new Map<IResourceIdentifier, MappedSource>(), sourcesMapper);
     }
 
     constructor(public readonly executionContext: IExecutionContext, getRuntimeSource: (script: IScript) => ILoadedSource<CDTPScriptUrl>, getDevelopmentSource: (script: IScript) => ILoadedSource,

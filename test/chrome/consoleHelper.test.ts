@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import * as assert from 'assert';
-import { Protocol as Crdp } from 'devtools-protocol';
+import { Protocol as CDTP } from 'devtools-protocol';
 
 import * as testUtils from '../testUtils';
 import * as ConsoleHelper from '../../src/chrome/consoleHelper';
@@ -20,7 +20,7 @@ suite('ConsoleHelper', () => {
     /**
      * Test helper valid when the message consists only of strings that will be collapsed to one string
      */
-    function doAssertForString(params: Crdp.Runtime.ConsoleAPICalledEvent, expectedText: string, expectedIsError = false): void {
+    function doAssertForString(params: CDTP.Runtime.ConsoleAPICalledEvent, expectedText: string, expectedIsError = false): void {
         const result = ConsoleHelper.formatConsoleArguments(params.type, params.args, params.stackTrace);
 
         // Strings are collapsed to one string
@@ -164,8 +164,8 @@ namespace Runtime {
      * @param params - The list of parameters passed to the log function
      * @param overrideProps - An object of props that the message should have. The rest are filled in with defaults.
      */
-    function makeMockMessage(type: string, args: (string | number | null | undefined)[], overrideProps?: any): Crdp.Runtime.ConsoleAPICalledEvent {
-        const message: Crdp.Runtime.ConsoleAPICalledEvent = <any>{
+    function makeMockMessage(type: string, args: (string | number | null | undefined)[], overrideProps?: any): CDTP.Runtime.ConsoleAPICalledEvent {
+        const message: CDTP.Runtime.ConsoleAPICalledEvent = <any>{
             type,
             executionContextId: 2,
             timestamp: Date.now(),
@@ -187,15 +187,15 @@ namespace Runtime {
      * Returns a mock ConsoleAPICalledEvent with the given argument values.
      * You can pass '$obj' to get an object.
      */
-    export function makeLog(...args: (string | number | null | undefined)[]): Crdp.Runtime.ConsoleAPICalledEvent {
+    export function makeLog(...args: (string | number | null | undefined)[]): CDTP.Runtime.ConsoleAPICalledEvent {
         const msg = makeMockMessage('log', args);
         return msg;
     }
 
-    export function makeArgs(...args: (string | number | null | undefined)[]): Crdp.Runtime.RemoteObject[] {
+    export function makeArgs(...args: (string | number | null | undefined)[]): CDTP.Runtime.RemoteObject[] {
         return args.map(arg => {
             if (arg === '$obj') {
-                return <Crdp.Runtime.RemoteObject>{
+                return <CDTP.Runtime.RemoteObject>{
                     value: undefined,
                     type: 'object',
                     description: 'Object',
@@ -212,14 +212,14 @@ namespace Runtime {
         });
     }
 
-    export function makeAssert(...args: any[]): Crdp.Runtime.ConsoleAPICalledEvent {
-        const fakeStackTrace: Crdp.Runtime.StackTrace = {
+    export function makeAssert(...args: any[]): CDTP.Runtime.ConsoleAPICalledEvent {
+        const fakeStackTrace: CDTP.Runtime.StackTrace = {
             callFrames: [{ url: '/script/a.js', lineNumber: 4, columnNumber: 1, scriptId: '1', functionName: 'myFn' }]
         };
         return makeMockMessage('assert', args, { level: 'error', stackTrace: fakeStackTrace });
     }
 
-    export function makeNetworkLog(text: string, url: string): Crdp.Runtime.ConsoleAPICalledEvent {
+    export function makeNetworkLog(text: string, url: string): CDTP.Runtime.ConsoleAPICalledEvent {
         return makeMockMessage('log', [text], { source: 'network', url, level: 'error' });
     }
 }

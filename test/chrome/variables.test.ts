@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import * as assert from 'assert';
-import { Protocol as Crdp } from 'devtools-protocol';
+import { Protocol as CDTP } from 'devtools-protocol';
 
 import * as Variables from '../../src/chrome/variables';
 
@@ -24,10 +24,10 @@ suite('Variables', () => {
     }
 
     suite('getArrayPreview()', () => {
-        function getRemoteArray(props: any[]): Crdp.Runtime.RemoteObject {
-            const preview = <Crdp.Runtime.ObjectPreview>{
+        function getRemoteArray(props: any[]): CDTP.Runtime.RemoteObject {
+            const preview = <CDTP.Runtime.ObjectPreview>{
                 properties: props.map((prop, i) => {
-                    return <Crdp.Runtime.PropertyPreview>{
+                    return <CDTP.Runtime.PropertyPreview>{
                         name: i.toString(),
                         type: getPropType(prop),
                         value: getPropValue(prop)
@@ -82,11 +82,11 @@ suite('Variables', () => {
     });
 
     suite('getObjectPreview()', () => {
-        function getRemoteObject(obj: any): Crdp.Runtime.RemoteObject {
-            const preview = <Crdp.Runtime.ObjectPreview>{
+        function getRemoteObject(obj: any): CDTP.Runtime.RemoteObject {
+            const preview = <CDTP.Runtime.ObjectPreview>{
                 properties: Object.keys(obj).map((prop) => {
                     const value = obj[prop];
-                    return <Crdp.Runtime.PropertyPreview>{
+                    return <CDTP.Runtime.PropertyPreview>{
                         name: prop.toString(),
                         type: getPropType(value),
                         value: getPropValue(value)

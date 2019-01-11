@@ -1,14 +1,13 @@
 import * as errors from '../../../errors';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { ChromeDebugLogic } from '../../chromeDebugAdapter';
-import { CDTPDiagnostics } from '../../target/cdtpDiagnostics';
 import { ClientToInternal } from '../clientToInternal';
 import { InternalToClient } from '../internalToClient';
 import { IGetLoadedSourcesResponseBody, IDebugAdapterState, PromiseOrNot, ISetBreakpointsResponseBody, IStackTraceResponseBody, IScopesResponseBody, IVariablesResponseBody, ISourceResponseBody, IThreadsResponseBody, IEvaluateResponseBody, IExceptionInfoResponseBody, ILaunchRequestArgs, IAttachRequestArgs } from '../../../debugAdapterInterfaces';
 import { StackTracesLogic } from '../../internal/stackTraces/stackTracesLogic';
 import { SourcesLogic } from '../../internal/sources/sourcesLogic';
 import { BreakpointsLogic } from '../../internal/breakpoints/breakpointsLogic';
-import { CDTPScriptsRegistry } from '../../target/cdtpScriptsRegistry';
+import { CDTPScriptsRegistry } from '../../cdtpDebuggee/registries/cdtpScriptsRegistry';
 import { PauseOnExceptionOrRejection } from '../../internal/exceptions/pauseOnException';
 import { Stepping } from '../../internal/stepping/stepping';
 import { DotScriptCommand } from '../../internal/sources/features/dotScriptsCommand';
@@ -18,9 +17,9 @@ import { SkipFilesLogic } from '../../internal/features/skipFiles';
 import { TakeProperActionOnPausedEvent } from '../../internal/features/takeProperActionOnPausedEvent';
 import { SmartStepLogic } from '../../internal/features/smartStep';
 import { NotifyClientOfLoadedSources } from '../../internal/sources/features/notifyClientOfLoadedSources';
-import { CDTPOnScriptParsedEventProvider } from '../../target/cdtpOnScriptParsedEventProvider';
+import { CDTPOnScriptParsedEventProvider } from '../../cdtpDebuggee/eventsProviders/cdtpOnScriptParsedEventProvider';
 import { Target } from '../../communication/targetChannels';
-import { IDebuggeeRunner } from '../../debugee/debugeeLauncher';
+import { IDebuggeeRunner } from '../../debugeeStartup/debugeeLauncher';
 import { StepProgressEventsEmitter } from '../../../executionTimingsReporter';
 import { TelemetryPropertyCollector, ITelemetryPropertyCollector } from '../../../telemetry';
 import { ICommunicator, utils } from '../../..';
@@ -53,7 +52,6 @@ export class ConnectedCDA implements IDebugAdapterState {
     ) { }
 
     public async install(): Promise<this> {
-        await this.chrome.install();
         await this._chromeDebugAdapter.install();
         await this._sourcesLogic.install();
         await this._stackTraceLogic.install();
@@ -69,10 +67,6 @@ export class ConnectedCDA implements IDebugAdapterState {
         const publishScriptParsed = this._communicator.getPublisher(Target.Debugger.OnScriptParsed);
         this._cdtpOnScriptParsedEventProvider.onScriptParsed(publishScriptParsed);
         return this;
-    }
-
-    public get chrome(): CDTPDiagnostics {
-        return this._chromeDebugAdapter.chrome;
     }
 
     public shutdown(): void {

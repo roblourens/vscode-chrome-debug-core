@@ -2,7 +2,7 @@ import { BasePathTransformer } from '../../../transformers/basePathTransformer';
 import { BaseSourceMapTransformer } from '../../../transformers/baseSourceMapTransformer';
 import { IScript } from '../scripts/script';
 import { ICallFrame } from '../stackTraces/callFrame';
-import { PausedEvent } from '../../target/events';
+import { PausedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
 import { InformationAboutPausedProvider } from './takeProperActionOnPausedEvent';
 import { logger } from 'vscode-debugadapter';
 import { IComponent } from './feature';

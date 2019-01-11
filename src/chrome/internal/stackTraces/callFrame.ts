@@ -1,10 +1,11 @@
 import { Location } from '../locations/location';
-import { integer } from '../../target/events';
 import { ILoadedSource } from '../sources/loadedSource';
 import { IScript } from '../scripts/script';
-import { Crdp } from '../../..';
+import { Protocol as CDTP } from 'devtools-protocol';
+
 import { ICallFrameName } from './callFrameName';
 import { Scope } from './scopes';
+import { integer } from '../../cdtpDebuggee/cdtpPrimitives';
 
 export type ScriptOrLoadedSource = IScript | ILoadedSource; // Used for stack traces
 
@@ -45,8 +46,8 @@ export interface ICallFrame<TResource extends ScriptOrLoadedSource> {
     readonly name: string;
     readonly codeFlow: CodeFlowFrame<TResource>;
     readonly scopeChain: Scope[];
-    readonly frameThis?: Crdp.Runtime.RemoteObject;
-    readonly returnValue?: Crdp.Runtime.RemoteObject;
+    readonly frameThis?: CDTP.Runtime.RemoteObject;
+    readonly returnValue?: CDTP.Runtime.RemoteObject;
     readonly unmappedCallFrame: ICallFrame<IScript>;
 }
 
@@ -88,8 +89,8 @@ export class ScriptCallFrame extends CallFrameCommonLogic<IScript> {
     constructor(
         public readonly codeFlow: CodeFlowFrame<IScript>,
         public readonly scopeChain: Scope[],
-        public readonly frameThis?: Crdp.Runtime.RemoteObject, // This is optional only to support Runtime.StackTraces aka StackTraceCodeFlow
-        public readonly returnValue?: Crdp.Runtime.RemoteObject) {
+        public readonly frameThis?: CDTP.Runtime.RemoteObject, // This is optional only to support Runtime.StackTraces aka StackTraceCodeFlow
+        public readonly returnValue?: CDTP.Runtime.RemoteObject) {
         super();
     }
 }
@@ -99,11 +100,11 @@ export class LoadedSourceCallFrame extends CallFrameCommonLogic<ILoadedSource> {
         return this.unmappedCallFrame.scopeChain;
     }
 
-    public get frameThis(): Crdp.Runtime.RemoteObject {
+    public get frameThis(): CDTP.Runtime.RemoteObject {
         return this.unmappedCallFrame.frameThis;
     }
 
-    public get returnValue(): Crdp.Runtime.RemoteObject {
+    public get returnValue(): CDTP.Runtime.RemoteObject {
         return this.unmappedCallFrame.returnValue;
     }
 

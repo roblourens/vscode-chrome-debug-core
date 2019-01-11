@@ -4,7 +4,7 @@
 
 import * as url from 'url';
 import * as path from 'path';
-import { Protocol as Crdp } from 'devtools-protocol';
+import { Protocol as CDTP } from 'devtools-protocol';
 import { logger } from 'vscode-debugadapter';
 
 import * as utils from '../utils';
@@ -132,7 +132,7 @@ export function targetUrlToClientPath(aUrl: string, pathMapping: IPathMapping): 
  * Convert a RemoteObject to a value+variableHandleRef for the client.
  * TODO - Delete after Microsoft/vscode#12019!!
  */
-export function remoteObjectToValue(object: Crdp.Runtime.RemoteObject, stringify = true): { value: string, variableHandleRef?: string } {
+export function remoteObjectToValue(object: CDTP.Runtime.RemoteObject, stringify = true): { value: string, variableHandleRef?: string } {
     let value = '';
     let variableHandleRef: string;
 
@@ -232,7 +232,7 @@ export function compareVariableNames(var1: string, var2: string): number {
     return var1.localeCompare(var2);
 }
 
-export function remoteObjectToCallArgument(object: Crdp.Runtime.RemoteObject): Crdp.Runtime.CallArgument {
+export function remoteObjectToCallArgument(object: CDTP.Runtime.RemoteObject): CDTP.Runtime.CallArgument {
     return {
         objectId: object.objectId,
         unserializableValue: object.unserializableValue,
@@ -245,7 +245,7 @@ export function remoteObjectToCallArgument(object: Crdp.Runtime.RemoteObject): C
  * protocol differences in the future.
  * This includes the error message and full stack
  */
-export function descriptionFromExceptionDetails(exceptionDetails: Crdp.Runtime.ExceptionDetails): string {
+export function descriptionFromExceptionDetails(exceptionDetails: CDTP.Runtime.ExceptionDetails): string {
     let description: string;
     if (exceptionDetails.exception) {
         // Take exception object description, or if a value was thrown, the value
@@ -261,7 +261,7 @@ export function descriptionFromExceptionDetails(exceptionDetails: Crdp.Runtime.E
 /**
  * Get just the error message from the exception details - the first line without the full stack
  */
-export function errorMessageFromExceptionDetails(exceptionDetails: Crdp.Runtime.ExceptionDetails): string {
+export function errorMessageFromExceptionDetails(exceptionDetails: CDTP.Runtime.ExceptionDetails): string {
     let description = descriptionFromExceptionDetails(exceptionDetails);
     const newlineIdx = description.indexOf('\n');
     if (newlineIdx >= 0) {

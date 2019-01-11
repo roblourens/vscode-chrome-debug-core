@@ -29,7 +29,7 @@ export class BPRecipiesInUnresolvedSource extends BPRecipiesCommonLogic<ISource>
     public tryGettingBPsInLoadedSource<R>(ifSuccesfulDo: (desiredBPsInLoadedSource: BPRecipiesInLoadedSource) => R, ifFaileDo: () => R): R {
         return this.resource.tryResolving(
             loadedSource => {
-                const loadedSourceBPs = this.breakpoints.map(breakpoint => breakpoint.asBreakpointInLoadedSource());
+                const loadedSourceBPs = this.breakpoints.map(breakpoint => breakpoint.resolvedToLoadedSource());
                 return ifSuccesfulDo(new BPRecipiesInLoadedSource(loadedSource, loadedSourceBPs));
             },
             ifFaileDo);

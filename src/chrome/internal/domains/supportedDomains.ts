@@ -1,9 +1,10 @@
 import { IComponent } from '../features/feature';
-import { Crdp } from '../../..';
+import { Protocol as CDTP } from 'devtools-protocol';
+
 import { injectable } from 'inversify';
 
 export interface SupportedDomainsDependencies {
-    getTargetDebuggerDomainsSchemas(): Promise<Crdp.Schema.Domain[]>;
+    getTargetDebuggerDomainsSchemas(): Promise<CDTP.Schema.Domain[]>;
 }
 
 export interface ISupportedDomains {
@@ -12,7 +13,7 @@ export interface ISupportedDomains {
 
 @injectable()
 export class SupportedDomains implements IComponent, ISupportedDomains {
-    private readonly _domains = new Map<string, Crdp.Schema.Domain>();
+    private readonly _domains = new Map<string, CDTP.Schema.Domain>();
 
     public isSupported(domainName: string): boolean {
         return this._domains.has(domainName);

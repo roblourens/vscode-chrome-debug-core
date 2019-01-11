@@ -1,4 +1,4 @@
-import { IBPRecipie } from './bpRecipie';
+import { IBPRecipie, AnyBPRecipie } from './bpRecipie';
 
 import { ILoadedSource } from '../sources/loadedSource';
 
@@ -29,7 +29,7 @@ export class BPRecipieIsUnbinded implements IBPRecipieStatus {
     }
 
     constructor(
-        public readonly recipie: IBPRecipie<ScriptOrSourceOrURLOrURLRegexp>,
+        public readonly recipie: AnyBPRecipie,
         public readonly statusDescription: string) {
     }
 }
@@ -53,7 +53,7 @@ export class BPRecipieIsBinded implements IBPRecipieStatus {
     }
 
     constructor(
-        public readonly recipie: IBPRecipie<ScriptOrSourceOrURLOrURLRegexp>,
+        public readonly recipie: AnyBPRecipie,
         public readonly breakpoints: IBreakpoint<ScriptOrSourceOrURLOrURLRegexp>[],
         public readonly statusDescription: string) {
         if (this.breakpoints.length === 0) {

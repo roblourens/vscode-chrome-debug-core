@@ -5,16 +5,17 @@
 import { logger } from 'vscode-debugadapter';
 import { ISetBreakpointResult, BreakOnLoadStrategy } from '../debugAdapterInterfaces';
 
-import { Protocol as Crdp } from 'devtools-protocol';
+import { Protocol as CDTP } from 'devtools-protocol';
 import { ChromeDebugLogic } from './chromeDebugAdapter';
 import * as ChromeUtils from './chromeUtils';
 import * as assert from 'assert';
 import { InternalSourceBreakpoint } from './internalSourceBreakpoint';
 import { Version, parseResourceIdentifier } from '..';
-import { PausedEvent } from './target/events';
 import { LocationInScript } from './internal/locations/location';
 import { BreakpointsLogic } from './internal/breakpoints/breakpointsLogic';
 import { IResourceIdentifier, newResourceIdentifierMap } from './internal/sources/resourceIdentifier';
+import { PausedEvent } from './cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
+import { IDOMInstrumentationBreakpoints } from './cdtpDebuggee/features/cdtpDOMInstrumentationBreakpoints';
 
 export interface UrlRegexAndFileSet {
     urlRegex: string;
@@ -35,7 +36,8 @@ export class BreakOnLoadHelper {
     private _breakOnLoadStrategy: BreakOnLoadStrategy;
 
     public constructor(chromeDebugAdapter: ChromeDebugLogic, breakOnLoadStrategy: BreakOnLoadStrategy,
-        public readonly _breakpointsLogic: BreakpointsLogic) {
+        public readonly _breakpointsLogic: BreakpointsLogic,
+        private readonly _domInstrumentationBreakpoints: IDOMInstrumentationBreakpoints) {
         this.validateStrategy(breakOnLoadStrategy);
         this._chromeDebugAdapter = chromeDebugAdapter;
         this._breakOnLoadStrategy = breakOnLoadStrategy;
@@ -62,7 +64,7 @@ export class BreakOnLoadHelper {
     public async setBrowserVersion(version: Version): Promise<void> {
         // On version 69 Chrome stopped sending an extra event for DOM Instrumentation: See https://bugs.chromium.org/p/chromium/issues/detail?id=882909
         // On Chrome 68 we were relying on that event to make Break on load work on breakpoints on the first line of a file. On Chrome 69 we need an alternative way to make it work.
-        this._doesDOMInstrumentationRecieveExtraEvent = !version.isAtLeastVersion(69, 0);
+        this._doesDOMInstrumentationRecieveExtraEvent = !version.isAtLeastVersion('69.0.0');
     }
 
     /**
@@ -240,12 +242,12 @@ export class BreakOnLoadHelper {
      * Takes the action based on the strategy
      */
     public async handleAddBreakpoints(url: IResourceIdentifier, breakpoints: InternalSourceBreakpoint[]): Promise<{
-        breakpointId?: Crdp.Debugger.BreakpointId;
+        breakpointId?: CDTP.Debugger.BreakpointId;
         actualLocation?: LocationInScript;
     }[]> {
         // If the strategy is set to regex, we try to match the file where user put the breakpoint through a regex and tell Chrome to put a stop on entry breakpoint there
         if (this._breakOnLoadStrategy === 'regex') {
-        await this.addStopOnEntryBreakpoint(url);
+            await this.addStopOnEntryBreakpoint(url);
         } else if (this._breakOnLoadStrategy === 'instrument') {
             // Else if strategy is to use Chrome's experimental instrumentation API, we stop on all the scripts at the first statement before execution
             if (!this.instrumentationBreakpointSet) {
@@ -262,12 +264,12 @@ export class BreakOnLoadHelper {
      * Only used when using instrument approach for break on load
      */
     private async setInstrumentationBreakpoint(): Promise<void> {
-        await this._chromeDebugAdapter.chrome.DOMDebugger.setInstrumentationBreakpoint({eventName: 'scriptFirstStatement'});
+        await this._domInstrumentationBreakpoints.setInstrumentationBreakpoint({ eventName: 'scriptFirstStatement' });
         this._instrumentationBreakpointSet = true;
     }
 
     // Sets a breakpoint on (0,0) for the files matching the given regex
-    private async setStopOnEntryBreakpoint(_urlRegex: string): Promise<Crdp.Debugger.SetBreakpointByUrlResponse> {
+    private async setStopOnEntryBreakpoint(_urlRegex: string): Promise<CDTP.Debugger.SetBreakpointByUrlResponse> {
         // DIEGO TODO: Re-enable this code
         // let result = await this._chromeDebugAdapter.chrome.Debugger.setBreakpointByUrl({ urlRegex, lineNumber: 0, columnNumber: 0 });
         // return result;

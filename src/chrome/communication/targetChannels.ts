@@ -1,8 +1,9 @@
 import { ScriptOrSourceOrURLOrURLRegexp } from '../internal/locations/location';
 import { NotificationChannelIdentifier } from './notificationsCommunicator';
 import { Breakpoint } from '../internal/breakpoints/breakpoint';
-import { ScriptParsedEvent, PausedEvent } from '../target/events';
 import { registerChannels } from './channel';
+import { ScriptParsedEvent } from '../cdtpDebuggee/eventsProviders/cdtpOnScriptParsedEventProvider';
+import { PausedEvent } from '../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
 
 const _debugger = {
     // Notifications

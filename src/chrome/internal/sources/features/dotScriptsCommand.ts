@@ -7,12 +7,13 @@ import { TYPES } from '../../../dependencyInjection.ts/types';
 import { IScriptSources } from '../../../target/cdtpDebugger';
 import { CDTPScriptsRegistry } from '../../../target/cdtpScriptsRegistry';
 import { IScript } from '../../scripts/script';
+import { IScriptSourcesRetriever } from '../../../cdtpDebuggee/features/CDTPScriptSourcesRetriever';
 
 @injectable()
 export class DotScriptCommand {
-    constructor(
+  constructor(
         @inject(TYPES.BaseSourceMapTransformer) private readonly _sourceMapTransformer: BaseSourceMapTransformer,
-        @inject(TYPES.IScriptSources) private readonly _scriptSources: IScriptSources,
+        @inject(TYPES.IScriptSources) private readonly _scriptSources: IScriptSourcesRetriever,
         @inject(TYPES.EventSender) private readonly _eventsToClientReporter: IEventsToClientReporter,
         @inject(TYPES.CDTPScriptsRegistry) private readonly _scriptsRegistry: CDTPScriptsRegistry) { }
 

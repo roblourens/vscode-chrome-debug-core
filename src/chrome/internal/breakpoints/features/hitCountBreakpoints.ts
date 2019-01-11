@@ -1,16 +1,15 @@
 import { IComponent } from '../../features/feature';
-import { PausedEvent } from '../../../target/events';
-import { BPRecipieInUnresolvedSource, IBPRecipie } from '../bpRecipie';
+import { BPRecipieInUnresolvedSource, AnyBPRecipie } from '../bpRecipie';
 import { BreakOnHitCount } from '../bpActionWhenHit';
 import { ValidatedMap } from '../../../collections/validatedMap';
 import { HitCountConditionParser, HitCountConditionFunction } from '../hitCountConditionParser';
-import { ScriptOrSourceOrURLOrURLRegexp } from '../../locations/location';
-import {  NotifyStoppedCommonLogic, InformationAboutPausedProvider } from '../../features/takeProperActionOnPausedEvent';
+import { NotifyStoppedCommonLogic, InformationAboutPausedProvider } from '../../features/takeProperActionOnPausedEvent';
 import { ReasonType } from '../../../stoppedEvent';
 import { Vote, Abstained, VoteRelevance } from '../../../communication/collaborativeDecision';
 import { injectable, inject } from 'inversify';
 import { IEventsToClientReporter } from '../../../client/eventSender';
 import { TYPES } from '../../../dependencyInjection.ts/types';
+import { PausedEvent } from '../../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
 
 export interface HitCountBreakpointsDependencies {
     registerAddBPRecipieHandler(handlerRequirements: (bpRecipie: BPRecipieInUnresolvedSource) => boolean,
@@ -50,7 +49,7 @@ export class HitAndSatisfiedCountBPCondition extends NotifyStoppedCommonLogic {
 // TODO DIEGO: Install and use this feature
 @injectable()
 export class HitCountBreakpoints implements IComponent {
-    private readonly underlyingToBPRecipie = new ValidatedMap<IBPRecipie<ScriptOrSourceOrURLOrURLRegexp>, HitCountBPData>();
+    private readonly underlyingToBPRecipie = new ValidatedMap<AnyBPRecipie, HitCountBPData>();
 
     public install(): void {
         this._dependencies.registerAddBPRecipieHandler(
@@ -68,7 +67,7 @@ export class HitCountBreakpoints implements IComponent {
 
     public async askForInformationAboutPaused(paused: PausedEvent): Promise<Vote<void>> {
         const hitCountBPData = paused.hitBreakpoints.map(hitBPRecipie =>
-            this.underlyingToBPRecipie.tryGetting(hitBPRecipie.unmappedBpRecipie)).filter(bpRecipie => bpRecipie !== undefined);
+            this.underlyingToBPRecipie.tryGetting(hitBPRecipie.unmappedBPRecipie)).filter(bpRecipie => bpRecipie !== undefined);
 
         const individualDecisions = hitCountBPData.map(data => data.notifyBPHit());
         return individualDecisions.indexOf(VoteRelevance.NormalVote) >= 0
