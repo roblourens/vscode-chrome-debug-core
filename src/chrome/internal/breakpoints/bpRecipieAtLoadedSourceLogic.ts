@@ -61,7 +61,7 @@ export class BPRecipieAtLoadedSourceLogic implements IBreakpointsInLoadedSource 
         const bpRecipieInBestLocation = bpInScriptRecipie.withLocationReplaced(bestLocation);
 
         const runtimeSource = bpInScriptRecipie.location.script.runtimeSource;
-        this._breakpointRegistry.registerBPRecipie(bpRecipie);
+        this._breakpointRegistry.registerBPRecipie(bpRecipie.unmappedBPRecipie);
 
         let breakpoints: CDTPBreakpoint[];
         if (!runtimeSource.doesScriptHasUrl()) {

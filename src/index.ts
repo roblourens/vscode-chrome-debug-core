@@ -32,7 +32,6 @@ import * as executionTimingsReporter from './executionTimingsReporter';
 import { Protocol as CDTP } from 'devtools-protocol';
 import { TargetVersions } from './chrome/chromeTargetDiscoveryStrategy';
 import { Version } from "./chrome/utils/version";
-import { IOnPausedResult } from './chrome/internal/breakpoints/breakpointsLogic';
 import { parseResourceIdentifier } from './chrome/internal/sources/resourceIdentifier';
 import { ChromeDebugAdapter } from './chrome/client/chromeDebugAdapter/chromeDebugAdapterV2';
 import { IExtensibilityPoints, OnlyProvideCustomLauncherExtensibilityPoints } from './chrome/extensibility/extensibilityPoints';
@@ -56,7 +55,6 @@ export {
     chromeConnection,
     ChromeDebugLogic,
     ChromeDebugSession,
-    IOnPausedResult,
     IChromeDebugSessionOpts,
     chromeTargetDiscoveryStrategy,
     chromeUtils,

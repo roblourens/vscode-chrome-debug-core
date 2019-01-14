@@ -18,7 +18,7 @@ import { CDTPSupportedResources, CDTPSupportedHitActions, CDTPBreakpoint } from 
 import { Listeners } from '../../communication/listeners';
 
 type SetBPInCDTPCall<TResource extends CDTPSupportedResources> = (resource: TResource, position: Coordinates, cdtpConditionField: string) => Promise<CDTP.Debugger.SetBreakpointByUrlResponse>;
-export type OnBreakpointResolvedListener = (breakpoint: Breakpoint<ScriptOrSourceOrURLOrURLRegexp>) => void;
+export type OnBreakpointResolvedListener = (breakpoint: CDTPBreakpoint) => void;
 
 export interface IDebuggeeBreakpoints {
     setBreakpoint(bpRecipie: BPRecipieInScript<AlwaysBreak | ConditionalBreak>): Promise<BreakpointInScript>;

@@ -1,4 +1,4 @@
-import { AnyBPRecipie } from './bpRecipie';
+import { IBPRecipie } from './bpRecipie';
 import { ITelemetryPropertyCollector, IComponent, ConnectedCDAConfiguration } from '../../..';
 import { ScriptOrSourceOrURLOrURLRegexp } from '../locations/location';
 import { BPRecipiesInUnresolvedSource, BPRecipiesInLoadedSource } from './bpRecipies';
@@ -16,6 +16,8 @@ import { inject, injectable } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
 import { IDebuggeeBreakpoints } from '../../cdtpDebuggee/features/cdtpDebuggeeBreakpoints';
 import { BPRsDeltaInRequestedSource } from './bpsDeltaCalculator';
+import { CDTPBreakpoint } from '../../cdtpDebuggee/cdtpPrimitives';
+import { ISource } from '../sources/source';
 
 export interface InternalDependencies extends
     EventsConsumedByReAddBPsWhenSourceIsLoaded,
@@ -35,12 +37,12 @@ export class BreakpointsLogic implements IComponent {
 
     private readonly _clientBreakpointsRegistry = new ClientCurrentBPRecipiesRegistry();
 
-    protected onBreakpointResolved(breakpoint: Breakpoint<ScriptOrSourceOrURLOrURLRegexp>): void {
+    protected onBreakpointResolved(breakpoint: CDTPBreakpoint): void {
         this._breakpointRegistry.registerBreakpointAsBinded(breakpoint);
-        this.onUnbounBPRecipieIsNowBound(breakpoint.recipie);
+        this.onUnbounBPRecipieIsNowBound(breakpoint.recipie.unmappedBPRecipie);
     }
 
-    private onUnbounBPRecipieIsNowBound(bpRecipie: AnyBPRecipie): void {
+    private onUnbounBPRecipieIsNowBound(bpRecipie: IBPRecipie<ISource>): void {
         const bpRecipieStatus = this._breakpointRegistry.getStatusOfBPRecipie(bpRecipie);
         this._eventsToClientReporter.sendBPStatusChanged({ reason: 'changed', bpRecipieStatus });
     }
