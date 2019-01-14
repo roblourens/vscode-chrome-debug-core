@@ -1,5 +1,5 @@
 import { ISource } from '../sources/source';
-import { Location, ScriptOrSourceOrURLOrURLRegexp, LocationInUrl, LocationInUrlRegexp, LocationInScript } from '../locations/location';
+import { Location, ScriptOrSourceOrURLOrURLRegexp, LocationInUrl, LocationInUrlRegexp, LocationInScript, ILocation } from '../locations/location';
 import { ILoadedSource } from '../sources/loadedSource';
 import { IScript } from '../scripts/script';
 import { IBPActionWhenHit, AlwaysBreak } from './bpActionWhenHit';
@@ -7,8 +7,10 @@ import { utils } from '../../..';
 import { CDTPScriptUrl } from '../sources/resourceIdentifierSubtypes';
 import { IResourceIdentifier, URL } from '../sources/resourceIdentifier';
 import { URLRegexp, createURLRegexp } from '../locations/subtypes';
+import { IEquivalenceComparable } from '../../utils/equivalence';
 
-export interface IBPRecipie<TResource extends ScriptOrSourceOrURLOrURLRegexp, TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit> {
+export interface IBPRecipie<TResource extends ScriptOrSourceOrURLOrURLRegexp, TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit>
+    extends IEquivalenceComparable {
     readonly location: Location<TResource>;
     readonly bpActionWhenHit: TBPActionWhenHit;
 
@@ -35,6 +37,12 @@ abstract class UnmappedBPRecipieCommonLogic<TResource extends ScriptOrSourceOrUR
         return this;
     }
 
+    public isEquivalentTo(right: IBPRecipie<TResource>): boolean {
+        // TODO: Figure out how to remove the <ILocation<TResource>> casts
+        return (<ILocation<TResource>>this.location).isEquivalentTo(<ILocation<TResource>>right.location)
+            && this.bpActionWhenHit.isEquivalentTo(right.bpActionWhenHit);
+    }
+
     constructor(
         location: Location<TResource>,
         public readonly bpActionWhenHit: TBPActionWhenHit) {
@@ -47,6 +55,11 @@ abstract class MappedBPRecipieCommonLogic<TResource extends ScriptOrSourceOrURLO
         return this.unmappedBPRecipie.bpActionWhenHit;
     }
 
+    public isEquivalentTo(right: IBPRecipie<TResource, TBPActionWhenHit>): boolean {
+        return (<ILocation<TResource>>this.location).isEquivalentTo(<ILocation<TResource>>right.location)
+            && right.unmappedBPRecipie.isEquivalentTo(this.unmappedBPRecipie);
+    }
+
     constructor(public readonly unmappedBPRecipie: IBPRecipie<ISource, TBPActionWhenHit>,
         public readonly location: Location<TResource>) { }
 
@@ -55,14 +68,14 @@ abstract class MappedBPRecipieCommonLogic<TResource extends ScriptOrSourceOrURLO
     }
 }
 
-export class BPRecipieInUnresolvedSource<TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit> extends UnmappedBPRecipieCommonLogic<ISource, TBPActionWhenHit> implements IBPRecipie<ISource, TBPActionWhenHit> {
-    public withAlwaysBreakAction(): BPRecipieInUnresolvedSource<AlwaysBreak> {
-        return new BPRecipieInUnresolvedSource<AlwaysBreak>(this.location, new AlwaysBreak());
+export class BPRecipieInSource<TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit> extends UnmappedBPRecipieCommonLogic<ISource, TBPActionWhenHit> implements IBPRecipie<ISource, TBPActionWhenHit> {
+    public withAlwaysBreakAction(): BPRecipieInSource<AlwaysBreak> {
+        return new BPRecipieInSource<AlwaysBreak>(this.location, new AlwaysBreak());
     }
 
     public tryResolvingSource<R>(
         succesfulAction: (breakpointInLoadedSource: BPRecipieInLoadedSource) => R,
-        failedAction: (breakpointInUnbindedSource: BPRecipieInUnresolvedSource) => R): R {
+        failedAction: (breakpointInUnbindedSource: BPRecipieInSource) => R): R {
         return this.location.tryResolvingSource(
             locationInLoadedSource => succesfulAction(new BPRecipieInLoadedSource(this, locationInLoadedSource)),
             () => failedAction(this));
@@ -92,7 +105,7 @@ export type IBreakpointRecipieInUnbindedSource = IBPRecipie<ISource>;
 
 // TODO: Are we missing the IBPActionWhenHit parameter here?
 export type BPRecipie<TResource extends ScriptOrSourceOrURLOrURLRegexp> =
-    TResource extends ISource ? BPRecipieInUnresolvedSource :
+    TResource extends ISource ? BPRecipieInSource :
     TResource extends ILoadedSource ? BPRecipieInLoadedSource :
     TResource extends IScript ? BPRecipieInScript :
     TResource extends IResourceIdentifier ? BPRecipieInUrl :
@@ -107,7 +120,7 @@ export class BPRecipieInScript<TBPActionWhenHit extends IBPActionWhenHit = IBPAc
     }
 
     public mappedToUrlRegexp(): BPRecipieInUrlRegexp<TBPActionWhenHit> {
-        const urlRegexp = createURLRegexp(utils.pathToRegex(this.location.script.url));
+        const urlRegexp = createURLRegexp(utils.pathToRegex(this.location.script.url, `${Math.random() * 100000000000000}`));
         return new BPRecipieInUrlRegexp<TBPActionWhenHit>(this.unmappedBPRecipie,
             new LocationInUrlRegexp(urlRegexp, this.location.coordinates));
     }

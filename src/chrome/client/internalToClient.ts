@@ -4,7 +4,6 @@ import * as pathModule from 'path';
 import { asyncAdaptToSinglIntoToMulti } from '../../utils';
 import { ILoadedSource, ILoadedSourceTreeNode } from '../internal/sources/loadedSource';
 import { LocationInLoadedSource } from '../internal/locations/location';
-import { Source } from 'vscode-debugadapter';
 import { RemoveProperty } from '../../typeUtils';
 import { IBPRecipieStatus } from '../internal/breakpoints/bpRecipieStatus';
 import { IBPRecipie } from '../internal/breakpoints/bpRecipie';
@@ -14,6 +13,7 @@ import { IExceptionInformation } from '../internal/exceptions/pauseOnException';
 import { IFormattedExceptionLineDescription } from '../internal/formattedExceptionParser';
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../dependencyInjection.ts/types';
+import { Source } from 'vscode-debugadapter';
 
 interface ClientLocationInSource {
     source: DebugProtocol.Source;
@@ -66,10 +66,12 @@ export class InternalToClient {
         const exists = await utils.existsAsync(loadedSource.identifier.canonicalized);
 
         // if the path exists, do not send the sourceReference
-        const source = new Source(
-            pathModule.basename(loadedSource.identifier.textRepresentation),
-            loadedSource.identifier.textRepresentation,
-            exists ? undefined : this._handlesRegistry.sources.getIdByObject(loadedSource));
+        // new Source sends 0 for undefined
+        const source: Source = {
+            name: pathModule.basename(loadedSource.identifier.textRepresentation),
+            path: loadedSource.identifier.textRepresentation,
+            sourceReference: exists ? undefined : this._handlesRegistry.sources.getIdByObject(loadedSource),
+        };
 
         return source;
     }

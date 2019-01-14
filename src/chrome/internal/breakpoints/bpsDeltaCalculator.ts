@@ -1,40 +1,31 @@
-import { BPRecipieInUnresolvedSource, BPRecipie } from './bpRecipie';
+import { BPRecipieInSource, BPRecipie } from './bpRecipie';
 import { BPRecipiesInUnresolvedSource } from './bpRecipies';
 import { ISource } from '../sources/source';
 import { ILoadedSource } from '../sources/loadedSource';
 import { IBPActionWhenHit } from './bpActionWhenHit';
 import { SetUsingProjection } from '../../collections/setUsingProjection';
+import assert = require('assert');
 
-export class ReplacementForExistingBPR {
-    constructor(
-        public readonly existingBP: BPRecipieInUnresolvedSource,
-        public readonly replacement: BPRecipieInUnresolvedSource) { }
-}
-
-function canonicalizeBPLocation(breakpoint: BPRecipieInUnresolvedSource): string {
-    return JSON.stringify({
-        lineNumber: breakpoint.location.lineNumber,
-        columnNumber: breakpoint.location.columnNumber
-    });
+function canonicalizeBPLocation(breakpoint: BPRecipieInSource): string {
+    return `${breakpoint.location.lineNumber}:${breakpoint.location.columnNumber}[${breakpoint.bpActionWhenHit}]`;
 }
 
 export class BPRsDeltaCalculator {
-    private readonly _currentBPRecipies: SetUsingProjection<BPRecipieInUnresolvedSource, string>;
+    private readonly _currentBPRecipies: SetUsingProjection<BPRecipieInSource, string>;
 
     constructor(
         public readonly requestedSourceIdentifier: ISource,
         private readonly _requestedBPRecipies: BPRecipiesInUnresolvedSource,
-        currentBPRecipies: BPRecipieInUnresolvedSource[]) {
+        currentBPRecipies: BPRecipieInSource[]) {
         this._currentBPRecipies = new SetUsingProjection(canonicalizeBPLocation, currentBPRecipies);
     }
 
     public calculate(): BPRsDeltaInRequestedSource {
         const match = {
-            replacementsForExistingOnes: [] as ReplacementForExistingBPR[], // TODO DIEGO
-            matchesForRequested: [] as BPRecipieInUnresolvedSource[], // Every iteration we'll add either the existing BP match, or the new BP as it's own match here
-            requestedToAdd: [] as BPRecipieInUnresolvedSource[], // Every time we don't find an existing match BP, we'll add the desired BP here
-            existingToLeaveAsIs: [] as BPRecipieInUnresolvedSource[], // Every time we do find an existing match BP, we'll add the existing BP here
-            existingToRemove: [] as BPRecipieInUnresolvedSource[] // Calculated at the end of the algorithm by doing (existingBreakpoints - existingToLeaveAsIs)
+            matchesForRequested: [] as BPRecipieInSource[], // Every iteration we'll add either the existing BP match, or the new BP as it's own match here
+            requestedToAdd: [] as BPRecipieInSource[], // Every time we don't find an existing match BP, we'll add the desired BP here
+            existingToLeaveAsIs: [] as BPRecipieInSource[], // Every time we do find an existing match BP, we'll add the existing BP here
+            existingToRemove: [] as BPRecipieInSource[] // Calculated at the end of the algorithm by doing (existingBreakpoints - existingToLeaveAsIs)
         };
 
         this._requestedBPRecipies.breakpoints.forEach(requestedBP => {
@@ -42,13 +33,9 @@ export class BPRsDeltaCalculator {
 
             let matchingBreakpoint;
             if (existingMatch !== undefined) {
-                if (requestedBP.bpActionWhenHit.isEquivalent(existingMatch.bpActionWhenHit)) {
-                    match.existingToLeaveAsIs.push(existingMatch);
-                    matchingBreakpoint = existingMatch;
-                } else {
-                    match.replacementsForExistingOnes.push(new ReplacementForExistingBPR(existingMatch, requestedBP));
-                    matchingBreakpoint = requestedBP;
-                }
+                assert(requestedBP.isEquivalentTo(existingMatch), `The existing match ${existingMatch} is expected to be equivalent to the requested BP ${requestedBP}`);
+                match.existingToLeaveAsIs.push(existingMatch);
+                matchingBreakpoint = existingMatch;
             } else {
                 match.requestedToAdd.push(requestedBP);
                 matchingBreakpoint = requestedBP;
@@ -56,12 +43,12 @@ export class BPRsDeltaCalculator {
             match.matchesForRequested.push(matchingBreakpoint);
         });
 
-        const setOfExistingToLeaveAsIs = new Set(match.existingToLeaveAsIs.concat(match.replacementsForExistingOnes.map(b => b.existingBP)));
+        const setOfExistingToLeaveAsIs = new Set(match.existingToLeaveAsIs);
 
         match.existingToRemove = Array.from(this._currentBPRecipies).filter(bp => !setOfExistingToLeaveAsIs.has(bp));
 
         // Do some minor validations of the result just in case
-        const delta = new BPRsDeltaInRequestedSource(this.requestedSourceIdentifier, match.replacementsForExistingOnes, match.matchesForRequested,
+        const delta = new BPRsDeltaInRequestedSource(this.requestedSourceIdentifier, match.matchesForRequested,
             match.requestedToAdd, match.existingToRemove, match.existingToLeaveAsIs);
         this.validateResult(delta);
         return delta;
@@ -73,11 +60,11 @@ export class BPRsDeltaCalculator {
             errorMessage += 'Expected the matches for desired breakpoints list to have the same length as the desired breakpoints list\n';
         }
 
-        if (match.requestedToAdd.length + match.existingToLeaveAsIs.length + match.existingToBeReplaced.length !== this._requestedBPRecipies.breakpoints.length) {
+        if (match.requestedToAdd.length + match.existingToLeaveAsIs.length !== this._requestedBPRecipies.breakpoints.length) {
             errorMessage += 'Expected the desired breakpoints to add plus the existing breakpoints to leave as-is to have the same quantity as the total desired breakpoints\n';
         }
 
-        if (match.existingToLeaveAsIs.length + match.existingToBeReplaced.length + match.existingToRemove.length !== this._currentBPRecipies.size) {
+        if (match.existingToLeaveAsIs.length + match.existingToRemove.length !== this._currentBPRecipies.size) {
             errorMessage += 'Expected the existing breakpoints to leave as-is plus the existing breakpoints to remove to have the same quantity as the total existing breakpoints\n';
         }
 
@@ -86,8 +73,7 @@ export class BPRsDeltaCalculator {
                 matchesForRequested: this.printLocations(match.matchesForRequested),
                 requestedToAdd: this.printLocations(match.requestedToAdd),
                 existingToRemove: this.printLocations(match.existingToRemove),
-                existingToLeaveAsIs: this.printLocations(match.existingToLeaveAsIs),
-                existingToBeReplaced: this.printLocationsOfReplacements(match.existingToBeReplaced),
+                existingToLeaveAsIs: this.printLocations(match.existingToLeaveAsIs)
             };
 
             const additionalDetails = `\nDesired breakpoints = ${JSON.stringify(this._requestedBPRecipies.breakpoints.map(canonicalizeBPLocation))}`
@@ -97,12 +83,7 @@ export class BPRsDeltaCalculator {
         }
     }
 
-    private printLocationsOfReplacements(existingToBeReplaced: ReplacementForExistingBPR[]): string[] {
-        return existingToBeReplaced.map(rp =>
-            `At ${rp.existingBP.location.coordinates} change <${rp.existingBP.bpActionWhenHit}> to <${rp.replacement.bpActionWhenHit}>`);
-    }
-
-    private printLocations(bpRecipies: BPRecipieInUnresolvedSource<IBPActionWhenHit>[]): string[] {
+    private printLocations(bpRecipies: BPRecipieInSource<IBPActionWhenHit>[]): string[] {
         return bpRecipies.map(bpRecipie => `${bpRecipie.location.coordinates}`);
     }
 
@@ -113,7 +94,6 @@ export class BPRsDeltaCalculator {
 
 export abstract class BPRsDeltaCommonLogic<TResource extends ILoadedSource | ISource> {
     constructor(public readonly resource: TResource,
-        public readonly existingToBeReplaced: ReplacementForExistingBPR[],
         public readonly matchesForRequested: BPRecipie<TResource>[],
         public readonly requestedToAdd: BPRecipie<TResource>[],
         public readonly existingToRemove: BPRecipie<TResource>[],

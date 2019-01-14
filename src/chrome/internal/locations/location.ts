@@ -6,11 +6,12 @@ import { logger } from 'vscode-debugadapter';
 import { ColumnNumber, LineNumber, URLRegexp } from './subtypes';
 import { CDTPScriptUrl } from '../sources/resourceIdentifierSubtypes';
 import { IResourceIdentifier, parseResourceIdentifier, URL } from '../sources/resourceIdentifier';
+import { IEquivalenceComparable } from '../../utils/equivalence';
 
 export type integer = number;
 
-export class Coordinates {
-    public isSameAs(location: Coordinates): boolean {
+export class Coordinates implements IEquivalenceComparable {
+    public isEquivalentTo(location: Coordinates): boolean {
         return this.lineNumber === location.lineNumber
             && this.columnNumber === location.columnNumber;
     }
@@ -31,11 +32,13 @@ export class Coordinates {
     }
 }
 
-interface ILocation<T extends ScriptOrSourceOrURLOrURLRegexp> {
+export interface ILocation<T extends ScriptOrSourceOrURLOrURLRegexp> extends IEquivalenceComparable {
     readonly lineNumber: integer;
     readonly columnNumber?: integer;
     readonly coordinates: Coordinates;
     readonly resource: T;
+
+    isEquivalentTo(right: this): boolean;
 }
 
 export type ScriptOrSourceOrURLOrURLRegexp = IScript | ILoadedSource | ISource | URLRegexp | URL<CDTPScriptUrl>;
@@ -46,7 +49,7 @@ export type Location<T extends ScriptOrSourceOrURLOrURLRegexp> =
     T extends IScript ? LocationInScript : // Used when receiving locations from the debugee
     T extends URLRegexp ? LocationInUrlRegexp : // Used when setting a breakpoint by URL in a local file path in windows, to make it case insensitive
     T extends URL<CDTPScriptUrl> ? LocationInUrl : // Used when setting a breakpoint by URL for case-insensitive URLs
-    never;
+    ILocation<never>; // TODO: Figure out how to replace this by never (We run into some issues with the isEquivalentTo call if we do)
 
 abstract class LocationCommonLogic<T extends ScriptOrSourceOrURLOrURLRegexp> implements ILocation<T> {
     public get lineNumber(): LineNumber {
@@ -55,6 +58,18 @@ abstract class LocationCommonLogic<T extends ScriptOrSourceOrURLOrURLRegexp> imp
 
     public get columnNumber(): ColumnNumber {
         return this.coordinates.columnNumber;
+    }
+
+    public isEquivalentTo(right: this): boolean {
+        if (this.coordinates.isEquivalentTo(right.coordinates)) {
+            if (typeof this.resource === 'string' || typeof right.resource === 'string') {
+                return this.resource === right.resource;
+            } else {
+                return (<any>this.resource).isEquivalentTo(right.resource); // TODO: Make this any safer
+            }
+            return true;
+        }
+        return false;
     }
 
     public toString(): string {
@@ -80,7 +95,7 @@ export class LocationInSource extends LocationCommonLogic<ISource> implements IL
     }
 
     public resolvedWith(loadedSource: ILoadedSource): LocationInLoadedSource {
-        if (this.resource.sourceIdentifier.isEquivalent(loadedSource.identifier)) {
+        if (this.resource.sourceIdentifier.isEquivalentTo(loadedSource.identifier)) {
             return new LocationInLoadedSource(loadedSource, this.coordinates);
         } else {
             throw new Error(`Can't resolve a location with a source (${this}) to a location with a loaded source that doesn't match the unresolved source: ${loadedSource}`);
@@ -115,7 +130,7 @@ export class LocationInScript extends LocationCommonLogic<IScript> implements IL
 
     public isSameAs(locationInScript: LocationInScript): boolean {
         return this.script === locationInScript.script &&
-            this.coordinates.isSameAs(locationInScript.coordinates);
+            this.coordinates.isEquivalentTo(locationInScript.coordinates);
     }
 
     public toString(): string {

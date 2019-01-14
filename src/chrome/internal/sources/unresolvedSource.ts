@@ -1,10 +1,11 @@
 import { IResourceIdentifier } from './resourceIdentifier';
 import { ILoadedSource } from './loadedSource';
 import { SourceResolver } from './sourceResolver';
+import { IEquivalenceComparable } from '../../utils/equivalence';
 
-export interface IUnresolvedSource {
+export interface IUnresolvedSource extends IEquivalenceComparable {
     readonly sourceIdentifier: IResourceIdentifier;
-    isEquivalent(right: IUnresolvedSource): boolean;
+    isEquivalentTo(right: IUnresolvedSource): boolean;
     tryResolving<R>(succesfulAction: (resolvedSource: ILoadedSource) => R, failedAction: (sourceIdentifier: IResourceIdentifier) => R): R;
 }
 
@@ -12,8 +13,8 @@ abstract class UnresolvedSourceCommonLogic implements IUnresolvedSource {
     public abstract tryResolving<R>(succesfulAction: (loadedSource: ILoadedSource) => R, failedAction: (identifier: IResourceIdentifier) => R): R;
     public abstract get sourceIdentifier(): IResourceIdentifier;
 
-    public isEquivalent(right: IUnresolvedSource): boolean {
-        return this.sourceIdentifier.isEquivalent(right.sourceIdentifier);
+    public isEquivalentTo(right: IUnresolvedSource): boolean {
+        return this.sourceIdentifier.isEquivalentTo(right.sourceIdentifier);
     }
 }
 

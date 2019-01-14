@@ -16,6 +16,8 @@ import { TYPES } from '../../dependencyInjection.ts/types';
 import { InformationAboutPausedProvider, NotifyStoppedCommonLogic } from '../features/takeProperActionOnPausedEvent';
 import { IEventsToClientReporter } from '../../client/eventSender';
 import { ReasonType } from '../../stoppedEvent';
+import { CDTPBreakpoint } from '../../cdtpDebuggee/cdtpPrimitives';
+import { CDTPBPRecipiesRegistry } from './registries/bpRecipieRegistry';
 
 export type Dummy = VoteRelevance; // If we don't do this the .d.ts doesn't include VoteRelevance and the compilation fails. Remove this when the issue disappears...
 
@@ -61,21 +63,31 @@ export class BPRecipieAtLoadedSourceLogic implements IBreakpointsInLoadedSource 
         const runtimeSource = bpInScriptRecipie.location.script.runtimeSource;
         this._breakpointRegistry.registerBPRecipie(bpRecipie);
 
-        let breakpoints: IBreakpoint<ScriptOrSourceOrURLOrURLRegexp>[];
+        let breakpoints: CDTPBreakpoint[];
         if (!runtimeSource.doesScriptHasUrl()) {
             breakpoints = [await this._targetBreakpoints.setBreakpoint(bpRecipieInBestLocation)];
         } else if (runtimeSource.identifier.isLocalFilePath()) {
             breakpoints = await this._targetBreakpoints.setBreakpointByUrlRegexp(bpRecipieInBestLocation.mappedToUrlRegexp());
-        } else { // The script has a URL and it's not a local file path, so we can leave it as-is
-            breakpoints = await this._targetBreakpoints.setBreakpointByUrl(bpRecipieInBestLocation.mappedToUrl());
+        } else {
+            /**
+             * The script has a URL and it's not a local file path, so we could leave it as-is.
+             * We transform it into a regexp to add a GUID to it, so CDTP will let us add the same breakpoint/recipie two times (using different guids).
+             * That way we can always add the new breakpoints for a file, before removing the old ones (except if the script doesn't have an URL)
+             */
+            breakpoints = await this._targetBreakpoints.setBreakpointByUrlRegexp(bpRecipieInBestLocation.mappedToUrlRegexp());
         }
 
-        breakpoints.forEach(breakpoint => this._breakpointRegistry.registerBreakpointAsBinded(breakpoint));
+        breakpoints.forEach(breakpoint => {
+            this._breakpointRegistry.registerBreakpointAsBinded(breakpoint);
+            this._bpRecipiesRegistry.register(bpRecipie.unmappedBPRecipie, breakpoint.recipie);
+        });
+
         return breakpoints;
     }
 
-    public async removeBreakpoint(_bpRecipie: BPRecipie<ISource>): Promise<void> {
-        // TODO: Implement this method return this._targetBreakpoints.removeBreakpoint(bpRecipie);
+    public async removeBreakpoint(clientBPRecipie: BPRecipie<ISource>): Promise<void> {
+        const debuggeeBPRecipie = this._bpRecipiesRegistry.getDebuggeeBPRecipie(clientBPRecipie);
+        this._targetBreakpoints.removeBreakpoint(debuggeeBPRecipie);
     }
 
     private async considerColumnAndSelectBestBPLocation(location: LocationInScript): Promise<LocationInScript> {
@@ -105,6 +117,7 @@ export class BPRecipieAtLoadedSourceLogic implements IBreakpointsInLoadedSource 
         @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: BPRecipieAtLoadedSourceLogicDependencies,
         @inject(TYPES.IBreakpointFeaturesSupport) private readonly _breakpointFeaturesSupport: IBreakpointFeaturesSupport,
         private readonly _breakpointRegistry: BreakpointsRegistry,
+        private readonly _bpRecipiesRegistry: CDTPBPRecipiesRegistry,
         @inject(TYPES.ITargetBreakpoints) private readonly _targetBreakpoints: IDebuggeeBreakpoints,
         @inject(TYPES.IEventsToClientReporter) private readonly _eventsToClientReporter: IEventsToClientReporter) {
         this.doesTargetSupportColumnBreakpointsCached = this._breakpointFeaturesSupport.supportsColumnBreakpoints;

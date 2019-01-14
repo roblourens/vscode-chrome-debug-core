@@ -8,7 +8,7 @@ export class BPRecipiesCommonLogic<TResource extends ILoadedSource | ISource> {
     constructor(public readonly resource: TResource, public readonly breakpoints: BPRecipie<TResource>[]) {
         this.breakpoints.forEach(breakpoint => {
             const bpResource = breakpoint.location.resource;
-            if (!(bpResource as any).isEquivalent(this.resource)) {
+            if (!(<any>bpResource).isEquivalentTo(this.resource)) { // TODO: Figure out a way to remove this any
                 throw new Error(`Expected all the breakpoints to have source ${resource} yet the breakpoint ${breakpoint} had ${bpResource} as it's source`);
             }
         });

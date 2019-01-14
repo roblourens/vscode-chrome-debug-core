@@ -7,9 +7,10 @@ import { LocationInLoadedSource } from '../internal/locations/location';
 import { IBPRecipieStatus } from '../internal/breakpoints/bpRecipieStatus';
 import { IFormattedExceptionLineDescription } from '../internal/formattedExceptionParser';
 import { StoppedEvent2, ReasonType } from '../stoppedEvent';
-import { CDTP, ChromeDebugLogic } from '../..';
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../dependencyInjection.ts/types';
+import { Protocol as CDTP } from 'devtools-protocol';
+import { ChromeDebugLogic } from '../chromeDebugAdapter';
 
 export interface OutputParameters {
     readonly output: string;

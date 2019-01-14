@@ -1,5 +1,7 @@
-export interface IBPActionWhenHit {
-    isEquivalent(bpActionWhenHit: IBPActionWhenHit): boolean;
+import { IEquivalenceComparable } from '../../utils/equivalence';
+
+export interface IBPActionWhenHit extends IEquivalenceComparable {
+    isEquivalentTo(bpActionWhenHit: IBPActionWhenHit): boolean;
 
     basedOnTypeDo<R>(actionBasedOnClass: {
         alwaysBreak?: (alwaysBreak: AlwaysBreak) => R,
@@ -15,7 +17,7 @@ export interface IBPActionWhenHit {
 }
 
 export abstract class BasedOnTypeDoCommonLogic implements IBPActionWhenHit {
-    public abstract isEquivalent(bpActionWhenHit: IBPActionWhenHit): boolean;
+    public abstract isEquivalentTo(bpActionWhenHit: IBPActionWhenHit): boolean;
 
     basedOnTypeDo<R>(actionBasedOnClass: {
         alwaysBreak?: (alwaysBreak: AlwaysBreak) => R,
@@ -54,7 +56,7 @@ export abstract class BasedOnTypeDoCommonLogic implements IBPActionWhenHit {
 }
 
 export class AlwaysBreak extends BasedOnTypeDoCommonLogic implements IBPActionWhenHit {
-    public isEquivalent(otherBPActionWhenHit: IBPActionWhenHit): boolean {
+    public isEquivalentTo(otherBPActionWhenHit: IBPActionWhenHit): boolean {
         return otherBPActionWhenHit.isAlwaysBreak();
     }
 
@@ -68,7 +70,7 @@ export class AlwaysBreak extends BasedOnTypeDoCommonLogic implements IBPActionWh
 }
 
 export class ConditionalBreak extends BasedOnTypeDoCommonLogic implements IBPActionWhenHit {
-    public isEquivalent(otherBPActionWhenHit: IBPActionWhenHit): boolean {
+    public isEquivalentTo(otherBPActionWhenHit: IBPActionWhenHit): boolean {
         return otherBPActionWhenHit.isConditionalBreak()
             && otherBPActionWhenHit.expressionOfWhenToBreak === this.expressionOfWhenToBreak;
     }
@@ -87,7 +89,7 @@ export class ConditionalBreak extends BasedOnTypeDoCommonLogic implements IBPAct
 }
 
 export class BreakOnHitCount extends BasedOnTypeDoCommonLogic implements IBPActionWhenHit {
-    public isEquivalent(otherBPActionWhenHit: IBPActionWhenHit): boolean {
+    public isEquivalentTo(otherBPActionWhenHit: IBPActionWhenHit): boolean {
         return otherBPActionWhenHit.isBreakOnHitCount()
             && otherBPActionWhenHit.pauseOnHitCondition === this.pauseOnHitCondition;
     }
@@ -106,7 +108,7 @@ export class BreakOnHitCount extends BasedOnTypeDoCommonLogic implements IBPActi
 }
 
 export class LogMessage extends BasedOnTypeDoCommonLogic implements IBPActionWhenHit {
-    public isEquivalent(otherBPActionWhenHit: IBPActionWhenHit): boolean {
+    public isEquivalentTo(otherBPActionWhenHit: IBPActionWhenHit): boolean {
         return otherBPActionWhenHit.isLogMessage()
             && otherBPActionWhenHit.expressionToLog === this.expressionToLog;
     }

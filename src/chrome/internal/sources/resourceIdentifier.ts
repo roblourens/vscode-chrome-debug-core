@@ -2,6 +2,7 @@ import * as path from 'path';
 import { utils } from '../../..';
 import { IValidatedMap } from '../../collections/validatedMap';
 import { MapUsingProjection } from '../../collections/mapUsingProjection';
+import { IEquivalenceComparable } from '../../utils/equivalence';
 
 /** Hierarchy:
  * IResourceIdentifier: Identifies a resource
@@ -17,17 +18,17 @@ import { MapUsingProjection } from '../../collections/mapUsingProjection';
  */
 
 /** This interface represents a text to identify a particular resource. This class will properly compare urls and file paths, while preserving the original case that was used for the identifier */
-export interface IResourceIdentifier<TString = string> {
+export interface IResourceIdentifier<TString = string> extends IEquivalenceComparable {
     readonly textRepresentation: TString;
     readonly canonicalized: string;
-    isEquivalent(right: IResourceIdentifier<string>): boolean;
+    isEquivalentTo(right: IResourceIdentifier<TString>): boolean;
     isLocalFilePath(): boolean;
 }
 
 abstract class IsEquivalentCommonLogic {
     public abstract get canonicalized(): string;
 
-    public isEquivalent(right: IResourceIdentifier): boolean {
+    public isEquivalentTo(right: IResourceIdentifier): boolean {
         return this.canonicalized === right.canonicalized;
     }
 

@@ -10,7 +10,7 @@ import * as errors from '../errors';
 import * as utils from '../utils';
 import { logger } from 'vscode-debugadapter';
 import { ChromeTargetDiscovery, TargetVersions } from './chromeTargetDiscoveryStrategy';
-import { Version } from "./utils/version";
+import { Version } from './utils/version';
 
 import { Client } from 'noice-json-rpc';
 

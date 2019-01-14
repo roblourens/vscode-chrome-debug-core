@@ -1,5 +1,5 @@
 import { IComponent } from '../../features/feature';
-import { BPRecipieInUnresolvedSource, AnyBPRecipie } from '../bpRecipie';
+import { BPRecipieInSource, AnyBPRecipie } from '../bpRecipie';
 import { BreakOnHitCount } from '../bpActionWhenHit';
 import { ValidatedMap } from '../../../collections/validatedMap';
 import { HitCountConditionParser, HitCountConditionFunction } from '../hitCountConditionParser';
@@ -12,11 +12,11 @@ import { TYPES } from '../../../dependencyInjection.ts/types';
 import { PausedEvent } from '../../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
 
 export interface HitCountBreakpointsDependencies {
-    registerAddBPRecipieHandler(handlerRequirements: (bpRecipie: BPRecipieInUnresolvedSource) => boolean,
-        handler: (bpRecipie: BPRecipieInUnresolvedSource) => Promise<void>): void;
+    registerAddBPRecipieHandler(handlerRequirements: (bpRecipie: BPRecipieInSource) => boolean,
+        handler: (bpRecipie: BPRecipieInSource) => Promise<void>): void;
 
-    addBPRecipie(bpRecipie: BPRecipieInUnresolvedSource): Promise<void>;
-    notifyBPWasHit(bpRecipie: BPRecipieInUnresolvedSource): Promise<void>;
+    addBPRecipie(bpRecipie: BPRecipieInSource): Promise<void>;
+    notifyBPWasHit(bpRecipie: BPRecipieInSource): Promise<void>;
 
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
     publishGoingToPauseClient(): void;
@@ -32,7 +32,7 @@ class HitCountBPData {
     }
 
     constructor(
-        public readonly hitBPRecipie: BPRecipieInUnresolvedSource<BreakOnHitCount>,
+        public readonly hitBPRecipie: BPRecipieInSource<BreakOnHitCount>,
         private readonly _shouldPauseCondition: HitCountConditionFunction) { }
 }
 
@@ -54,11 +54,11 @@ export class HitCountBreakpoints implements IComponent {
     public install(): void {
         this._dependencies.registerAddBPRecipieHandler(
             bpRecipie => bpRecipie.bpActionWhenHit.isBreakOnHitCount(),
-            bpRecipie => this.addBPRecipie(bpRecipie as BPRecipieInUnresolvedSource<BreakOnHitCount>));
+            bpRecipie => this.addBPRecipie(bpRecipie as BPRecipieInSource<BreakOnHitCount>));
         this._dependencies.subscriberForAskForInformationAboutPaused(paused => this.askForInformationAboutPaused(paused));
     }
 
-    private async addBPRecipie(bpRecipie: BPRecipieInUnresolvedSource<BreakOnHitCount>): Promise<void> {
+    private async addBPRecipie(bpRecipie: BPRecipieInSource<BreakOnHitCount>): Promise<void> {
         const underlyingBPRecipie = bpRecipie.withAlwaysBreakAction();
         const shouldPauseCondition = new HitCountConditionParser(bpRecipie.bpActionWhenHit.pauseOnHitCondition).parse();
         this._dependencies.addBPRecipie(underlyingBPRecipie);

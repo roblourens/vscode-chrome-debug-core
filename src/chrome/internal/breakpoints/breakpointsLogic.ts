@@ -1,7 +1,7 @@
 import { AnyBPRecipie } from './bpRecipie';
 import { ITelemetryPropertyCollector, IComponent, ConnectedCDAConfiguration } from '../../..';
 import { ScriptOrSourceOrURLOrURLRegexp } from '../locations/location';
-import { BPRecipiesInUnresolvedSource } from './bpRecipies';
+import { BPRecipiesInUnresolvedSource, BPRecipiesInLoadedSource } from './bpRecipies';
 import { Breakpoint } from './breakpoint';
 import { ReAddBPsWhenSourceIsLoaded, EventsConsumedByReAddBPsWhenSourceIsLoaded } from './features/reAddBPsWhenSourceIsLoaded';
 import { asyncMap } from '../../collections/async';
@@ -14,10 +14,8 @@ import { IEventsToClientReporter } from '../../client/eventSender';
 import { PauseScriptLoadsToSetBPs, PauseScriptLoadsToSetBPsDependencies } from './features/pauseScriptLoadsToSetBPs';
 import { inject, injectable } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
-
-export interface IOnPausedResult {
-    didPause: boolean;
-}
+import { IDebuggeeBreakpoints } from '../../cdtpDebuggee/features/cdtpDebuggeeBreakpoints';
+import { BPRsDeltaInRequestedSource } from './bpsDeltaCalculator';
 
 export interface InternalDependencies extends
     EventsConsumedByReAddBPsWhenSourceIsLoaded,
@@ -37,7 +35,7 @@ export class BreakpointsLogic implements IComponent {
 
     private readonly _clientBreakpointsRegistry = new ClientCurrentBPRecipiesRegistry();
 
-    protected onAsyncBreakpointResolved(breakpoint: Breakpoint<ScriptOrSourceOrURLOrURLRegexp>): void {
+    protected onBreakpointResolved(breakpoint: Breakpoint<ScriptOrSourceOrURLOrURLRegexp>): void {
         this._breakpointRegistry.registerBreakpointAsBinded(breakpoint);
         this.onUnbounBPRecipieIsNowBound(breakpoint.recipie);
     }
@@ -51,28 +49,18 @@ export class BreakpointsLogic implements IComponent {
         const bpsDelta = this._clientBreakpointsRegistry.updateBPRecipiesAndCalculateDelta(requestedBPs);
         const requestedBPsToAdd = new BPRecipiesInUnresolvedSource(bpsDelta.resource, bpsDelta.requestedToAdd);
         bpsDelta.requestedToAdd.forEach(requestedBP => this._breakpointRegistry.registerBPRecipie(requestedBP));
-        bpsDelta.existingToBeReplaced.forEach(existingToBeReplaced => this._breakpointRegistry.registerBPRecipie(existingToBeReplaced.replacement));
 
         await requestedBPsToAdd.tryGettingBPsInLoadedSource(
             async requestedBPsToAddInLoadedSources => {
                 // Match desired breakpoints to existing breakpoints
-
-                await asyncMap(requestedBPsToAddInLoadedSources.breakpoints, async requestedBP => {
-                    // DIEGO TODO: Do we need to do one breakpoint at a time to avoid issues on CDTP, or can we do them in parallel now that we use a different algorithm?
-                    await this._bprInLoadedSourceLogic.addBreakpointAtLoadedSource(requestedBP);
-                });
-                await Promise.all(bpsDelta.existingToRemove.map(async existingBPToRemove => {
-                    await this._bprInLoadedSourceLogic.removeBreakpoint(existingBPToRemove);
-                }));
-
-                await asyncMap(bpsDelta.existingToBeReplaced, async existingToBeReplaced => {
-                    // TODO: There is a race condition between the remove and the add line. We cannot add first and remove second, because even though
-                    // the breakpoints have a different condition, the target won't let you add two breakpoints to the same exact location.
-                    // We need to investigate if we can make the new breakpoint using a pseudo-regexp to make the target think that they are on different locations
-                    // and thus workaround this issue
-                    await this._bprInLoadedSourceLogic.removeBreakpoint(existingToBeReplaced.existingBP);
-                    await this._bprInLoadedSourceLogic.addBreakpointAtLoadedSource(existingToBeReplaced.replacement.resolvedToLoadedSource());
-                });
+                if (requestedBPsToAddInLoadedSources.resource.doesScriptHasUrl()) {
+                    await this.addNewBreakpointsForFile(requestedBPsToAddInLoadedSources);
+                    await this.removeDeletedBreakpointsFromFile(bpsDelta);
+                } else {
+                    // TODO: We need to pause-update-resume the debugger here to avoid a race condition
+                    await this.removeDeletedBreakpointsFromFile(bpsDelta);
+                    await this.addNewBreakpointsForFile(requestedBPsToAddInLoadedSources);
+                }
             },
             () => {
                 const existingUnbindedBPs = bpsDelta.existingToLeaveAsIs.filter(bp => !this._breakpointRegistry.getStatusOfBPRecipie(bp).isVerified());
@@ -86,10 +74,24 @@ export class BreakpointsLogic implements IComponent {
         return bpsDelta.matchesForRequested.map(bpRecipie => this._breakpointRegistry.getStatusOfBPRecipie(bpRecipie));
     }
 
+    private async removeDeletedBreakpointsFromFile(bpsDelta: BPRsDeltaInRequestedSource) {
+        await asyncMap(bpsDelta.existingToRemove, async (existingBPToRemove) => {
+            await this._bprInLoadedSourceLogic.removeBreakpoint(existingBPToRemove);
+        });
+    }
+
+    private async addNewBreakpointsForFile(requestedBPsToAddInLoadedSources: BPRecipiesInLoadedSource) {
+        await asyncMap(requestedBPsToAddInLoadedSources.breakpoints, async (requestedBP) => {
+            // DIEGO TODO: Do we need to do one breakpoint at a time to avoid issues on CDTP, or can we do them in parallel now that we use a different algorithm?
+            await this._bprInLoadedSourceLogic.addBreakpointAtLoadedSource(requestedBP);
+        });
+    }
+
     public install(): this {
         this._unbindedBreakpointsLogic.install();
         this._bpsWhileLoadingLogic.install();
         this._dependencies.onNoPendingBreakpoints(() => this._bpsWhileLoadingLogic.disableIfNeccesary());
+        this._debuggeeBreakpoints.onBreakpointResolvedSyncOrAsync(breakpoint => this.onBreakpointResolved(breakpoint));
         this._bprInLoadedSourceLogic.install();
         return this.configure();
     }
@@ -106,7 +108,7 @@ export class BreakpointsLogic implements IComponent {
         @inject(TYPES.PauseScriptLoadsToSetBPs) private readonly _bpsWhileLoadingLogic: PauseScriptLoadsToSetBPs,
         @inject(TYPES.BPRecipieInLoadedSourceLogic) private readonly _bprInLoadedSourceLogic: BPRecipieAtLoadedSourceLogic,
         @inject(TYPES.EventSender) private readonly _eventsToClientReporter: IEventsToClientReporter,
+        @inject(TYPES.ITargetBreakpoints) private readonly _debuggeeBreakpoints: IDebuggeeBreakpoints,
         @inject(TYPES.ConnectedCDAConfiguration) private readonly _configuration: ConnectedCDAConfiguration) {
-        this._dependencies.onAsyncBreakpointResolved(breakpoint => this.onAsyncBreakpointResolved(breakpoint));
     }
 }

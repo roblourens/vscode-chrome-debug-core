@@ -1,8 +1,8 @@
-import { IToggleSkipFileStatusArgs, utils, CDTP, BaseSourceMapTransformer, parseResourceIdentifier, ConnectedCDAConfiguration } from '../../..';
+import { Protocol as CDTP } from 'devtools-protocol';
 import { logger } from 'vscode-debugadapter/lib/logger';
 import { IScript } from '../scripts/script';
 import { StackTracesLogic, IStackTracePresentationLogicProvider } from '../stackTraces/stackTracesLogic';
-import { newResourceIdentifierMap, IResourceIdentifier } from '../sources/resourceIdentifier';
+import { newResourceIdentifierMap, IResourceIdentifier, parseResourceIdentifier } from '../sources/resourceIdentifier';
 import { IComponent } from './feature';
 import { LocationInLoadedSource } from '../locations/location';
 import { ICallFramePresentationDetails } from '../stackTraces/callFramePresentation';
@@ -12,6 +12,10 @@ import { TYPES } from '../../dependencyInjection.ts/types';
 import { ClientToInternal } from '../../client/clientToInternal';
 import { ScriptParsedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpOnScriptParsedEventProvider';
 import { IBlackboxPatternsConfigurer } from '../../cdtpDebuggee/features/cdtpBlackboxPatternsConfigurer';
+import { IToggleSkipFileStatusArgs } from '../../../debugAdapterInterfaces';
+import * as utils from '../../../utils';
+import { BaseSourceMapTransformer } from '../../../transformers/baseSourceMapTransformer';
+import { ConnectedCDAConfiguration } from '../../client/chromeDebugAdapter/cdaConfiguration';
 const localize = nls.loadMessageBundle();
 
 export interface EventsConsumedBySkipFilesLogic {
@@ -149,7 +153,7 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration>, ISta
             return currentStack.stackFrames.some(frame => {
                 return frame.hasCodeFlow()
                     && frame.codeFlow.location.source
-                    && frame.codeFlow.location.source.isEquivalent(resolvedSource);
+                    && frame.codeFlow.location.source.isEquivalentTo(resolvedSource);
             });
 
         },
@@ -189,7 +193,7 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration>, ISta
 
                 if ((isSkippedFile && !inLibRange) || (!isSkippedFile && inLibRange)) {
                     const details = await this.sourceMapTransformer.allSourcePathDetails(mappedUrl.canonicalized);
-                    const detail = details.find(d => parseResourceIdentifier(d.inferredPath).isEquivalent(s));
+                    const detail = details.find(d => parseResourceIdentifier(d.inferredPath).isEquivalentTo(s));
                     libPositions.push({
                         lineNumber: detail.startPosition.line,
                         columnNumber: detail.startPosition.column

@@ -10,11 +10,12 @@ import { ISourcesMapper } from './sourcesMapper';
 import { IResourceIdentifier, IResourceLocation, newResourceIdentifierMap, parseResourceIdentifier, ResourceName } from '../sources/resourceIdentifier';
 import { IExecutionContext } from './executionContext';
 import { Lazy1 } from '../../utils/lazy';
+import { IEquivalenceComparable } from '../../utils/equivalence';
 
 /** This interface represents a piece of code that is being executed in the debugee. Usually a script matches to a file or a url, but that is not always the case.
  * This interface solves the problem of finding the different loaded sources associated with a script, and being able to identify and compare both scripts and sources easily.
  */
-export interface IScript {
+export interface IScript extends IEquivalenceComparable {
     readonly executionContext: IExecutionContext;
     readonly runtimeSource: ILoadedSource<CDTPScriptUrl>; // Source in Webserver
     readonly developmentSource: ILoadedSource; // Source in Workspace
@@ -26,7 +27,7 @@ export interface IScript {
 
     getSource(sourceIdentifier: IResourceIdentifier): ILoadedSource;
 
-    isEquivalent(source: IScript): boolean;
+    isEquivalentTo(script: IScript): boolean;
 }
 
 export class Script implements IScript {
@@ -51,7 +52,7 @@ export class Script implements IScript {
          */
         let runtimeSource: (script: IScript) => ILoadedSource<CDTPScriptUrl>;
         let developmentSource: (script: IScript) => ILoadedSource;
-        if (locationInRuntimeEnvironment.isEquivalent(locationInDevelopmentEnvinronment) || locationInDevelopmentEnvinronment.textRepresentation === '') {
+        if (locationInDevelopmentEnvinronment.isEquivalentTo(locationInRuntimeEnvironment) || locationInDevelopmentEnvinronment.textRepresentation === '') {
             if (fs.existsSync(locationInRuntimeEnvironment.textRepresentation)) {
                 developmentSource = runtimeSource = new Lazy1((script: IScript) => // Using Lazy1 will ensure both calls return the same instance
                     new ScriptRunFromLocalStorage(script, locationInRuntimeEnvironment, 'TODO DIEGO')).function;
@@ -109,7 +110,7 @@ export class Script implements IScript {
         return this._runtimeSource.identifier.textRepresentation;
     }
 
-    public isEquivalent(script: Script): boolean {
+    public isEquivalentTo(script: Script): boolean {
         return this === script;
     }
 

@@ -1,11 +1,11 @@
 import { BPRecipiesInUnresolvedSource } from './bpRecipies';
 
 import { BPRsDeltaCalculator, BPRsDeltaInRequestedSource } from './bpsDeltaCalculator';
-import { BPRecipieInUnresolvedSource } from './bpRecipie';
+import { BPRecipieInSource } from './bpRecipie';
 import { newResourceIdentifierMap, IResourceIdentifier } from '../sources/resourceIdentifier';
 
 export class ClientCurrentBPRecipiesRegistry {
-    private readonly _requestedSourcePathToCurrentBPRecipies = newResourceIdentifierMap<BPRecipieInUnresolvedSource[]>();
+    private readonly _requestedSourcePathToCurrentBPRecipies = newResourceIdentifierMap<BPRecipieInSource[]>();
 
     public updateBPRecipiesAndCalculateDelta(requestedBPRecipies: BPRecipiesInUnresolvedSource): BPRsDeltaInRequestedSource {
         const bpsDelta = this.calculateBPSDeltaFromExistingBPs(requestedBPRecipies);
@@ -13,7 +13,7 @@ export class ClientCurrentBPRecipiesRegistry {
         return bpsDelta;
     }
 
-    private registerCurrentBPRecipies(requestedSourceIdentifier: IResourceIdentifier, bpRecipies: BPRecipieInUnresolvedSource[]): void {
+    private registerCurrentBPRecipies(requestedSourceIdentifier: IResourceIdentifier, bpRecipies: BPRecipieInSource[]): void {
         this._requestedSourcePathToCurrentBPRecipies.setAndReplaceIfExist(requestedSourceIdentifier, Array.from(bpRecipies));
     }
 

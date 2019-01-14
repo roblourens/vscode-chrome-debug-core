@@ -1,5 +1,5 @@
 import { ILoadedSource } from '../internal/sources/loadedSource';
-import { BPRecipieInUnresolvedSource } from '../internal/breakpoints/bpRecipie';
+import { BPRecipieInSource } from '../internal/breakpoints/bpRecipie';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { SourcesLogic } from '../internal/sources/sourcesLogic';
 import { Coordinates, LocationInSource } from '../internal/locations/location';
@@ -62,8 +62,8 @@ export class ClientToInternal {
         return new BPRecipiesInUnresolvedSource(source, breakpoints);
     }
 
-    public toBPRecipie(source: ISource, clientBreakpoint: DebugProtocol.SourceBreakpoint): BPRecipieInUnresolvedSource {
-        return new BPRecipieInUnresolvedSource(
+    public toBPRecipie(source: ISource, clientBreakpoint: DebugProtocol.SourceBreakpoint): BPRecipieInSource {
+        return new BPRecipieInSource(
             new LocationInSource(source, this.toLocation(clientBreakpoint)),
             this.toBPActionWhenHit(clientBreakpoint));
     }

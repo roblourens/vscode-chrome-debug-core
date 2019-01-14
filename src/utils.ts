@@ -488,7 +488,7 @@ export class ReverseHandles<T> extends Handles<T> {
 /**
  * Return a regex for the given path to set a breakpoint on
  */
-export function pathToRegex(aPath: string): string {
+export function pathToRegex(aPath: string, guid = ''): string {
     const fileUrlPrefix = 'file:///';
     const isFileUrl = aPath.startsWith(fileUrlPrefix);
     const isAbsolutePath = isAbsolute(aPath);
@@ -520,6 +520,11 @@ export function pathToRegex(aPath: string): string {
 
     if (isFileUrl) {
         aPath = escapeRegexSpecialChars(fileUrlPrefix) + aPath;
+    }
+
+    if (guid) {
+        // Add a guid to the regexp to make it unique, without modifying what it matches. This will allow us to add duplicated breakpoints using CDTP
+        aPath = aPath + `(?:${guid}){0}`;
     }
 
     return aPath;
