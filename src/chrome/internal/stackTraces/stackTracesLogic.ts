@@ -98,7 +98,7 @@ export class StackTracesLogic implements IComponent {
             }
 
             if (formatArgs.line) {
-                formattedName += ` Line ${locationInLoadedSource.lineNumber}`;
+                formattedName += ` Line ${locationInLoadedSource.position.lineNumber}`;
             }
         }
 

@@ -1,4 +1,4 @@
-import { Coordinates, LocationInScript } from '../../internal/locations/location';
+import { Position, LocationInScript } from '../../internal/locations/location';
 import { createColumnNumber, createLineNumber } from '../../internal/locations/subtypes';
 import { CDTPScriptsRegistry } from '../registries/cdtpScriptsRegistry';
 import { Protocol as CDTP } from 'devtools-protocol';
@@ -20,8 +20,8 @@ export class CDTPLocationParser {
             this.getCoordinates(crdpObjectWithScriptLocation));
     }
 
-    private getCoordinates(crdpObjectWithCoordinates: HasCoordinates): Coordinates {
-        return new Coordinates(createLineNumber(crdpObjectWithCoordinates.lineNumber), createColumnNumber(crdpObjectWithCoordinates.columnNumber));
+    private getCoordinates(crdpObjectWithCoordinates: HasCoordinates): Position {
+        return new Position(createLineNumber(crdpObjectWithCoordinates.lineNumber), createColumnNumber(crdpObjectWithCoordinates.columnNumber));
     }
 
     constructor(private _scriptsRegistry: CDTPScriptsRegistry) { }

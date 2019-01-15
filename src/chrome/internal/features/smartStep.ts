@@ -81,7 +81,7 @@ export class SmartStepLogic implements IComponent, IStackTracePresentationLogicP
 
         const clientPath = this._pathTransformer.getClientPathFromTargetPath(frame.location.script.runtimeSource.identifier)
             || frame.location.script.runtimeSource.identifier;
-        const mapping = await this._sourceMapTransformer.mapToAuthored(clientPath.canonicalized, frame.codeFlow.location.lineNumber, frame.codeFlow.location.columnNumber);
+        const mapping = await this._sourceMapTransformer.mapToAuthored(clientPath.canonicalized, frame.codeFlow.location.position.lineNumber, frame.codeFlow.location.position.columnNumber);
         if (mapping) {
             return false;
         }

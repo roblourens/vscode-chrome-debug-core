@@ -7,7 +7,7 @@ import { SetUsingProjection } from '../../collections/setUsingProjection';
 import assert = require('assert');
 
 function canonicalizeBPLocation(breakpoint: BPRecipieInSource): string {
-    return `${breakpoint.location.lineNumber}:${breakpoint.location.columnNumber}[${breakpoint.bpActionWhenHit}]`;
+    return `${breakpoint.location.position.lineNumber}:${breakpoint.location.position.columnNumber}[${breakpoint.bpActionWhenHit}]`;
 }
 
 export class BPRsDeltaCalculator {
@@ -84,7 +84,7 @@ export class BPRsDeltaCalculator {
     }
 
     private printLocations(bpRecipies: BPRecipieInSource<IBPActionWhenHit>[]): string[] {
-        return bpRecipies.map(bpRecipie => `${bpRecipie.location.coordinates}`);
+        return bpRecipies.map(bpRecipie => `${bpRecipie.location.position}`);
     }
 
     public toString(): string {

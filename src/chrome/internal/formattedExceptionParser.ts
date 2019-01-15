@@ -1,5 +1,5 @@
 import { parseResourceIdentifier } from '../..';
-import { LocationInScript, Coordinates, LocationInLoadedSource } from './locations/location';
+import { LocationInScript, Position, LocationInLoadedSource } from './locations/location';
 import { IResourceIdentifier } from './sources/resourceIdentifier';
 import { CDTPScriptUrl } from './sources/resourceIdentifierSubtypes';
 import { createLineNumber, createColumnNumber } from './locations/subtypes';
@@ -12,13 +12,13 @@ export interface IFormattedExceptionLineDescription {
 class CodeFlowFrameDescription implements IFormattedExceptionLineDescription {
     public generateDescription(zeroBaseNumbers: boolean): string {
         return this.cdtpDescription.replace(
-            this.printLocation(this.scriptLocation.script.url, this.scriptLocation.coordinates, false),
-            this.printLocation(this.sourceLocation.source.identifier.textRepresentation, this.sourceLocation.coordinates, zeroBaseNumbers));
+            this.printLocation(this.scriptLocation.script.url, this.scriptLocation.position, false),
+            this.printLocation(this.sourceLocation.source.identifier.textRepresentation, this.sourceLocation.position, zeroBaseNumbers));
     }
 
-    private printLocation(locationIdentifier: string, coordinates: Coordinates, zeroBaseNumbers: boolean): string {
+    private printLocation(locationIdentifier: string, position: Position, zeroBaseNumbers: boolean): string {
         const constantToAdd = zeroBaseNumbers ? 0 : 1;
-        return `${locationIdentifier}:${coordinates.lineNumber + constantToAdd}:${coordinates.columnNumber + constantToAdd}`;
+        return `${locationIdentifier}:${position.lineNumber + constantToAdd}:${position.columnNumber + constantToAdd}`;
     }
 
     constructor(
@@ -49,7 +49,7 @@ export class FormattedExceptionParser {
                 const zeroBasedColumnNumber = createColumnNumber(columnNumber - 1);
                 const scripts = this._scriptsLogic.getScriptsByPath(url);
                 if (scripts.length > 0) {
-                    const scriptLocation = new LocationInScript(scripts[0], new Coordinates(zeroBasedLineNumber, zeroBasedColumnNumber));
+                    const scriptLocation = new LocationInScript(scripts[0], new Position(zeroBasedLineNumber, zeroBasedColumnNumber));
                     const location = scriptLocation.mappedToSource();
                     return new CodeFlowFrameDescription(line, scriptLocation, location);
                 }

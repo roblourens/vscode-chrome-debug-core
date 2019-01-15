@@ -12,12 +12,12 @@ import { CDTPScriptsRegistry } from '../registries/cdtpScriptsRegistry';
 import { CDTPLocationParser } from '../protocolParsers/cdtpLocationParser';
 import { CDTPEventsEmitterDiagnosticsModule } from '../infrastructure/cdtpDiagnosticsModule';
 import { CDTPDomainsEnabler } from '../infrastructure/cdtpDomainsEnabler';
-import { Coordinates } from '../../internal/locations/location';
+import { Position } from '../../internal/locations/location';
 import { singleOne } from '../../collections/utilities';
 import { CDTPSupportedResources, CDTPSupportedHitActions, CDTPBreakpoint } from '../cdtpPrimitives';
 import { Listeners } from '../../communication/listeners';
 
-type SetBPInCDTPCall<TResource extends CDTPSupportedResources> = (resource: TResource, position: Coordinates, cdtpConditionField: string) => Promise<CDTP.Debugger.SetBreakpointByUrlResponse>;
+type SetBPInCDTPCall<TResource extends CDTPSupportedResources> = (resource: TResource, position: Position, cdtpConditionField: string) => Promise<CDTP.Debugger.SetBreakpointByUrlResponse>;
 export type OnBreakpointResolvedListener = (breakpoint: CDTPBreakpoint) => void;
 
 export interface IDebuggeeBreakpoints {
@@ -93,9 +93,9 @@ export class CDTPDebuggeeBreakpoints extends CDTPEventsEmitterDiagnosticsModule<
             setBPInCDTPCall: SetBPInCDTPCall<TResource>): Promise<Breakpoint<TResource>[]> {
         const cdtpConditionField = this.getCDTPConditionField(bpRecipie);
         const resource = <TResource>bpRecipie.location.resource; // TODO: Figure out why the <TResource> is needed and remove it
-        const coordinates = bpRecipie.location.coordinates;
+        const position = bpRecipie.location.position;
 
-        const response = await setBPInCDTPCall(resource, coordinates, cdtpConditionField);
+        const response = await setBPInCDTPCall(resource, position, cdtpConditionField);
 
         /*
          * We need to call registerRecipie sync with the response, before any awaits so if we get an event with
@@ -138,8 +138,8 @@ export class CDTPDebuggeeBreakpoints extends CDTPEventsEmitterDiagnosticsModule<
     private toCrdpLocation(location: LocationInScript): CDTP.Debugger.Location {
         return {
             scriptId: this._scriptsRegistry.getCdtpId(location.script),
-            lineNumber: location.lineNumber,
-            columnNumber: location.columnNumber
+            lineNumber: location.position.lineNumber,
+            columnNumber: location.position.columnNumber
         };
     }
 

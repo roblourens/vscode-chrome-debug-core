@@ -1,7 +1,7 @@
 import { BPRecipieInLoadedSource, BPRecipie } from './bpRecipie';
 import { ConditionalBreak, AlwaysBreak } from './bpActionWhenHit';
 import { IBreakpoint } from './breakpoint';
-import { ScriptOrSourceOrURLOrURLRegexp, LocationInScript, Coordinates } from '../locations/location';
+import { ScriptOrSourceOrURLOrURLRegexp, LocationInScript, Position } from '../locations/location';
 import { ISource } from '../sources/source';
 import { chromeUtils, logger } from '../../..';
 import { createColumnNumber, createLineNumber } from '../locations/subtypes';
@@ -92,14 +92,14 @@ export class BPRecipieAtLoadedSourceLogic implements IBreakpointsInLoadedSource 
 
     private async considerColumnAndSelectBestBPLocation(location: LocationInScript): Promise<LocationInScript> {
         if (await this.doesTargetSupportColumnBreakpointsCached) {
-            const thisLineStart = new Coordinates(location.coordinates.lineNumber, createColumnNumber(0));
-            const nextLineStart = new Coordinates(createLineNumber(location.coordinates.lineNumber + 1), createColumnNumber(0));
+            const thisLineStart = new Position(location.position.lineNumber, createColumnNumber(0));
+            const nextLineStart = new Position(createLineNumber(location.position.lineNumber + 1), createColumnNumber(0));
             const thisLineRange = new RangeInScript(location.script, thisLineStart, nextLineStart);
 
             const possibleLocations = await this._targetBreakpoints.getPossibleBreakpoints(thisLineRange);
 
             if (possibleLocations.length > 0) {
-                const bestLocation = chromeUtils.selectBreakpointLocation(location.lineNumber, location.columnNumber, possibleLocations);
+                const bestLocation = chromeUtils.selectBreakpointLocation(location.position.lineNumber, location.position.columnNumber, possibleLocations);
                 logger.verbose(`PossibleBreakpoints: Best location for ${location} is ${bestLocation}`);
                 return bestLocation;
             }

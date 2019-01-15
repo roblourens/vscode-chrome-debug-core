@@ -122,13 +122,13 @@ export class BPRecipieInScript<TBPActionWhenHit extends IBPActionWhenHit = IBPAc
     public mappedToUrlRegexp(): BPRecipieInUrlRegexp<TBPActionWhenHit> {
         const urlRegexp = createURLRegexp(utils.pathToRegex(this.location.script.url, `${Math.random() * 100000000000000}`));
         return new BPRecipieInUrlRegexp<TBPActionWhenHit>(this.unmappedBPRecipie,
-            new LocationInUrlRegexp(urlRegexp, this.location.coordinates));
+            new LocationInUrlRegexp(urlRegexp, this.location.position));
     }
 
     public mappedToUrl(): BPRecipieInUrl<TBPActionWhenHit> {
         const url = this.location.script.runtimeSource.identifier;
         return new BPRecipieInUrl<TBPActionWhenHit>(this.unmappedBPRecipie,
-            new LocationInUrl(url, this.location.coordinates));
+            new LocationInUrl(url, this.location.position));
     }
 }
 

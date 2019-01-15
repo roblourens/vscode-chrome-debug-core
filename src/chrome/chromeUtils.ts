@@ -288,7 +288,7 @@ export function getEvaluateName(parentEvaluateName: string, name: string): strin
 
 export function selectBreakpointLocation(_lineNumber: number, columnNumber: number, locations: LocationInScript[]): LocationInScript {
     for (let i = locations.length - 1; i >= 0; i--) {
-        if (locations[i].columnNumber <= columnNumber) {
+        if (locations[i].position.columnNumber <= columnNumber) {
             return locations[i];
         }
     }

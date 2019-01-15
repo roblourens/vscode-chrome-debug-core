@@ -573,10 +573,10 @@ export class ChromeDebugLogic {
             };
 
             if (scope.startLocation && scope.endLocation) {
-                resultScope.column = scope.startLocation.columnNumber;
-                resultScope.line = scope.startLocation.lineNumber;
-                resultScope.endColumn = scope.endLocation.columnNumber;
-                resultScope.endLine = scope.endLocation.lineNumber;
+                resultScope.column = scope.startLocation.position.columnNumber;
+                resultScope.line = scope.startLocation.position.lineNumber;
+                resultScope.endColumn = scope.endLocation.position.columnNumber;
+                resultScope.endLine = scope.endLocation.position.lineNumber;
             }
 
             return resultScope;

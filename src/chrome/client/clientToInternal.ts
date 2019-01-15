@@ -2,7 +2,7 @@ import { ILoadedSource } from '../internal/sources/loadedSource';
 import { BPRecipieInSource } from '../internal/breakpoints/bpRecipie';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { SourcesLogic } from '../internal/sources/sourcesLogic';
-import { Coordinates, LocationInSource } from '../internal/locations/location';
+import { Position, LocationInSource } from '../internal/locations/location';
 import { LineColTransformer } from '../../transformers/lineNumberTransformer';
 import { BPRecipiesInUnresolvedSource } from '../internal/breakpoints/bpRecipies';
 import { IBPActionWhenHit, AlwaysBreak, ConditionalBreak } from '../internal/breakpoints/bpActionWhenHit';
@@ -68,10 +68,10 @@ export class ClientToInternal {
             this.toBPActionWhenHit(clientBreakpoint));
     }
 
-    public toLocation(location: { line: number; column?: number; }): Coordinates {
+    public toLocation(location: { line: number; column?: number; }): Position {
         const lineNumber = createLineNumber(this._lineColTransformer.convertClientLineToDebugger(location.line));
         const columnNumber = location.column !== undefined ? createColumnNumber(this._lineColTransformer.convertClientColumnToDebugger(location.column)) : undefined;
-        return new Coordinates(lineNumber, columnNumber);
+        return new Position(lineNumber, columnNumber);
     }
 
     public toBPActionWhenHit(actionWhenHit: { condition?: string; hitCondition?: string; logMessage?: string; }): IBPActionWhenHit {

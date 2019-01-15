@@ -25,11 +25,11 @@ export class CodeFlowFrame<TResource extends ScriptOrLoadedSource> {
     }
 
     public get lineNumber(): number {
-        return this.location.lineNumber;
+        return this.location.position.lineNumber;
     }
 
     public get columnNumber(): number {
-        return this.location.columnNumber;
+        return this.location.position.columnNumber;
     }
 
     public get name(): string {

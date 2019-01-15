@@ -78,7 +78,7 @@ export class InternalToClient {
 
     public async toLocationInSource<T = {}>(locationInSource: LocationInLoadedSource, objectToUpdate: T): Promise<T & ClientLocationInSource> {
         const source = await this.toSource(locationInSource.source);
-        const clientLocationInSource = { source, line: locationInSource.lineNumber, column: locationInSource.columnNumber };
+        const clientLocationInSource = { source, line: locationInSource.position.lineNumber, column: locationInSource.position.columnNumber };
         this._lineColTransformer.convertDebuggerLocationToClient(clientLocationInSource);
         return Object.assign(objectToUpdate, clientLocationInSource);
     }
