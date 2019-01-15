@@ -7,13 +7,13 @@ import { LineColTransformer } from '../../transformers/lineNumberTransformer';
 import { BPRecipiesInUnresolvedSource } from '../internal/breakpoints/bpRecipies';
 import { IBPActionWhenHit, AlwaysBreak, ConditionalBreak } from '../internal/breakpoints/bpActionWhenHit';
 import { HandlesRegistry } from './handlesRegistry';
-import { FramePresentationOrLabel } from '../internal/stackTraces/stackTracePresentation';
 import { createLineNumber, createColumnNumber } from '../internal/locations/subtypes';
 import { parseResourceIdentifier } from '../internal/sources/resourceIdentifier';
 import { PauseOnExceptionsStrategy, PauseOnAllExceptions, PauseOnUnhandledExceptions, DoNotPauseOnAnyExceptions, PauseOnAllRejections, DoNotPauseOnAnyRejections, PauseOnPromiseRejectionsStrategy } from '../internal/exceptions/strategies';
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../dependencyInjection.ts/types';
 import { ISource, SourceAlreadyResolvedToLoadedSource } from '../internal/sources/source';
+import { StackTracePresentationRow } from '../internal/stackTraces/StackTracePresentationRow';
 
 @injectable()
 export class ClientToInternal {
@@ -36,7 +36,7 @@ export class ClientToInternal {
     }
 
     // V1 reseted the frames on an onPaused event. Figure out if that is the right thing to do
-    public getCallFrameById(frameId: number): FramePresentationOrLabel<ILoadedSource> {
+    public getCallFrameById(frameId: number): StackTracePresentationRow {
         return this._handlesRegistry.frames.getObjectById(frameId);
     }
 

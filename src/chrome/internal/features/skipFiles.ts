@@ -151,7 +151,7 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration>, ISta
             const currentStack = await this.stackTracesLogic.stackTrace({ threadId: undefined });
 
             return currentStack.stackFrames.some(frame => {
-                return frame.hasCodeFlow()
+                return frame.isNotLabel()
                     && frame.codeFlow.location.source
                     && frame.codeFlow.location.source.isEquivalentTo(resolvedSource);
             });

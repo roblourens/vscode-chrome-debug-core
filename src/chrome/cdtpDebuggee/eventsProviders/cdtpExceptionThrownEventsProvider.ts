@@ -7,7 +7,7 @@ import { injectable, inject } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
 import { integer } from '../cdtpPrimitives';
 import { IScript } from '../../internal/scripts/script';
-import { CodeFlowStackTrace } from '../../internal/stackTraces/stackTrace';
+import { CodeFlowStackTrace } from '../../internal/stackTraces/codeFlowStackTrace';
 import { CDTPDomainsEnabler } from '../infrastructure/cdtpDomainsEnabler';
 
 export interface ExceptionThrownEvent {
@@ -22,7 +22,7 @@ export interface ExceptionDetails {
     readonly columnNumber: integer;
     readonly script?: IScript;
     readonly url?: string;
-    readonly stackTrace?: CodeFlowStackTrace<IScript>;
+    readonly stackTrace?: CodeFlowStackTrace;
     readonly exception?: CDTP.Runtime.RemoteObject;
     readonly executionContextId?: CDTP.Runtime.ExecutionContextId;
 }

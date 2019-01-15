@@ -1,6 +1,5 @@
 import { Protocol as CDTP } from 'devtools-protocol';
-import { ICallFrame } from '../../internal/stackTraces/callFrame';
-import { IScript } from '../../internal/scripts/script';
+import { ScriptCallFrame } from '../../internal/stackTraces/callFrame';
 import { CDTPCallFrameRegistry } from '../registries/cdtpCallFrameRegistry';
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
@@ -9,7 +8,7 @@ export interface IDebugeeSteppingController {
     stepOver(): Promise<void>;
     stepInto(params: { breakOnAsyncCall: boolean }): Promise<void>;
     stepOut(): Promise<void>;
-    restartFrame(callFrame: ICallFrame<IScript>): Promise<CDTP.Debugger.RestartFrameResponse>;
+    restartFrame(callFrame: ScriptCallFrame): Promise<CDTP.Debugger.RestartFrameResponse>;
     pauseOnAsyncCall(params: CDTP.Debugger.PauseOnAsyncCallRequest): Promise<void>;
 }
 
@@ -37,7 +36,7 @@ export class CDTPDebugeeSteppingController implements IDebugeeSteppingController
         return this.api.Debugger.stepOut();
     }
 
-    public restartFrame(frame: ICallFrame<IScript>): Promise<CDTP.Debugger.RestartFrameResponse> {
+    public restartFrame(frame: ScriptCallFrame): Promise<CDTP.Debugger.RestartFrameResponse> {
         return this.api.Debugger.restartFrame({ callFrameId: this._callFrameRegistry.getFrameId(frame) });
     }
 }

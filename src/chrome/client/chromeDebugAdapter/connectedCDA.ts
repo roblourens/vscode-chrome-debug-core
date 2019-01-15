@@ -121,7 +121,7 @@ export class ConnectedCDA implements IDebugAdapterState {
 
     public async restartFrame(args: DebugProtocol.RestartFrameRequest): Promise<void> {
         const callFrame = this._clientToInternal.getCallFrameById(args.arguments.frameId);
-        if (callFrame.hasCallFrame()) {
+        if (callFrame.isCallFrame()) {
             return this._stepping.restartFrame(callFrame.callFrame.unmappedCallFrame);
         } else {
             throw new Error(`Cannot restart to a frame that doesn't have state information`);
@@ -139,10 +139,10 @@ export class ConnectedCDA implements IDebugAdapterState {
 
     public scopes(args: DebugProtocol.ScopesArguments, _?: ITelemetryPropertyCollector, _2?: number): PromiseOrNot<IScopesResponseBody> {
         const frame = this._clientToInternal.getCallFrameById(args.frameId);
-        if (frame.hasCallFrame()) {
+        if (frame.isCallFrame()) {
             return this._chromeDebugAdapter.scopes(frame.callFrame);
         } else {
-            const reason = frame.hasCodeFlow()
+            const reason = frame.isNotLabel()
                 ? 'a code flow frame only has code flow information'
                 : 'a label frame is only a description of the different sections of the call stack';
             throw new Error(`Can't get scopes for the frame because ${reason}`);

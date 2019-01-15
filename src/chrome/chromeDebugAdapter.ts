@@ -39,8 +39,8 @@ import { LocationInLoadedSource } from './internal/locations/location';
 import { EvaluateArguments, CompletionsArguments } from './internal/requests';
 import { EventSender } from './client/eventSender';
 import { parseResourceIdentifier, ConnectedCDAConfiguration } from '..';
-import { ICallFrame, ScriptOrLoadedSource } from './internal/stackTraces/callFrame';
-import { CodeFlowStackTrace } from './internal/stackTraces/stackTrace';
+import { LoadedSourceCallFrame } from './internal/stackTraces/callFrame';
+import { CodeFlowStackTrace } from './internal/stackTraces/codeFlowStackTrace';
 import { IResourceIdentifier } from './internal/sources/resourceIdentifier';
 import { FormattedExceptionParser } from './internal/formattedExceptionParser';
 import { DeleteMeScriptsRegistry } from './internal/scripts/scriptsRegistry';
@@ -391,7 +391,7 @@ export class ChromeDebugLogic {
         }
     }
 
-    private async logObjects(objs: CDTP.Runtime.RemoteObject[], isError = false, stackTrace?: CodeFlowStackTrace<IScript>): Promise<void> {
+    private async logObjects(objs: CDTP.Runtime.RemoteObject[], isError = false, stackTrace?: CodeFlowStackTrace): Promise<void> {
         // This is an asynchronous method, so ensure that we handle one at a time so that they are sent out in the same order that they came in.
         this._currentLogMessage = this._currentLogMessage
             .then(async () => {
@@ -548,16 +548,10 @@ export class ChromeDebugLogic {
             ]
         }
     */
-    public scopes(currentFrame: ICallFrame<ScriptOrLoadedSource>): IScopesResponseBody {
+    public scopes(currentFrame: LoadedSourceCallFrame): IScopesResponseBody {
         if (!currentFrame || !currentFrame.location) {
             throw errors.stackFrameNotValid();
         }
-
-        const scriptCallFrame = currentFrame.unmappedCallFrame;
-
-        const currentScript = scriptCallFrame.location.script;
-        const currentScriptUrl = currentScript.runtimeSource.identifier.textRepresentation;
-        const currentScriptPath = currentScriptUrl;
 
         const scopes = currentFrame.scopeChain.map((scope, i) => {
             // The first scope should include 'this'. Keep the RemoteObject reference for use by the variables request
@@ -590,8 +584,8 @@ export class ChromeDebugLogic {
         }
 
         const scopesResponse = { scopes };
-        if (currentScriptPath) {
-            this._sourceMapTransformer.scopesResponse(currentScriptPath, scopesResponse);
+        if (currentFrame.source.doesScriptHasUrl()) {
+            this._sourceMapTransformer.scopesResponse(currentFrame.source.script.url, scopesResponse);
             this._lineColTransformer.scopeResponse(scopesResponse);
         }
 
@@ -826,13 +820,13 @@ export class ChromeDebugLogic {
         return this._inspectDebugeeState.evaluate(args);
     }
 
-    private async waitThenDoEvaluate(expression: string, frame?: ICallFrame<ScriptOrLoadedSource>, extraArgs?: Partial<CDTP.Runtime.EvaluateRequest>): Promise<CDTP.Debugger.EvaluateOnCallFrameResponse | CDTP.Runtime.EvaluateResponse> {
+    private async waitThenDoEvaluate(expression: string, frame?: LoadedSourceCallFrame, extraArgs?: Partial<CDTP.Runtime.EvaluateRequest>): Promise<CDTP.Debugger.EvaluateOnCallFrameResponse | CDTP.Runtime.EvaluateResponse> {
         const waitThenEval = this._waitAfterStep.then(() => this.doEvaluate(expression, frame, extraArgs));
         this._waitAfterStep = waitThenEval.then(() => { }, () => { }); // to Promise<void> and handle failed evals
         return waitThenEval;
     }
 
-    private async doEvaluate(expression: string, frame: ICallFrame<ScriptOrLoadedSource>, extraArgs?: Partial<CDTP.Runtime.EvaluateRequest>): Promise<CDTP.Debugger.EvaluateOnCallFrameResponse | CDTP.Runtime.EvaluateResponse> {
+    private async doEvaluate(expression: string, frame: LoadedSourceCallFrame, extraArgs?: Partial<CDTP.Runtime.EvaluateRequest>): Promise<CDTP.Debugger.EvaluateOnCallFrameResponse | CDTP.Runtime.EvaluateResponse> {
         if (frame) {
             if (!frame) {
                 return utils.errP(errors.evalNotAvailableMsg);
@@ -856,9 +850,9 @@ export class ChromeDebugLogic {
         }
     }
 
-    public async evaluateOnCallFrame(expression: string, frame: ICallFrame<ScriptOrLoadedSource>, extraArgs?: Partial<CDTP.Runtime.EvaluateRequest>): Promise<CDTP.Debugger.EvaluateOnCallFrameResponse | CDTP.Runtime.EvaluateResponse> {
+    public async evaluateOnCallFrame(expression: string, frame: LoadedSourceCallFrame, extraArgs?: Partial<CDTP.Runtime.EvaluateRequest>): Promise<CDTP.Debugger.EvaluateOnCallFrameResponse | CDTP.Runtime.EvaluateResponse> {
         let args: EvaluateOnCallFrameRequest = {
-            frame,
+            frame: frame.unmappedCallFrame,
             expression,
             // silent because of an issue where node will sometimes hang when breaking on exceptions in console messages. Fixed somewhere between 8 and 8.4
             silent: true,
@@ -890,16 +884,16 @@ export class ChromeDebugLogic {
             .then(value => ({ value }));
     }
 
-    public setVariableValue(frame: ICallFrame<ScriptOrLoadedSource>, scopeNumber: number, variableName: string, value: string): Promise<string> {
+    public setVariableValue(frame: LoadedSourceCallFrame, scopeNumber: number, variableName: string, value: string): Promise<string> {
         let evalResultObject: CDTP.Runtime.RemoteObject;
-        return this._inspectDebugeeState.evaluateOnCallFrame({ frame, expression: value, silent: true }).then(evalResponse => {
+        return this._inspectDebugeeState.evaluateOnCallFrame({ frame: frame.unmappedCallFrame, expression: value, silent: true }).then(evalResponse => {
             if (evalResponse.exceptionDetails) {
                 const errMsg = ChromeUtils.errorMessageFromExceptionDetails(evalResponse.exceptionDetails);
                 return Promise.reject(errors.errorFromEvaluate(errMsg));
             } else {
                 evalResultObject = evalResponse.result;
                 const newValue = ChromeUtils.remoteObjectToCallArgument(evalResultObject);
-                return this._updateDebugeeState.setVariableValue({ frame, scopeNumber, variableName, newValue });
+                return this._updateDebugeeState.setVariableValue({ frame: frame.unmappedCallFrame, scopeNumber, variableName, newValue });
             }
         },
             error => Promise.reject(errors.errorFromEvaluate(error.message)))

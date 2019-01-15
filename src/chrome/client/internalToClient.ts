@@ -8,12 +8,12 @@ import { RemoveProperty } from '../../typeUtils';
 import { IBPRecipieStatus } from '../internal/breakpoints/bpRecipieStatus';
 import { IBPRecipie } from '../internal/breakpoints/bpRecipie';
 import { HandlesRegistry } from './handlesRegistry';
-import { FramePresentationOrLabel, StackTraceLabel } from '../internal/stackTraces/stackTracePresentation';
 import { IExceptionInformation } from '../internal/exceptions/pauseOnException';
 import { IFormattedExceptionLineDescription } from '../internal/formattedExceptionParser';
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../dependencyInjection.ts/types';
 import { Source } from 'vscode-debugadapter';
+import { StackTracePresentationRow, StackTraceLabel } from '../internal/stackTraces/StackTracePresentationRow';
 
 interface ClientLocationInSource {
     source: DebugProtocol.Source;
@@ -27,15 +27,15 @@ export class InternalToClient {
     public readonly toSourceTrees = asyncAdaptToSinglIntoToMulti(this, this.toSourceTree);
     public readonly toBPRecipiesStatus = asyncAdaptToSinglIntoToMulti(this, this.toBPRecipieStatus);
 
-    public getFrameId(stackFrame: FramePresentationOrLabel<ILoadedSource>): number {
+    public getFrameId(stackFrame: StackTracePresentationRow): number {
         return this._handlesRegistry.frames.getIdByObject(stackFrame);
     }
 
-    public async toStackFrame(stackFrame: FramePresentationOrLabel<ILoadedSource>): Promise<DebugProtocol.StackFrame> {
-        if (stackFrame.hasCodeFlow()) {
+    public async toStackFrame(stackFrame: StackTracePresentationRow): Promise<DebugProtocol.StackFrame> {
+        if (stackFrame.isNotLabel()) {
             const clientStackFrame: RemoveProperty<DebugProtocol.StackFrame, 'line' | 'column'> = {
                 id: this.getFrameId(stackFrame),
-                name: stackFrame.name,
+                name: stackFrame.description,
                 presentationHint: stackFrame.presentationHint
             };
 

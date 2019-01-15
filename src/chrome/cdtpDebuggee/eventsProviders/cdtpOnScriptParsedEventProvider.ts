@@ -9,7 +9,7 @@ import { TYPES } from '../../dependencyInjection.ts/types';
 import { CDTPStackTraceParser } from '../protocolParsers/cdtpStackTraceParser';
 import { inject } from 'inversify';
 import { integer } from '../cdtpPrimitives';
-import { CodeFlowStackTrace } from '../../internal/stackTraces/stackTrace';
+import { CodeFlowStackTrace } from '../../internal/stackTraces/codeFlowStackTrace';
 import { IExecutionContext } from '../../internal/scripts/executionContext';
 import { CDTPDomainsEnabler } from '../infrastructure/cdtpDomainsEnabler';
 
@@ -31,7 +31,7 @@ export interface ScriptParsedEvent {
     readonly hasSourceURL?: boolean;
     readonly isModule?: boolean;
     readonly length?: integer;
-    readonly stackTrace?: CodeFlowStackTrace<IScript>;
+    readonly stackTrace?: CodeFlowStackTrace;
 }
 
 export type ScriptParsedListener = (params: ScriptParsedEvent) => void;

@@ -1,6 +1,4 @@
-import { ICallFrame } from '../../stackTraces/callFrame';
-
-import { IScript } from '../../scripts/script';
+import { ScriptCallFrame } from '../../stackTraces/callFrame';
 import { InformationAboutPausedProvider, } from '../../features/takeProperActionOnPausedEvent';
 import { IComponent } from '../../features/feature';
 import { Abstained, Vote } from '../../../communication/collaborativeDecision';
@@ -53,7 +51,7 @@ export class SyncStepping implements IComponent {
         return new Abstained(this);
     }
 
-    public async restartFrame(callFrame: ICallFrame<IScript>): Promise<void> {
+    public async restartFrame(callFrame: ScriptCallFrame): Promise<void> {
         this._status = this._status.startStepping();
         await this._debugeeStepping.restartFrame(callFrame);
         await this._debugeeStepping.stepInto({ breakOnAsyncCall: true });

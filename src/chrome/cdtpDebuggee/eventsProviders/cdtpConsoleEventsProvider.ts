@@ -2,8 +2,7 @@ import { CDTPEventsEmitterDiagnosticsModule } from '../infrastructure/cdtpDiagno
 import { Protocol as CDTP } from 'devtools-protocol';
 import { CDTPStackTraceParser } from '../protocolParsers/cdtpStackTraceParser';
 import { inject, injectable } from 'inversify';
-import { CodeFlowStackTrace } from '../../internal/stackTraces/stackTrace';
-import { IScript } from '../../internal/scripts/script';
+import { CodeFlowStackTrace } from '../../internal/stackTraces/codeFlowStackTrace';
 import { TYPES } from '../../dependencyInjection.ts/types';
 import { CDTPScriptsRegistry } from '../registries/cdtpScriptsRegistry';
 import { CDTPDomainsEnabler } from '../infrastructure/cdtpDomainsEnabler';
@@ -15,7 +14,7 @@ export interface ConsoleAPICalledEvent {
     readonly args: CDTP.Runtime.RemoteObject[];
     readonly executionContextId: CDTP.Runtime.ExecutionContextId;
     readonly timestamp: CDTP.Runtime.Timestamp;
-    readonly stackTrace?: CodeFlowStackTrace<IScript>;
+    readonly stackTrace?: CodeFlowStackTrace;
     readonly context?: string;
 }
 

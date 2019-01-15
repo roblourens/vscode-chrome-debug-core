@@ -2,19 +2,16 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { injectable, inject } from 'inversify';
 
 import * as errors from '../../../errors';
-import * as path from 'path';
 
 import * as nls from 'vscode-nls';
 const localize = nls.loadMessageBundle();
 import { PausedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
-import { StackTracePresentation, FramePresentationOrLabel, StackTraceLabel } from './stackTracePresentation';
-import { ILoadedSource } from '../sources/loadedSource';
-import { CodeFlowStackTrace } from './stackTrace';
+import { StackTracePresentation } from './stackTracePresentation';
+import { CodeFlowStackTrace } from './codeFlowStackTrace';
 import { IScript } from '../scripts/script';
-import { CodeFlowFrame, ICallFrame, ScriptCallFrame, LoadedSourceCallFrame } from './callFrame';
+import { CodeFlowFrame, ScriptCallFrame } from './callFrame';
 import { LocationInLoadedSource } from '../locations/location';
-import { CallFramePresentation, CallFramePresentationHint, SourcePresentationHint, ICallFramePresentationDetails } from './callFramePresentation';
-import { FormattedName } from './callFrameName';
+import { CallFramePresentation, SourcePresentationHint, ICallFramePresentationDetails } from './callFramePresentation';
 import { IComponent, ComponentConfiguration } from '../features/feature';
 import { InformationAboutPausedProvider } from '../features/takeProperActionOnPausedEvent';
 import { asyncMap } from '../../collections/async';
@@ -22,6 +19,8 @@ import { TYPES } from '../../dependencyInjection.ts/types';
 import { ConnectedCDAConfiguration } from '../../..';
 import { Vote, Abstained } from '../../communication/collaborativeDecision';
 import { IAsyncDebuggingConfigurer } from '../../cdtpDebuggee/features/CDTPAsyncDebuggingConfigurer';
+import { CustomCallFrameDescriptionFormatter } from './callFrameDescription';
+import { StackTracePresentationRow, StackTraceLabel, CallFramePresentationHint } from './stackTracePresentationRow';
 
 export interface EventsConsumedByStackTrace {
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
@@ -56,7 +55,7 @@ export class StackTracesLogic implements IComponent {
             return Promise.reject(errors.noCallStackAvailable());
         }
 
-        const syncFames: FramePresentationOrLabel<ILoadedSource>[] = await asyncMap(this._currentPauseEvent.callFrames, frame => this.toPresentation(frame, args.format));
+        const syncFames: StackTracePresentationRow[] = await asyncMap(this._currentPauseEvent.callFrames, frame => this.toPresentation(frame, args.format));
         const asyncStackTrace = this._currentPauseEvent.asyncStackTrace;
         let stackFrames = asyncStackTrace ? syncFames.concat(await this.asyncCallFrames(asyncStackTrace, args.format)) : syncFames;
 
@@ -77,8 +76,8 @@ export class StackTracesLogic implements IComponent {
         return stackTraceResponse;
     }
 
-    private async asyncCallFrames(stackTrace: CodeFlowStackTrace<IScript>, formatArgs?: DebugProtocol.StackFrameFormat): Promise<FramePresentationOrLabel<ILoadedSource>[]> {
-        const asyncFrames: FramePresentationOrLabel<ILoadedSource>[] = await asyncMap(stackTrace.codeFlowFrames,
+    private async asyncCallFrames(stackTrace: CodeFlowStackTrace, formatArgs?: DebugProtocol.StackFrameFormat): Promise<StackTracePresentationRow[]> {
+        const asyncFrames: StackTracePresentationRow[] = await asyncMap(stackTrace.codeFlowFrames,
             frame => this.toPresentation(this.codeFlowToCallFrame(frame), formatArgs));
 
         asyncFrames.unshift(new StackTraceLabel(stackTrace.description));
@@ -86,34 +85,18 @@ export class StackTracesLogic implements IComponent {
         return asyncFrames.concat(stackTrace.parent ? await this.asyncCallFrames(stackTrace.parent, formatArgs) : []);
     }
 
-    private codeFlowToCallFrame(frame: CodeFlowFrame<IScript>): ICallFrame<IScript> {
+    private codeFlowToCallFrame(frame: CodeFlowFrame<IScript>): ScriptCallFrame {
         return new ScriptCallFrame(frame, [], undefined, undefined);
     }
 
-    private formatStackFrameName(name: string, locationInLoadedSource: LocationInLoadedSource, formatArgs?: DebugProtocol.StackFrameFormat): string {
-        let formattedName = name;
-        if (formatArgs) {
-            if (formatArgs.module) {
-                formattedName += ` [${path.basename(locationInLoadedSource.source.identifier.textRepresentation)}]`;
-            }
-
-            if (formatArgs.line) {
-                formattedName += ` Line ${locationInLoadedSource.position.lineNumber}`;
-            }
-        }
-
-        return formattedName;
-    }
-
-    private async toPresentation(frame: ICallFrame<IScript>, formatArgs?: DebugProtocol.StackFrameFormat): Promise<CallFramePresentation<ILoadedSource>> {
+    private async toPresentation(frame: ScriptCallFrame, formatArgs?: DebugProtocol.StackFrameFormat): Promise<CallFramePresentation> {
         // DIEGO TODO: Make getReadonlyOrigin work again
         // this.getReadonlyOrigin(frame.location.script.runtimeSource.identifier.textRepresentation)
-        const locationInLoadedSource = frame.location.mappedToSource();
-
         let presentationHint: CallFramePresentationHint = 'normal';
 
         // Apply hints to skipped frames
         const getSkipReason = (reason: string) => localize('skipReason', "(skipped by '{0}')", reason);
+        const locationInLoadedSource = frame.location.mappedToSource();
         const providedDetails: ICallFramePresentationDetails[] = [].concat(await asyncMap([this._stackTracePresentationLogicProviders], provider =>
             provider.getCallFrameAdditionalDetails(locationInLoadedSource)));
         const actualDetails = providedDetails.length === 0
@@ -129,11 +112,8 @@ export class StackTracesLogic implements IComponent {
             sourcePresentationHint: actualDetails[0].sourcePresentationHint // We know that actualDetails.length > 0
         };
 
-        const formattedName = this.formatStackFrameName(frame.name, locationInLoadedSource, formatArgs);
-        const codeFlow = new CodeFlowFrame<ILoadedSource>(frame.index, new FormattedName(formattedName), locationInLoadedSource);
-        const callFrame = new LoadedSourceCallFrame(frame, codeFlow);
-
-        return new CallFramePresentation<ILoadedSource>(callFrame, presentationDetails, presentationHint);
+        return new CallFramePresentation(frame.mappedToSource(),
+            new CustomCallFrameDescriptionFormatter(frame, formatArgs), presentationDetails, presentationHint);
     }
 
     public async install(): Promise<this> {

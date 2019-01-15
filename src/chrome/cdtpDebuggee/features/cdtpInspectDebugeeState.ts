@@ -3,10 +3,10 @@ import { Protocol as CDTP } from 'devtools-protocol';
 import { CDTPCallFrameRegistry } from '../registries/cdtpCallFrameRegistry';
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
-import { ICallFrame, ScriptOrLoadedSource } from '../../internal/stackTraces/callFrame';
+import { ScriptCallFrame } from '../../internal/stackTraces/callFrame';
 
 export interface EvaluateOnCallFrameRequest {
-    readonly frame: ICallFrame<ScriptOrLoadedSource>;
+    readonly frame: ScriptCallFrame;
     readonly expression: string;
     readonly objectGroup?: string;
     readonly includeCommandLineAPI?: boolean;
@@ -64,7 +64,7 @@ export class CDTPInspectDebugeeState implements IInspectDebugeeState {
 
     public evaluateOnCallFrame(params: EvaluateOnCallFrameRequest): Promise<CDTP.Debugger.EvaluateOnCallFrameResponse> {
         return this.api.Debugger.evaluateOnCallFrame({
-            callFrameId: this._callFrameRegistry.getFrameId(params.frame.unmappedCallFrame),
+            callFrameId: this._callFrameRegistry.getFrameId(params.frame),
             expression: this.addSourceUriToEvaluates.addURLIfMissing(params.expression),
             objectGroup: params.objectGroup,
             includeCommandLineAPI: params.includeCommandLineAPI,

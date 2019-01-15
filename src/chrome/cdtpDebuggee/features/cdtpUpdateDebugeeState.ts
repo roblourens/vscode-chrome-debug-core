@@ -1,16 +1,15 @@
 import { Protocol as CDTP } from 'devtools-protocol';
-
 import { CDTPCallFrameRegistry } from '../registries/cdtpCallFrameRegistry';
 import { TYPES } from '../../dependencyInjection.ts/types';
 import { injectable, inject } from 'inversify';
-import { ICallFrame, ScriptOrLoadedSource } from '../../internal/stackTraces/callFrame';
+import { ScriptCallFrame } from '../../internal/stackTraces/callFrame';
 import { integer } from '../cdtpPrimitives';
 
 export interface SetVariableValueRequest {
     readonly scopeNumber: integer;
     readonly variableName: string;
     readonly newValue: CDTP.Runtime.CallArgument;
-    readonly frame: ICallFrame<ScriptOrLoadedSource>;
+    readonly frame: ScriptCallFrame;
 }
 
 export interface IUpdateDebugeeState {

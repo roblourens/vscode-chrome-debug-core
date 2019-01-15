@@ -4,7 +4,7 @@ import { CDTPStackTraceParser } from '../protocolParsers/cdtpStackTraceParser';
 import { adaptToSinglIntoToMulti } from '../../../utils';
 import { AnyBPRecipie } from '../../internal/breakpoints/bpRecipie';
 import { CDTPBreakpointIdsRegistry } from '../registries/cdtpBreakpointIdsRegistry';
-import { ScriptCallFrame, ICallFrame, CodeFlowFrame } from '../../internal/stackTraces/callFrame';
+import { ScriptCallFrame, CodeFlowFrame } from '../../internal/stackTraces/callFrame';
 import { asyncUndefinedOnFailure } from '../../utils/failures';
 import { CDTPLocationParser } from '../protocolParsers/cdtpLocationParser';
 import { Scope } from '../../internal/stackTraces/scopes';
@@ -12,7 +12,7 @@ import { IScript } from '../../internal/scripts/script';
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
 import { Protocol as CDTP } from 'devtools-protocol';
-import { CodeFlowStackTrace } from '../../internal/stackTraces/stackTrace';
+import { CodeFlowStackTrace } from '../../internal/stackTraces/codeFlowStackTrace';
 import { CDTPScriptsRegistry } from '../registries/cdtpScriptsRegistry';
 import { CDTPCallFrameRegistry } from '../registries/cdtpCallFrameRegistry';
 import { CDTPDomainsEnabler } from '../infrastructure/cdtpDomainsEnabler';
@@ -21,11 +21,11 @@ export type PauseEventReason = 'XHR' | 'DOM' | 'EventListener' | 'exception' | '
 
 export class PausedEvent {
     constructor(
-        public readonly callFrames: ICallFrame<IScript>[],
+        public readonly callFrames: ScriptCallFrame[],
         public readonly reason: PauseEventReason,
         public readonly data: any,
         public readonly hitBreakpoints: AnyBPRecipie[],
-        public readonly asyncStackTrace: CodeFlowStackTrace<IScript> | undefined,
+        public readonly asyncStackTrace: CodeFlowStackTrace | undefined,
         public readonly asyncStackTraceId: CDTP.Runtime.StackTraceId | undefined,
         public readonly asyncCallStackTraceId: CDTP.Runtime.StackTraceId | undefined) { }
 }
@@ -74,7 +74,7 @@ export class CDTDebuggeeExecutionEventsProvider extends CDTPEventsEmitterDiagnos
         return this._breakpointIdRegistry.getRecipieByBreakpointId(hitBreakpoint);
     }
 
-    private async toCallFrame(index: number, callFrame: CDTP.Debugger.CallFrame): Promise<ICallFrame<IScript>> {
+    private async toCallFrame(index: number, callFrame: CDTP.Debugger.CallFrame): Promise<ScriptCallFrame> {
         const frame = new ScriptCallFrame(await this.toCodeFlowFrame(index, callFrame),
             await asyncMap(callFrame.scopeChain, scope => this.toScope(scope)),
             callFrame.this, callFrame.returnValue);

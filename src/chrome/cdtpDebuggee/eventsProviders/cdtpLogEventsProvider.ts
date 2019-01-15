@@ -3,8 +3,7 @@ import { Protocol as CDTP } from 'devtools-protocol';
 
 import { CDTPStackTraceParser } from '../protocolParsers/cdtpStackTraceParser';
 import { integer } from '../cdtpPrimitives';
-import { CodeFlowStackTrace } from '../../internal/stackTraces/stackTrace';
-import { IScript } from '../../internal/scripts/script';
+import { CodeFlowStackTrace } from '../../internal/stackTraces/codeFlowStackTrace';
 import { TYPES } from '../../dependencyInjection.ts/types';
 import { inject } from 'inversify';
 import { CDTPScriptsRegistry } from '../registries/cdtpScriptsRegistry';
@@ -20,7 +19,7 @@ export interface LogEntry {
     readonly timestamp: CDTP.Runtime.Timestamp;
     readonly url?: string;
     readonly lineNumber?: integer;
-    readonly stackTrace?: CodeFlowStackTrace<IScript>;
+    readonly stackTrace?: CodeFlowStackTrace;
     readonly networkRequestId?: CDTP.Network.RequestId;
     readonly workerId?: string;
     readonly args?: CDTP.Runtime.RemoteObject[];

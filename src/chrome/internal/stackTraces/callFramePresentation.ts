@@ -1,40 +1,35 @@
 import { Location } from '../locations/location';
-
 import { ILoadedSource } from '../sources/loadedSource';
-
-import { CodeFlowFrame, ICallFrame, ScriptOrLoadedSource } from './callFrame';
-
-import { CodeFlowFramePresentationRow } from './stackTracePresentation';
+import { CodeFlowFrame, ICallFrame, CallFrame } from './callFrame';
+import { StackTracePresentationRow, CallFramePresentationHint } from './stackTracePresentationRow';
+import { ICallFrameDescriptionFormatter } from './callFrameDescription';
 
 export type SourcePresentationHint = 'normal' | 'emphasize' | 'deemphasize';
-export type CallFramePresentationHint = 'normal' | 'label' | 'subtle';
 
 export interface ICallFramePresentationDetails {
     readonly additionalSourceOrigins: string[];
     readonly sourcePresentationHint: SourcePresentationHint;
 }
 
-export interface ICodeFlowFramePresentation<TResource extends ScriptOrLoadedSource> extends CodeFlowFramePresentationRow<TResource> {
-    readonly name: string;
+export interface ICodeFlowFramePresentation extends StackTracePresentationRow {
+    readonly description: string;
     readonly source: ILoadedSource;
-    readonly location: Location<TResource>;
+    readonly location: Location<ILoadedSource>;
     readonly lineNumber: number;
     readonly columnNumber: number;
+    readonly codeFlow: CodeFlowFrame<ILoadedSource>;
 }
 
-export abstract class CodeFlowFramePresentationCommonLogic<TResource extends ScriptOrLoadedSource> implements ICodeFlowFramePresentation<TResource> {
-    public abstract get codeFlow(): CodeFlowFrame<TResource>;
-    public abstract hasCallFrame(): this is CallFramePresentation<TResource>;
-
-    public get name(): string {
-        return this.codeFlow.name;
-    }
+export abstract class FramePresentationCommonLogic implements ICodeFlowFramePresentation {
+    public abstract get codeFlow(): CodeFlowFrame<ILoadedSource>;
+    public abstract isCallFrame(): this is CallFramePresentation;
+    public abstract get description(): string;
 
     public get source(): ILoadedSource {
         return this.codeFlow.source;
     }
 
-    public get location(): Location<TResource> {
+    public get location(): Location<ILoadedSource> {
         return this.codeFlow.location;
     }
 
@@ -46,7 +41,7 @@ export abstract class CodeFlowFramePresentationCommonLogic<TResource extends Scr
         return this.codeFlow.columnNumber;
     }
 
-    public hasCodeFlow(): this is ICodeFlowFramePresentation<TResource> {
+    public isNotLabel(): this is ICodeFlowFramePresentation {
         return true;
     }
 
@@ -55,30 +50,39 @@ export abstract class CodeFlowFramePresentationCommonLogic<TResource extends Scr
         public readonly presentationHint?: CallFramePresentationHint) { }
 }
 
-export class CallFramePresentation<TResource extends ScriptOrLoadedSource> extends CodeFlowFramePresentationCommonLogic<TResource> implements CodeFlowFramePresentationRow<TResource> {
-    public get codeFlow(): CodeFlowFrame<TResource> {
-        return this.callFrame.codeFlow;
+export class CallFramePresentation extends FramePresentationCommonLogic implements StackTracePresentationRow {
+    public get codeFlow(): CodeFlowFrame<ILoadedSource> {
+        return (<ICallFrame<ILoadedSource>>this.callFrame).codeFlow; // TODO: Figure out how to remove the cast
     }
 
-    public hasCallFrame(): this is CallFramePresentation<TResource> {
+    public isCallFrame(): this is CallFramePresentation {
         return true;
     }
 
+    public get description(): string {
+        return this._descriptionFormatter.description;
+    }
+
     constructor(
-        public readonly callFrame: ICallFrame<TResource>,
+        public readonly callFrame: CallFrame<ILoadedSource>,
+        private readonly _descriptionFormatter: ICallFrameDescriptionFormatter,
         additionalPresentationDetails?: ICallFramePresentationDetails,
         presentationHint?: CallFramePresentationHint) {
         super(additionalPresentationDetails, presentationHint);
     }
 }
 
-export class CodeFlowFramePresentation<TResource extends ScriptOrLoadedSource> extends CodeFlowFramePresentationCommonLogic<TResource> implements CodeFlowFramePresentationRow<TResource> {
-    public hasCallFrame(): this is CallFramePresentation<TResource> {
+export class CodeFlowFramePresentation extends FramePresentationCommonLogic implements StackTracePresentationRow {
+    public get description(): string {
+        return this.codeFlow.functionDescription;
+    }
+
+    public isCallFrame(): this is CallFramePresentation {
         return false;
     }
 
     constructor(
-        public readonly codeFlow: CodeFlowFrame<TResource>,
+        public readonly codeFlow: CodeFlowFrame<ILoadedSource>,
         additionalPresentationDetails?: ICallFramePresentationDetails,
         presentationHint?: CallFramePresentationHint) {
         super(additionalPresentationDetails, presentationHint);

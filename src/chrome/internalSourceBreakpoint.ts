@@ -3,8 +3,7 @@
  *--------------------------------------------------------*/
 
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { IScript } from './internal/scripts/script';
-import { CodeFlowStackTrace } from './internal/stackTraces/stackTrace';
+import { CodeFlowStackTrace } from './internal/stackTraces/codeFlowStackTrace';
 import { parseResourceIdentifier } from './internal/sources/resourceIdentifier';
 import { createCDTPScriptUrl } from './internal/sources/resourceIdentifierSubtypes';
 
@@ -32,12 +31,12 @@ export class InternalSourceBreakpoint {
     }
 }
 
-function isLogpointStack(stackTrace: CodeFlowStackTrace<IScript> | null): boolean {
+function isLogpointStack(stackTrace: CodeFlowStackTrace | null): boolean {
     return stackTrace && stackTrace.codeFlowFrames.length > 0
     && stackTrace.codeFlowFrames[0].script.runtimeSource.identifier.isEquivalentTo(parseResourceIdentifier(createCDTPScriptUrl(InternalSourceBreakpoint.LOGPOINT_URL)));
 }
 
-export function stackTraceWithoutLogpointFrame(stackTrace: CodeFlowStackTrace<IScript>): CodeFlowStackTrace<IScript> {
+export function stackTraceWithoutLogpointFrame(stackTrace: CodeFlowStackTrace): CodeFlowStackTrace {
     if (isLogpointStack(stackTrace)) {
         return {
             ...stackTrace,

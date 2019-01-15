@@ -2,18 +2,27 @@ import { Location } from '../locations/location';
 import { ILoadedSource } from '../sources/loadedSource';
 import { IScript } from '../scripts/script';
 import { Protocol as CDTP } from 'devtools-protocol';
-
-import { ICallFrameName } from './callFrameName';
+import { ICallFrameFunction } from './callFrameFunction';
 import { Scope } from './scopes';
 import { integer } from '../../cdtpDebuggee/cdtpPrimitives';
 
-export type ScriptOrLoadedSource = IScript | ILoadedSource; // Used for stack traces
+/** CDTP has two types of stack traces:
+ * 1. CDTP.Runtime stack traces have only information about which code was executed, but not the state associated with it
+ * 2. CDTP.Debugger stack traces which have all the information that CDTP.Runtime has, and it also includes state information
+ *
+ * We represent this by modeling the information that both contain in CodeFlowFrame and the information that only CDTP.Debugger
+ * contains on CallFrame (which has an embedded CodeFlowFrame)
+ */
 
-/** This interface represents the code flow (which code was executed) of a call frame  */
+export type ScriptOrLoadedSource = IScript | ILoadedSource;
+
+/** This class represents the code flow (which code was executed) of a call frame.
+ * (This has similar properties as the stack traces from the CDTP.Runtime domain)
+ */
 export class CodeFlowFrame<TResource extends ScriptOrLoadedSource> {
     constructor(
         public readonly index: integer,
-        public readonly nameStrategy: ICallFrameName,
+        public readonly callFrameFunction: ICallFrameFunction,
         public readonly location: Location<TResource>) { }
 
     public get source(): TResource extends ILoadedSource ? TResource : never {
@@ -32,28 +41,32 @@ export class CodeFlowFrame<TResource extends ScriptOrLoadedSource> {
         return this.location.position.columnNumber;
     }
 
-    public get name(): string {
-        return this.nameStrategy.name;
+    public get functionDescription(): string {
+        return this.callFrameFunction.description;
     }
 }
 
+/** This interface represents both the code flow and the state of a call frame.
+ * (This has similar properties as the stack traces from the CDTP.Debugger domain)
+ */
 export interface ICallFrame<TResource extends ScriptOrLoadedSource> {
     readonly index: number;
-    readonly source: TResource extends ILoadedSource ? TResource : never;
     readonly location: Location<TResource>;
     readonly lineNumber: number;
     readonly columnNumber: number;
-    readonly name: string;
     readonly codeFlow: CodeFlowFrame<TResource>;
     readonly scopeChain: Scope[];
     readonly frameThis?: CDTP.Runtime.RemoteObject;
     readonly returnValue?: CDTP.Runtime.RemoteObject;
-    readonly unmappedCallFrame: ICallFrame<IScript>;
 }
+
+export type CallFrame<TResource extends ScriptOrLoadedSource> =
+    TResource extends ILoadedSource ? LoadedSourceCallFrame :
+    TResource extends IScript ? ScriptCallFrame :
+    ICallFrame<never>; // TODO: Figure out how to change this for never
 
 abstract class CallFrameCommonLogic<TResource extends ScriptOrLoadedSource> implements ICallFrame<TResource> {
     public abstract get scopeChain(): Scope[];
-    public abstract get unmappedCallFrame(): ICallFrame<IScript>;
     public abstract get codeFlow(): CodeFlowFrame<TResource>;
 
     public get source(): TResource extends ILoadedSource ? TResource : never {
@@ -76,22 +89,23 @@ abstract class CallFrameCommonLogic<TResource extends ScriptOrLoadedSource> impl
         return this.codeFlow.index;
     }
 
-    public get name(): string {
-        return this.codeFlow.name;
+    public get functionDescription(): string {
+        return this.codeFlow.functionDescription;
     }
 }
 
 export class ScriptCallFrame extends CallFrameCommonLogic<IScript> {
-    public get unmappedCallFrame(): ICallFrame<IScript> {
-        return this;
-    }
-
     constructor(
         public readonly codeFlow: CodeFlowFrame<IScript>,
         public readonly scopeChain: Scope[],
-        public readonly frameThis?: CDTP.Runtime.RemoteObject, // This is optional only to support Runtime.StackTraces aka StackTraceCodeFlow
+        public readonly frameThis: CDTP.Runtime.RemoteObject,
         public readonly returnValue?: CDTP.Runtime.RemoteObject) {
         super();
+    }
+
+    public mappedToSource(): LoadedSourceCallFrame {
+        const codeFlow = new CodeFlowFrame<ILoadedSource>(this.index, this.codeFlow.callFrameFunction, this.location.mappedToSource());
+        return new LoadedSourceCallFrame(this, codeFlow);
     }
 }
 
@@ -109,7 +123,7 @@ export class LoadedSourceCallFrame extends CallFrameCommonLogic<ILoadedSource> {
     }
 
     constructor(
-        public readonly unmappedCallFrame: ICallFrame<IScript>,
+        public readonly unmappedCallFrame: ScriptCallFrame,
         public readonly codeFlow: CodeFlowFrame<ILoadedSource>) {
         super();
     }

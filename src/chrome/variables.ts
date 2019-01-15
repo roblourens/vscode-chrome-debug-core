@@ -8,7 +8,7 @@ import { Handles } from 'vscode-debugadapter';
 import { ChromeDebugLogic, VariableContext } from './chromeDebugAdapter';
 import { Protocol as CDTP } from 'devtools-protocol';
 import * as utils from '../utils';
-import { ICallFrame, ScriptOrLoadedSource } from './internal/stackTraces/callFrame';
+import { LoadedSourceCallFrame } from './internal/stackTraces/callFrame';
 
 export interface IVariableContainer {
     expand(adapter: ChromeDebugLogic, filter?: string, start?: number, count?: number): Promise<DebugProtocol.Variable[]>;
@@ -47,10 +47,10 @@ export class LoggedObjects extends BaseVariableContainer {
 export class ScopeContainer extends BaseVariableContainer {
     private _thisObj: CDTP.Runtime.RemoteObject;
     private _returnValue: CDTP.Runtime.RemoteObject;
-    private _frameId: ICallFrame<ScriptOrLoadedSource>;
+    private _frameId: LoadedSourceCallFrame;
     private _origScopeIndex: number;
 
-    public constructor(frameId: ICallFrame<ScriptOrLoadedSource>, origScopeIndex: number, objectId: string, thisObj?: CDTP.Runtime.RemoteObject, returnValue?: CDTP.Runtime.RemoteObject) {
+    public constructor(frameId: LoadedSourceCallFrame, origScopeIndex: number, objectId: string, thisObj?: CDTP.Runtime.RemoteObject, returnValue?: CDTP.Runtime.RemoteObject) {
         super(objectId, '');
         this._thisObj = thisObj;
         this._returnValue = returnValue;

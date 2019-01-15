@@ -5,8 +5,7 @@
 import { Protocol as CDTP } from 'devtools-protocol';
 import * as Color from 'color';
 import * as variables from './variables';
-import { IScript } from './internal/scripts/script';
-import { CodeFlowStackTrace } from './internal/stackTraces/stackTrace';
+import { CodeFlowStackTrace } from './internal/stackTraces/codeFlowStackTrace';
 import { ExceptionDetails } from './cdtpDebuggee/eventsProviders/cdtpExceptionThrownEventsProvider';
 
 export function formatExceptionDetails(e: ExceptionDetails): string {
@@ -20,7 +19,7 @@ export function formatExceptionDetails(e: ExceptionDetails): string {
 
 export const clearConsoleCode = '\u001b[2J';
 
-export function formatConsoleArguments(type: CDTP.Runtime.ConsoleAPICalledEvent['type'], args: CDTP.Runtime.RemoteObject[], stackTrace?: CodeFlowStackTrace<IScript>): { args: CDTP.Runtime.RemoteObject[], isError: boolean } {
+export function formatConsoleArguments(type: CDTP.Runtime.ConsoleAPICalledEvent['type'], args: CDTP.Runtime.RemoteObject[], stackTrace?: CodeFlowStackTrace): { args: CDTP.Runtime.RemoteObject[], isError: boolean } {
     switch (type) {
         case 'log':
         case 'debug':
@@ -209,14 +208,14 @@ function formatArg(formatSpec: string, arg: CDTP.Runtime.RemoteObject): string |
     }
 }
 
-function stackTraceToString(stackTrace: CodeFlowStackTrace<IScript>): string {
+function stackTraceToString(stackTrace: CodeFlowStackTrace): string {
     if (!stackTrace) {
         return '';
     }
 
     return stackTrace.codeFlowFrames
         .map(frame => {
-            const fnName = frame.name;
+            const fnName = frame.functionDescription;
             const fileName = frame.script.developmentSource.identifier.textRepresentation;
             return `    at ${fnName} (${fileName}:${frame.lineNumber + 1}:${frame.columnNumber})`;
         })
