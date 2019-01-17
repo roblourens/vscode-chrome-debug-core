@@ -3,7 +3,6 @@ import { Protocol as CDTP } from 'devtools-protocol';
 import { IScript, } from '../../internal/scripts/script';
 import { CodeFlowStackTrace } from '../../internal/stackTraces/codeFlowStackTrace';
 import { CodeFlowFrame } from '../../internal/stackTraces/callFrame';
-import { createCallFrameFunction } from '../../internal/stackTraces/callFrameFunction';
 import { CDTPLocationParser, HasScriptLocation } from './cdtpLocationParser';
 import { CDTPScriptsRegistry } from '../registries/cdtpScriptsRegistry';
 import { asyncMap } from '../../collections/async';
@@ -25,8 +24,7 @@ export class CDTPStackTraceParser {
 
     public async toCodeFlowFrame(index: number, callFrame: CDTP.Runtime.CallFrame | CDTP.Debugger.CallFrame, location: HasScriptLocation): Promise<CodeFlowFrame<IScript>> {
         const scriptLocation = await this._cdtpLocationParser.getLocationInScript(location);
-        const name = createCallFrameFunction(scriptLocation.script, callFrame.functionName);
-        return new CodeFlowFrame(index, name, scriptLocation);
+        return new CodeFlowFrame(index, callFrame.functionName, scriptLocation);
     }
 
     constructor(private _scriptsRegistry: CDTPScriptsRegistry) { }

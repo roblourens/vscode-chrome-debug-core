@@ -5,7 +5,7 @@ import { StackTracesLogic, IStackTracePresentationLogicProvider } from '../stack
 import { newResourceIdentifierMap, IResourceIdentifier, parseResourceIdentifier } from '../sources/resourceIdentifier';
 import { IComponent } from './feature';
 import { LocationInLoadedSource } from '../locations/location';
-import { ICallFramePresentationDetails } from '../stackTraces/callFramePresentation';
+import { ICallFramePresentationDetails, CallFramePresentation } from '../stackTraces/callFramePresentation';
 import * as nls from 'vscode-nls';
 import { injectable, inject, LazyServiceIdentifer } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
@@ -151,7 +151,7 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration>, ISta
             const currentStack = await this.stackTracesLogic.stackTrace({ threadId: undefined });
 
             return currentStack.stackFrames.some(frame => {
-                return frame.isNotLabel()
+                return (frame instanceof CallFramePresentation)
                     && frame.codeFlow.location.source
                     && frame.codeFlow.location.source.isEquivalentTo(resolvedSource);
             });

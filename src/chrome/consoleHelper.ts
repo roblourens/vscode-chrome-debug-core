@@ -7,6 +7,7 @@ import * as Color from 'color';
 import * as variables from './variables';
 import { CodeFlowStackTrace } from './internal/stackTraces/codeFlowStackTrace';
 import { ExceptionDetails } from './cdtpDebuggee/eventsProviders/cdtpExceptionThrownEventsProvider';
+import { functionDescription } from './internal/stackTraces/callFramePresentation';
 
 export function formatExceptionDetails(e: ExceptionDetails): string {
     if (!e.exception) {
@@ -215,7 +216,7 @@ function stackTraceToString(stackTrace: CodeFlowStackTrace): string {
 
     return stackTrace.codeFlowFrames
         .map(frame => {
-            const fnName = frame.functionDescription;
+            const fnName = functionDescription(frame.functionName, frame.script);
             const fileName = frame.script.developmentSource.identifier.textRepresentation;
             return `    at ${fnName} (${fileName}:${frame.lineNumber + 1}:${frame.columnNumber})`;
         })

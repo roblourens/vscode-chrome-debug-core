@@ -14,6 +14,7 @@ import { injectable, inject } from 'inversify';
 import { TYPES } from '../dependencyInjection.ts/types';
 import { Source } from 'vscode-debugadapter';
 import { StackTracePresentationRow, StackTraceLabel } from '../internal/stackTraces/StackTracePresentationRow';
+import { CallFramePresentation } from '../internal/stackTraces/callFramePresentation';
 
 interface ClientLocationInSource {
     source: DebugProtocol.Source;
@@ -32,7 +33,7 @@ export class InternalToClient {
     }
 
     public async toStackFrame(stackFrame: StackTracePresentationRow): Promise<DebugProtocol.StackFrame> {
-        if (stackFrame.isNotLabel()) {
+        if (stackFrame instanceof CallFramePresentation) {
             const clientStackFrame: RemoveProperty<DebugProtocol.StackFrame, 'line' | 'column'> = {
                 id: this.getFrameId(stackFrame),
                 name: stackFrame.description,

@@ -19,7 +19,6 @@ import { TYPES } from '../../dependencyInjection.ts/types';
 import { ConnectedCDAConfiguration } from '../../..';
 import { Vote, Abstained } from '../../communication/collaborativeDecision';
 import { IAsyncDebuggingConfigurer } from '../../cdtpDebuggee/features/CDTPAsyncDebuggingConfigurer';
-import { CustomCallFrameDescriptionFormatter } from './callFrameDescription';
 import { StackTracePresentationRow, StackTraceLabel, CallFramePresentationHint } from './stackTracePresentationRow';
 
 export interface EventsConsumedByStackTrace {
@@ -113,7 +112,7 @@ export class StackTracesLogic implements IComponent {
         };
 
         return new CallFramePresentation(frame.mappedToSource(),
-            new CustomCallFrameDescriptionFormatter(frame, formatArgs), presentationDetails, presentationHint);
+            formatArgs, presentationDetails, presentationHint);
     }
 
     public async install(): Promise<this> {
