@@ -7,8 +7,8 @@ import { IComponent } from '../features/feature';
 import * as errors from '../../../errors';
 import { utils } from '../../..';
 import { FormattedExceptionParser, IFormattedExceptionLineDescription } from '../formattedExceptionParser';
-import { PauseOnPromiseRejectionsStrategy, PauseOnExceptionsStrategy } from './strategies';
-import { VoteRelevance, Vote, Abstained } from '../../communication/collaborativeDecision';
+import { IPauseOnPromiseRejectionsStrategy, IPauseOnExceptionsStrategy } from './strategies';
+import { VoteRelevance, IVote, Abstained } from '../../communication/collaborativeDecision';
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
 import { IEventsToClientReporter } from '../../client/eventSender';
@@ -34,7 +34,7 @@ export interface IExceptionInformation {
     readonly details?: IExceptionInformationDetails;
 }
 
-export interface EventsConsumedByPauseOnException {
+export interface IEventsConsumedByPauseOnException {
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
     publishGoingToPauseClient(): void;
 }
@@ -61,19 +61,19 @@ export class PromiseWasRejected extends NotifyStoppedCommonLogic {
 
 @injectable()
 export class PauseOnExceptionOrRejection implements IComponent {
-    private _promiseRejectionsStrategy: PauseOnPromiseRejectionsStrategy;
+    private _promiseRejectionsStrategy: IPauseOnPromiseRejectionsStrategy;
 
     private _lastException: any;
 
-    public setExceptionsStrategy(strategy: PauseOnExceptionsStrategy): Promise<void> {
+    public setExceptionsStrategy(strategy: IPauseOnExceptionsStrategy): Promise<void> {
         return this._pauseOnExceptions.setPauseOnExceptions(strategy);
     }
 
-    public setPromiseRejectionStrategy(promiseRejectionsStrategy: PauseOnPromiseRejectionsStrategy): void {
+    public setPromiseRejectionStrategy(promiseRejectionsStrategy: IPauseOnPromiseRejectionsStrategy): void {
         this._promiseRejectionsStrategy = promiseRejectionsStrategy;
     }
 
-    public async askForInformationAboutPaused(paused: PausedEvent): Promise<Vote<void>> {
+    public async askForInformationAboutPaused(paused: PausedEvent): Promise<IVote<void>> {
         if (paused.reason === 'exception') {
             // If we are here is because we either configured the debugee to pauser on unhandled or handled exceptions
             this._lastException = paused.data;
@@ -115,7 +115,7 @@ export class PauseOnExceptionOrRejection implements IComponent {
         return this;
     }
 
-    constructor(@inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: EventsConsumedByPauseOnException,
+    constructor(@inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: IEventsConsumedByPauseOnException,
         @inject(TYPES.DeleteMeScriptsRegistry) private readonly _scriptsLogic: DeleteMeScriptsRegistry,
         @inject(TYPES.IPauseOnExceptions) private readonly _pauseOnExceptions: IPauseOnExceptionsConfigurer,
         @inject(TYPES.IEventsToClientReporter) private readonly _eventsToClientReporter: IEventsToClientReporter) { }

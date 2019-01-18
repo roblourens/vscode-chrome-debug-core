@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import { ValidatedMap } from '../collections/validatedMap';
-import { ChannelIdentifier } from './channelIdentifier';
+import { IChannelIdentifier } from './channelIdentifier';
 import { getChannelName } from './channel';
 import { Listeners } from './listeners';
 import { PromiseOrNot } from '../utils/promises';
@@ -20,7 +20,7 @@ export type PublisherFunction<Notification, Response> = Notification extends voi
 export type SubscriberFunction<Notification, Response> = (listener: NotificationListener<Notification, Response>) => void;
 
 // We need the template parameter to force the Communicator to be "strongly typed" from the client perspective
-export class NotificationChannelIdentifier<_Notification, _Response = void> implements ChannelIdentifier {
+export class NotificationChannelIdentifier<_Notification, _Response = void> implements IChannelIdentifier {
     [Symbol.toStringTag]: 'NotificationChannelIdentifier' = 'NotificationChannelIdentifier';
 
     constructor(public readonly identifierSymbol: Symbol = Symbol()) { }

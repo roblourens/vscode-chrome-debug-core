@@ -28,7 +28,7 @@ class EnableDomainFunctionAndResultPromise<EnableResponse> {
     constructor(
         public readonly enableDomain: () => Promise<EnableResponse>,
         public readonly parameters: unknown,
-        public readonly defer: utils.PromiseDefer<EnableResponse>,
+        public readonly defer: utils.IPromiseDefer<EnableResponse>,
     ) { }
 }
 

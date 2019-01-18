@@ -20,7 +20,7 @@ import { CDTPDomainsEnabler } from '../infrastructure/cdtpDomainsEnabler';
 /**
  * A new JavaScript Script has been parsed by the debugee and it's about to be executed
  */
-export interface ScriptParsedEvent {
+export interface IScriptParsedEvent {
     readonly script: IScript;
     readonly url: string;
     readonly startLine: integer;
@@ -38,10 +38,10 @@ export interface ScriptParsedEvent {
     readonly stackTrace?: CodeFlowStackTrace;
 }
 
-export type ScriptParsedListener = (params: ScriptParsedEvent) => void;
+export type ScriptParsedListener = (params: IScriptParsedEvent) => void;
 
 export interface IScriptParsedProvider {
-    onScriptParsed(listener: (event: ScriptParsedEvent) => void): void;
+    onScriptParsed(listener: (event: IScriptParsedEvent) => void): void;
 }
 
 export class CDTPOnScriptParsedEventProvider extends CDTPEventsEmitterDiagnosticsModule<CDTP.DebuggerApi, void, CDTP.Debugger.EnableResponse> implements IScriptParsedProvider {
@@ -96,7 +96,7 @@ export class CDTPOnScriptParsedEventProvider extends CDTPEventsEmitterDiagnostic
         return script;
     }
 
-    private async toScriptParsedEvent(params: CDTP.Debugger.ScriptParsedEvent): Promise<ScriptParsedEvent> {
+    private async toScriptParsedEvent(params: CDTP.Debugger.ScriptParsedEvent): Promise<IScriptParsedEvent> {
         const executionContext = this._scriptsRegistry.getExecutionContextById(params.executionContextId);
 
         return {

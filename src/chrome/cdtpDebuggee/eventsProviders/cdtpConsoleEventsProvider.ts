@@ -13,7 +13,7 @@ import { CDTPDomainsEnabler } from '../infrastructure/cdtpDomainsEnabler';
 
 export type ConsoleAPIEventType = 'log' | 'debug' | 'info' | 'error' | 'warning' | 'dir' | 'dirxml' | 'table' | 'trace' | 'clear' | 'startGroup' | 'startGroupCollapsed' | 'endGroup' | 'assert' | 'profile' | 'profileEnd' | 'count' | 'timeEnd';
 
-export interface ConsoleAPICalledEvent {
+export interface IConsoleAPICalledEvent {
     readonly type: ConsoleAPIEventType;
     readonly args: CDTP.Runtime.RemoteObject[];
     readonly executionContextId: CDTP.Runtime.ExecutionContextId;
@@ -23,7 +23,7 @@ export interface ConsoleAPICalledEvent {
 }
 
 export type onMessageAddedListener = (message: CDTP.Console.MessageAddedEvent) => void;
-export type onConsoleAPICalled = (message: ConsoleAPICalledEvent) => void;
+export type onConsoleAPICalled = (message: IConsoleAPICalledEvent) => void;
 
 export interface IConsoleEventsProvider {
     onMessageAdded(listener: onMessageAddedListener): void;

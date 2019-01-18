@@ -6,10 +6,10 @@ import { Protocol as CDTP } from 'devtools-protocol';
 import * as Color from 'color';
 import * as variables from './variables';
 import { CodeFlowStackTrace } from './internal/stackTraces/codeFlowStackTrace';
-import { ExceptionDetails } from './cdtpDebuggee/eventsProviders/cdtpExceptionThrownEventsProvider';
+import { IExceptionDetails } from './cdtpDebuggee/eventsProviders/cdtpExceptionThrownEventsProvider';
 import { functionDescription } from './internal/stackTraces/callFramePresentation';
 
-export function formatExceptionDetails(e: ExceptionDetails): string {
+export function formatExceptionDetails(e: IExceptionDetails): string {
     if (!e.exception) {
         return `${e.text || 'Uncaught Error'}\n${stackTraceToString(e.stackTrace)}`;
     }

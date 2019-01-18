@@ -9,7 +9,7 @@ import { ILoadedSource } from '../sources/loadedSource';
 import { logger } from 'vscode-debugadapter';
 import { ColumnNumber, LineNumber, URLRegexp } from './subtypes';
 import { CDTPScriptUrl } from '../sources/resourceIdentifierSubtypes';
-import { IResourceIdentifier, parseResourceIdentifier, URL } from '../sources/resourceIdentifier';
+import { IResourceIdentifier, parseResourceIdentifier, IURL } from '../sources/resourceIdentifier';
 import { IEquivalenceComparable } from '../../utils/equivalence';
 
 export type integer = number;
@@ -41,14 +41,14 @@ export interface ILocation<T extends ScriptOrSourceOrURLOrURLRegexp> extends IEq
     readonly resource: T;
 }
 
-export type ScriptOrSourceOrURLOrURLRegexp = IScript | ILoadedSource | ISource | URLRegexp | URL<CDTPScriptUrl>;
+export type ScriptOrSourceOrURLOrURLRegexp = IScript | ILoadedSource | ISource | URLRegexp | IURL<CDTPScriptUrl>;
 
 export type Location<T extends ScriptOrSourceOrURLOrURLRegexp> =
     T extends ISource ? LocationInSource : // Used when receiving locations from the client
     T extends ILoadedSource ? LocationInLoadedSource : // Used to translate between locations on the client and the debugee
     T extends IScript ? LocationInScript : // Used when receiving locations from the debugee
     T extends URLRegexp ? LocationInUrlRegexp : // Used when setting a breakpoint by URL in a local file path in windows, to make it case insensitive
-    T extends URL<CDTPScriptUrl> ? LocationInUrl : // Used when setting a breakpoint by URL for case-insensitive URLs
+    T extends IURL<CDTPScriptUrl> ? LocationInUrl : // Used when setting a breakpoint by URL for case-insensitive URLs
     ILocation<never>; // TODO: Figure out how to replace this by never (We run into some issues with the isEquivalentTo call if we do)
 
 abstract class LocationCommonLogic<T extends ScriptOrSourceOrURLOrURLRegexp> implements ILocation<T> {
@@ -152,7 +152,7 @@ export class LocationInLoadedSource extends LocationCommonLogic<ILoadedSource> {
 }
 
 export class LocationInUrl extends LocationCommonLogic<IResourceIdentifier<CDTPScriptUrl>> {
-    public get url(): URL<CDTPScriptUrl> {
+    public get url(): IURL<CDTPScriptUrl> {
         return this.resource;
     }
 }

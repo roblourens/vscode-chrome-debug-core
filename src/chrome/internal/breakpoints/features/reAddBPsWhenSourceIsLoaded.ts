@@ -8,13 +8,13 @@ import { asyncMap } from '../../../collections/async';
 import { BPRecipieIsUnbinded, BPRecipieIsBinded } from '../bpRecipieStatus';
 import { newResourceIdentifierMap, IResourceIdentifier } from '../../sources/resourceIdentifier';
 import { IEventsToClientReporter } from '../../../client/eventSender';
-import { PromiseDefer, promiseDefer } from '../../../../utils';
+import { IPromiseDefer, promiseDefer } from '../../../../utils';
 import { IComponent } from '../../features/feature';
 import { injectable, inject } from 'inversify';
 import { IBreakpointsInLoadedSource } from '../bpRecipieAtLoadedSourceLogic';
 import { TYPES } from '../../../dependencyInjection.ts/types';
 
-export interface EventsConsumedByReAddBPsWhenSourceIsLoaded {
+export interface IEventsConsumedByReAddBPsWhenSourceIsLoaded {
     onLoadedSourceIsAvailable(listener: (source: ILoadedSource) => Promise<void>): void;
     notifyNoPendingBPs(): void;
 }
@@ -22,7 +22,7 @@ export interface EventsConsumedByReAddBPsWhenSourceIsLoaded {
 @injectable()
 export class ReAddBPsWhenSourceIsLoaded implements IComponent {
     private readonly _sourcePathToBPRecipies = newResourceIdentifierMap<BPRecipiesInUnresolvedSource>();
-    private readonly _sourcePathToBPsAreSetDefer = newResourceIdentifierMap<PromiseDefer<void>>();
+    private readonly _sourcePathToBPsAreSetDefer = newResourceIdentifierMap<IPromiseDefer<void>>();
 
     public install(): void {
         this._dependencies.onLoadedSourceIsAvailable(source => this.onLoadedSourceIsAvailable(source));
@@ -42,7 +42,7 @@ export class ReAddBPsWhenSourceIsLoaded implements IComponent {
         }
     }
 
-    private getBPsAreSetDefer(identifier: IResourceIdentifier): PromiseDefer<void> {
+    private getBPsAreSetDefer(identifier: IResourceIdentifier): IPromiseDefer<void> {
         return this._sourcePathToBPsAreSetDefer.getOrAdd(identifier, () => promiseDefer<void>());
     }
 
@@ -91,7 +91,7 @@ export class ReAddBPsWhenSourceIsLoaded implements IComponent {
     }
 
     constructor(
-        @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: EventsConsumedByReAddBPsWhenSourceIsLoaded,
+        @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: IEventsConsumedByReAddBPsWhenSourceIsLoaded,
         @inject(TYPES.EventSender) private readonly _eventsToClientReporter: IEventsToClientReporter,
         @inject(TYPES.BPRecipieInLoadedSourceLogic) private readonly _breakpointsInLoadedSource: IBreakpointsInLoadedSource) { }
 }

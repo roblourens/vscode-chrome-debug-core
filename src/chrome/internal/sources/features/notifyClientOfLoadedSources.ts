@@ -5,17 +5,17 @@
 import { IComponent } from '../../features/feature';
 import { IScript } from '../../scripts/script';
 import { telemetry } from '../../../../telemetry';
-import { SourceWasLoadedParameters, IEventsToClientReporter } from '../../../client/eventSender';
+import { ISourceWasLoadedParameters, IEventsToClientReporter } from '../../../client/eventSender';
 import { ValidatedMap } from '../../../collections/validatedMap';
 import { CDTPScriptUrl } from '../resourceIdentifierSubtypes';
 import { LoadedSourceEventReason, utils } from '../../../..';
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../../../dependencyInjection.ts/types';
-import { ScriptParsedEvent } from '../../../cdtpDebuggee/eventsProviders/cdtpOnScriptParsedEventProvider';
+import { IScriptParsedEvent } from '../../../cdtpDebuggee/eventsProviders/cdtpOnScriptParsedEventProvider';
 
-export interface NotifyClientOfLoadedSourcesDependencies {
-    sendSourceWasLoaded(params: SourceWasLoadedParameters): Promise<void>;
-    onScriptParsed(listener: (scriptEvent: ScriptParsedEvent) => Promise<void>): void;
+export interface INotifyClientOfLoadedSourcesDependencies {
+    sendSourceWasLoaded(params: ISourceWasLoadedParameters): Promise<void>;
+    onScriptParsed(listener: (scriptEvent: IScriptParsedEvent) => Promise<void>): void;
 }
 
 @injectable()
@@ -72,6 +72,6 @@ export class NotifyClientOfLoadedSources implements IComponent {
     }
 
     constructor(
-        @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: NotifyClientOfLoadedSourcesDependencies,
+        @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: INotifyClientOfLoadedSourcesDependencies,
         @inject(TYPES.EventSender) private readonly _eventsToClientReporter: IEventsToClientReporter) { }
 }

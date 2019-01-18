@@ -5,7 +5,7 @@
 import { ScriptCallFrame } from '../../stackTraces/callFrame';
 import { InformationAboutPausedProvider, } from '../../features/takeProperActionOnPausedEvent';
 import { IComponent } from '../../features/feature';
-import { Abstained, Vote } from '../../../communication/collaborativeDecision';
+import { Abstained, IVote } from '../../../communication/collaborativeDecision';
 import { injectable, inject } from 'inversify';
 import { IDebugeeExecutionController } from '../../../cdtpDebuggee/features/cdtpDebugeeExecutionController';
 import { TYPES } from '../../../dependencyInjection.ts/types';
@@ -31,7 +31,7 @@ class CurrentlyIdle implements SyncSteppingStatus {
     }
 }
 
-export interface SyncSteppingDependencies {
+export interface ISyncSteppingDependencies {
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
 }
 
@@ -51,7 +51,7 @@ export class SyncStepping implements IComponent {
         return this._debugeeExecutionControl.pause();
     }
 
-    private async askForInformationAboutPaused(_paused: PausedEvent): Promise<Vote<void>> {
+    private async askForInformationAboutPaused(_paused: PausedEvent): Promise<IVote<void>> {
         return new Abstained(this);
     }
 
@@ -74,7 +74,7 @@ export class SyncStepping implements IComponent {
     }
 
     constructor(
-        @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: SyncSteppingDependencies,
+        @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: ISyncSteppingDependencies,
         @inject(TYPES.IDebugeeSteppingController) private readonly _debugeeStepping: IDebugeeSteppingController,
         @inject(TYPES.IDebugeeExecutionControl) private readonly _debugeeExecutionControl: IDebugeeExecutionController) { }
 }

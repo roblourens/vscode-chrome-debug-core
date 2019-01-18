@@ -20,12 +20,12 @@ import { InformationAboutPausedProvider } from '../features/takeProperActionOnPa
 import { asyncMap } from '../../collections/async';
 import { TYPES } from '../../dependencyInjection.ts/types';
 import { ConnectedCDAConfiguration } from '../../..';
-import { Vote, Abstained } from '../../communication/collaborativeDecision';
+import { IVote, Abstained } from '../../communication/collaborativeDecision';
 import { IAsyncDebuggingConfigurer } from '../../cdtpDebuggee/features/CDTPAsyncDebuggingConfigurer';
 import { IStackTracePresentationRow, StackTraceLabel, CallFramePresentationHint } from './stackTracePresentationRow';
 import { IStackTracePresentation } from './stackTracePresentation';
 
-export interface EventsConsumedByStackTrace {
+export interface IEventsConsumedByStackTrace {
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
     onResumed(listener: () => void): void;
 }
@@ -48,7 +48,7 @@ export class StackTracesLogic implements IComponent {
         this._currentPauseEvent = null;
     }
 
-    public async onPaused(pausedEvent: PausedEvent): Promise<Vote<void>> {
+    public async onPaused(pausedEvent: PausedEvent): Promise<IVote<void>> {
         this._currentPauseEvent = pausedEvent;
         return new Abstained(this);
     }
@@ -138,7 +138,7 @@ export class StackTracesLogic implements IComponent {
     }
 
     constructor(
-        @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: EventsConsumedByStackTrace,
+        @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: IEventsConsumedByStackTrace,
         // TODO DIEGO: @multiInject(new LazyServiceIdentifer(() => TYPES.IStackTracePresentationLogicProvider)) private readonly _stackTracePresentationLogicProviders: IStackTracePresentationLogicProvider[],
         @inject(TYPES.IStackTracePresentationLogicProvider) private readonly _stackTracePresentationLogicProviders: IStackTracePresentationLogicProvider,
         @inject(TYPES.IAsyncDebuggingConfiguration) private readonly _breakpointFeaturesSupport: IAsyncDebuggingConfigurer,

@@ -7,7 +7,7 @@ import { Protocol as CDTP } from 'devtools-protocol';
 
 import { injectable } from 'inversify';
 
-export interface SupportedDomainsDependencies {
+export interface ISupportedDomainsDependencies {
     getTargetDebuggerDomainsSchemas(): Promise<CDTP.Schema.Domain[]>;
 }
 
@@ -37,5 +37,5 @@ export class SupportedDomains implements IComponent, ISupportedDomains {
         }
     }
 
-    constructor(private readonly _dependencies: SupportedDomainsDependencies) { }
+    constructor(private readonly _dependencies: ISupportedDomainsDependencies) { }
 }

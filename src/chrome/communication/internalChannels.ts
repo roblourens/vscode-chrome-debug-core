@@ -6,13 +6,13 @@ import { NotificationChannelIdentifier } from './notificationsCommunicator';
 import { BPRecipie } from '../internal/breakpoints/bpRecipie';
 import { ScriptOrSourceOrURLOrURLRegexp } from '../internal/locations/location';
 import { registerChannels } from './channel';
-import { Vote } from './collaborativeDecision';
+import { IVote } from './collaborativeDecision';
 import { PausedEvent } from '../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
 
 const _breakpoints = {
     // Notifications
     OnUnbounBPRecipieIsNowBound: new NotificationChannelIdentifier<BPRecipie<ScriptOrSourceOrURLOrURLRegexp>>(),
-    OnPausedOnBreakpoint: new NotificationChannelIdentifier<PausedEvent, Vote<void>>(),
+    OnPausedOnBreakpoint: new NotificationChannelIdentifier<PausedEvent, IVote<void>>(),
     OnNoPendingBreakpoints: new NotificationChannelIdentifier<void>(),
     OnGoingToPauseClient: new NotificationChannelIdentifier<void, void>(),
 };

@@ -3,12 +3,12 @@
  *--------------------------------------------------------*/
 
  import { Protocol as CDTP } from 'devtools-protocol';
-import { PauseOnExceptionsStrategy, PauseOnAllExceptions, PauseOnUnhandledExceptions, DoNotPauseOnAnyExceptions } from '../../internal/exceptions/strategies';
+import { IPauseOnExceptionsStrategy, PauseOnAllExceptions, PauseOnUnhandledExceptions, DoNotPauseOnAnyExceptions } from '../../internal/exceptions/strategies';
 import { inject, injectable } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
 
 export interface IPauseOnExceptionsConfigurer {
-    setPauseOnExceptions(strategy: PauseOnExceptionsStrategy): Promise<void>;
+    setPauseOnExceptions(strategy: IPauseOnExceptionsStrategy): Promise<void>;
 }
 
 export type ExceptionCategories = 'none' | 'uncaught' | 'all';
@@ -22,7 +22,7 @@ export class CDTPPauseOnExceptionsConfigurer implements IPauseOnExceptionsConfig
         private readonly _protocolApi: CDTP.ProtocolApi) {
     }
 
-    public setPauseOnExceptions(strategy: PauseOnExceptionsStrategy): Promise<void> {
+    public setPauseOnExceptions(strategy: IPauseOnExceptionsStrategy): Promise<void> {
         let state: ExceptionCategories;
 
         if (strategy instanceof PauseOnAllExceptions) {

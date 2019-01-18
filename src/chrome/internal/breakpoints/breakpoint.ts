@@ -6,7 +6,7 @@ import { LocationInScript, ScriptOrSourceOrURLOrURLRegexp } from '../locations/l
 import { IBPRecipie } from './bpRecipie';
 import { ILoadedSource } from '../sources/loadedSource';
 import { IScript } from '../scripts/script';
-import { URL } from '../sources/resourceIdentifier';
+import { IURL } from '../sources/resourceIdentifier';
 import { CDTPScriptUrl } from '../sources/resourceIdentifierSubtypes';
 import { URLRegexp } from '../locations/subtypes';
 
@@ -28,7 +28,7 @@ export class BreakpointInLoadedSource extends Breakpoint<ILoadedSource> { }
 
 export class BreakpointInScript extends Breakpoint<IScript> { }
 
-export class BreakpointInUrl extends Breakpoint<URL<CDTPScriptUrl>> { }
+export class BreakpointInUrl extends Breakpoint<IURL<CDTPScriptUrl>> { }
 
 export class BreakpointInUrlRegexp extends Breakpoint<URLRegexp> { }
 

@@ -12,7 +12,7 @@ import { createColumnNumber, createLineNumber } from '../locations/subtypes';
 import { RangeInScript } from '../locations/rangeInScript';
 import { BreakpointsRegistry } from './breakpointsRegistry';
 import { PausedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
-import { VoteRelevance, Vote, Abstained } from '../../communication/collaborativeDecision';
+import { VoteRelevance, IVote, Abstained } from '../../communication/collaborativeDecision';
 import { inject, injectable } from 'inversify';
 import { IDebuggeeBreakpoints } from '../../cdtpDebuggee/features/cdtpDebuggeeBreakpoints';
 import { IBreakpointFeaturesSupport } from '../../cdtpDebuggee/features/cdtpBreakpointFeaturesSupport';
@@ -39,7 +39,7 @@ export interface IBreakpointsInLoadedSource {
     addBreakpointAtLoadedSource(bpRecipie: BPRecipieInLoadedSource<ConditionalBreak | AlwaysBreak>): Promise<IBreakpoint<ScriptOrSourceOrURLOrURLRegexp>[]>;
 }
 
-export interface BPRecipieAtLoadedSourceLogicDependencies {
+export interface IBPRecipieAtLoadedSourceLogicDependencies {
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
     publishGoingToPauseClient(): void;
 }
@@ -48,7 +48,7 @@ export interface BPRecipieAtLoadedSourceLogicDependencies {
 export class BPRecipieAtLoadedSourceLogic implements IBreakpointsInLoadedSource {
     private readonly doesTargetSupportColumnBreakpointsCached: Promise<boolean>;
 
-    public async askForInformationAboutPaused(paused: PausedEvent): Promise<Vote<void>> {
+    public async askForInformationAboutPaused(paused: PausedEvent): Promise<IVote<void>> {
         if (paused.hitBreakpoints && paused.hitBreakpoints.length > 0) {
             // TODO DIEGO: Improve this to consider breakpoints where we shouldn't pause
             return new HitBreakpoint(this._eventsToClientReporter,
@@ -118,7 +118,7 @@ export class BPRecipieAtLoadedSourceLogic implements IBreakpointsInLoadedSource 
     }
 
     constructor(
-        @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: BPRecipieAtLoadedSourceLogicDependencies,
+        @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: IBPRecipieAtLoadedSourceLogicDependencies,
         @inject(TYPES.IBreakpointFeaturesSupport) private readonly _breakpointFeaturesSupport: IBreakpointFeaturesSupport,
         private readonly _breakpointRegistry: BreakpointsRegistry,
         private readonly _bpRecipiesRegistry: CDTPBPRecipiesRegistry,

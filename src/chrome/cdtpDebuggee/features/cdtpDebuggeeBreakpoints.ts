@@ -34,7 +34,7 @@ export interface IDebuggeeBreakpoints {
     onBreakpointResolvedSyncOrAsync(listener: OnBreakpointResolvedListener): void;
 }
 
-interface BreakpointClass<TResource extends CDTPSupportedResources> {
+interface IBreakpointClass<TResource extends CDTPSupportedResources> {
     new(recipie: IBPRecipie<TResource>, actualLocation: LocationInScript): Breakpoint<TResource>;
 }
 
@@ -93,7 +93,7 @@ export class CDTPDebuggeeBreakpoints extends CDTPEventsEmitterDiagnosticsModule<
     }
 
     private async setBreakpointHelper<TResource extends CDTPSupportedResources, TBPActionWhenHit extends CDTPSupportedHitActions>
-        (classToUse: BreakpointClass<TResource>, bpRecipie: IBPRecipie<TResource, TBPActionWhenHit>,
+        (classToUse: IBreakpointClass<TResource>, bpRecipie: IBPRecipie<TResource, TBPActionWhenHit>,
             setBPInCDTPCall: SetBPInCDTPCall<TResource>): Promise<Breakpoint<TResource>[]> {
         const cdtpConditionField = this.getCDTPConditionField(bpRecipie);
         const resource = <TResource>bpRecipie.location.resource; // TODO: Figure out why the <TResource> is needed and remove it
@@ -133,7 +133,7 @@ export class CDTPDebuggeeBreakpoints extends CDTPEventsEmitterDiagnosticsModule<
         });
     }
 
-    private async toBreakpoinInResource<TResource extends CDTPSupportedResources>(classToUse: BreakpointClass<TResource>,
+    private async toBreakpoinInResource<TResource extends CDTPSupportedResources>(classToUse: IBreakpointClass<TResource>,
         bpRecipie: IBPRecipie<TResource>, actualLocation: CDTP.Debugger.Location): Promise<Breakpoint<TResource>> {
         const breakpoint = new classToUse(bpRecipie, await this.toLocationInScript(actualLocation));
         return breakpoint;

@@ -17,7 +17,7 @@ import { IResourceIdentifier, newResourceIdentifierMap } from './internal/source
 import { PausedEvent } from './cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
 import { IDOMInstrumentationBreakpoints } from './cdtpDebuggee/features/cdtpDOMInstrumentationBreakpoints';
 
-export interface UrlRegexAndFileSet {
+export interface IUrlRegexAndFileSet {
     urlRegex: string;
     fileSet: Set<IResourceIdentifier>;
 }
@@ -28,7 +28,7 @@ export class BreakOnLoadHelper {
     private _instrumentationBreakpointSet = false;
 
     // Break on load: Store some mapping between the requested file names, the regex for the file, and the chrome breakpoint id to perform lookup operations efficiently
-    private _stopOnEntryBreakpointIdToRequestedFileName = new Map<string, UrlRegexAndFileSet>();
+    private _stopOnEntryBreakpointIdToRequestedFileName = new Map<string, IUrlRegexAndFileSet>();
     private _stopOnEntryRequestedFileNameToBreakpointId = newResourceIdentifierMap<string>();
     private _stopOnEntryRegexToBreakpointId = new Map<string, string>();
 
@@ -53,7 +53,7 @@ export class BreakOnLoadHelper {
         return this._stopOnEntryRequestedFileNameToBreakpointId;
     }
 
-    public get stopOnEntryBreakpointIdToRequestedFileName(): Map<string, UrlRegexAndFileSet> {
+    public get stopOnEntryBreakpointIdToRequestedFileName(): Map<string, IUrlRegexAndFileSet> {
         return this._stopOnEntryBreakpointIdToRequestedFileName;
     }
 
@@ -144,7 +144,7 @@ export class BreakOnLoadHelper {
         // If there is a breakpoint which is not a stopOnEntry breakpoint, we appear as if we hit that one
         // This is particularly done for cases when we end up with a user breakpoint and a stopOnEntry breakpoint on the same line
         for (let bp of hitBreakpoints) {
-            let regexAndFileNames = {} as UrlRegexAndFileSet; // this._stopOnEntryBreakpointIdToRequestedFileName.get(bp);
+            let regexAndFileNames = {} as IUrlRegexAndFileSet; // this._stopOnEntryBreakpointIdToRequestedFileName.get(bp);
             if (!regexAndFileNames) {
                 // notification.hitBreakpoints = [bp];
                 allStopOnEntryBreakpoints = false;

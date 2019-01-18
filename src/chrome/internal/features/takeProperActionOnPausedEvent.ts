@@ -7,7 +7,7 @@ import { PausedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExec
 import { IEventsToClientReporter } from '../../client/eventSender';
 import { ReasonType } from '../../stoppedEvent';
 import { PromiseOrNot } from '../../utils/promises';
-import { Vote, VoteCommonLogic, VoteRelevance, ExecuteDecisionBasedOnVotes } from '../../communication/collaborativeDecision';
+import { IVote, VoteCommonLogic, VoteRelevance, ExecuteDecisionBasedOnVotes } from '../../communication/collaborativeDecision';
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
 import { IDebugeeExecutionController } from '../../cdtpDebuggee/features/cdtpDebugeeExecutionController';
@@ -33,9 +33,9 @@ export abstract class NotifyStoppedCommonLogic extends VoteCommonLogic<void> {
     }
 }
 
-export type InformationAboutPausedProvider = (paused: PausedEvent) => Promise<Vote<void>>;
+export type InformationAboutPausedProvider = (paused: PausedEvent) => Promise<IVote<void>>;
 
-export interface EventsConsumedByTakeProperActionOnPausedEvent extends TakeActionBasedOnInformationDependencies {
+export interface IEventsConsumedByTakeProperActionOnPausedEvent extends ITakeActionBasedOnInformationDependencies {
     // onPaused(listener: (paused: PausedEvent) => Promise<void> | void): void;
 }
 
@@ -57,13 +57,13 @@ export class TakeProperActionOnPausedEvent implements IComponent {
     }
 
     constructor(
-        @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: TakeActionBasedOnInformationDependencies,
+        @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: ITakeActionBasedOnInformationDependencies,
         @inject(TYPES.ICDTPDebuggerEventsProvider) private readonly _cdtpDebuggerEventsProvider: ICDTDebuggeeExecutionEventsProvider,
         @inject(TYPES.IEventsToClientReporter) private readonly _eventsToClientReporter: IEventsToClientReporter) { }
 }
 
-export interface TakeActionBasedOnInformationDependencies {
-    askForInformationAboutPause(paused: PausedEvent): PromiseOrNot<Vote<void>[]>;
+export interface ITakeActionBasedOnInformationDependencies {
+    askForInformationAboutPause(paused: PausedEvent): PromiseOrNot<IVote<void>[]>;
 }
 
 export class TakeActionBasedOnInformation {
@@ -85,7 +85,7 @@ export class TakeActionBasedOnInformation {
         }
     }
 
-    constructor(piecesOfInformation: Vote<void>[],
+    constructor(piecesOfInformation: IVote<void>[],
         private readonly _eventsToClientReporter: IEventsToClientReporter) {
         this._takeActionBasedOnVotes = new ExecuteDecisionBasedOnVotes(async () => {
             // If we don't have any information whatsoever, then we assume that we stopped due to a debugger statement

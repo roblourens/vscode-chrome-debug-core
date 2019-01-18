@@ -2,25 +2,25 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-export interface PauseOnExceptionsStrategy {
+export interface IPauseOnExceptionsStrategy {
 
 }
 
-export class PauseOnUnhandledExceptions implements PauseOnExceptionsStrategy { }
-export class PauseOnAllExceptions implements PauseOnExceptionsStrategy { }
-export class DoNotPauseOnAnyExceptions implements PauseOnExceptionsStrategy { }
+export class PauseOnUnhandledExceptions implements IPauseOnExceptionsStrategy { }
+export class PauseOnAllExceptions implements IPauseOnExceptionsStrategy { }
+export class DoNotPauseOnAnyExceptions implements IPauseOnExceptionsStrategy { }
 
-export interface PauseOnPromiseRejectionsStrategy {
+export interface IPauseOnPromiseRejectionsStrategy {
     shouldPauseOnRejections(): boolean;
 }
 
-export class PauseOnAllRejections implements PauseOnPromiseRejectionsStrategy {
+export class PauseOnAllRejections implements IPauseOnPromiseRejectionsStrategy {
     public shouldPauseOnRejections(): boolean {
         return true;
     }
 }
 
-export class DoNotPauseOnAnyRejections implements PauseOnPromiseRejectionsStrategy {
+export class DoNotPauseOnAnyRejections implements IPauseOnPromiseRejectionsStrategy {
     public shouldPauseOnRejections(): boolean {
         return false;
     }

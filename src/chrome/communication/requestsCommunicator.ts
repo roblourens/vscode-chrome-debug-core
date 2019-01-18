@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import { ValidatedMap } from '../collections/validatedMap';
-import { ChannelIdentifier } from './channelIdentifier';
+import { IChannelIdentifier } from './channelIdentifier';
 import { getChannelName } from './channel';
 import { PromiseOrNot } from '../utils/promises';
 
@@ -15,7 +15,7 @@ export type RequestHandlerCallback<Request, Response> =
 export type NonVoidRequestHandler<Request, Response> = (request: Request) => Promise<Response>;
 
 // We need the template parameter to force the Communicator to be "strongly typed" from the client perspective
-export class RequestChannelIdentifier<_Request, _Response> implements ChannelIdentifier {
+export class RequestChannelIdentifier<_Request, _Response> implements IChannelIdentifier {
     [Symbol.toStringTag]: 'RequestChannelIdentifier' = 'RequestChannelIdentifier';
 
     constructor(public readonly identifierSymbol: Symbol = Symbol()) { }
@@ -25,12 +25,12 @@ export class RequestChannelIdentifier<_Request, _Response> implements ChannelIde
     }
 }
 
-interface RequestHandler<Request, Response> {
+interface IRequestHandler<Request, Response> {
     isRegistered(): boolean;
     call(request: Request): Promise<Response>;
 }
 
-class NoRegisteredRequestHandler<Request, Response> implements RequestHandler<Request, Response> {
+class NoRegisteredRequestHandler<Request, Response> implements IRequestHandler<Request, Response> {
     public isRegistered(): boolean {
         return false;
     }
@@ -42,7 +42,7 @@ class NoRegisteredRequestHandler<Request, Response> implements RequestHandler<Re
     constructor(private readonly _channel: RequestChannel<Request, Response>) { }
 }
 
-class RegisteredRequestHandler<Request, Response> implements RequestHandler<Request, Response> {
+class RegisteredRequestHandler<Request, Response> implements IRequestHandler<Request, Response> {
     public isRegistered(): boolean {
         return true;
     }
@@ -56,7 +56,7 @@ class RegisteredRequestHandler<Request, Response> implements RequestHandler<Requ
 
 class RequestChannel<Request, Response> {
     public readonly requester: Requester<Request, Response> = new Requester<Request, Response>(this);
-    public handler: RequestHandler<Request, Response> = new NoRegisteredRequestHandler(this);
+    public handler: IRequestHandler<Request, Response> = new NoRegisteredRequestHandler(this);
 
     public toString(): string {
         return `#${this._identifier}`;

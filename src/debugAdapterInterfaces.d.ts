@@ -134,13 +134,13 @@ export interface IExceptionInfoResponseBody extends DAPExceptionInfoResponseBody
 
 export declare type PromiseOrNot<T> = T | Promise<T>;
 
-export interface TimeTravelClient {
+export interface ITimeTravelClient {
     stepBack(): Promise<any>;
     reverse(): Promise<any>;
 }
 
-export interface TimeTravelRuntime extends CDTP.ProtocolApi {
-    TimeTravel: TimeTravelClient;
+export interface ITimeTravelRuntime extends CDTP.ProtocolApi {
+    TimeTravel: ITimeTravelClient;
 }
 
 export interface IUninitializedDebugAdapter {

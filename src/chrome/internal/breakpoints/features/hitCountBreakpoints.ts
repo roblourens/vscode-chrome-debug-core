@@ -9,13 +9,13 @@ import { ValidatedMap } from '../../../collections/validatedMap';
 import { HitCountConditionParser, HitCountConditionFunction } from '../hitCountConditionParser';
 import { NotifyStoppedCommonLogic, InformationAboutPausedProvider } from '../../features/takeProperActionOnPausedEvent';
 import { ReasonType } from '../../../stoppedEvent';
-import { Vote, Abstained, VoteRelevance } from '../../../communication/collaborativeDecision';
+import { IVote, Abstained, VoteRelevance } from '../../../communication/collaborativeDecision';
 import { injectable, inject } from 'inversify';
 import { IEventsToClientReporter } from '../../../client/eventSender';
 import { TYPES } from '../../../dependencyInjection.ts/types';
 import { PausedEvent } from '../../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
 
-export interface HitCountBreakpointsDependencies {
+export interface IHitCountBreakpointsDependencies {
     registerAddBPRecipieHandler(handlerRequirements: (bpRecipie: BPRecipieInSource) => boolean,
         handler: (bpRecipie: BPRecipieInSource) => Promise<void>): void;
 
@@ -69,7 +69,7 @@ export class HitCountBreakpoints implements IComponent {
         this.underlyingToBPRecipie.set(underlyingBPRecipie, new HitCountBPData(bpRecipie, shouldPauseCondition));
     }
 
-    public async askForInformationAboutPaused(paused: PausedEvent): Promise<Vote<void>> {
+    public async askForInformationAboutPaused(paused: PausedEvent): Promise<IVote<void>> {
         const hitCountBPData = paused.hitBreakpoints.map(hitBPRecipie =>
             this.underlyingToBPRecipie.tryGetting(hitBPRecipie.unmappedBPRecipie)).filter(bpRecipie => bpRecipie !== undefined);
 
@@ -79,6 +79,6 @@ export class HitCountBreakpoints implements IComponent {
             : new Abstained(this);
     }
 
-    constructor(private readonly _dependencies: HitCountBreakpointsDependencies,
+    constructor(private readonly _dependencies: IHitCountBreakpointsDependencies,
         @inject(TYPES.IEventsToClientReporter) private readonly _eventsToClientReporter: IEventsToClientReporter) { }
 }

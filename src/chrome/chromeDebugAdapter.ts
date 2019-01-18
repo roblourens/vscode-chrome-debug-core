@@ -8,7 +8,7 @@ import { TerminatedEvent, ContinuedEvent, logger, } from 'vscode-debugadapter';
 import {
     ICommonRequestArgs, ILaunchRequestArgs, IScopesResponseBody, IVariablesResponseBody,
     IThreadsResponseBody, IEvaluateResponseBody, ISetVariableResponseBody,
-    ICompletionsResponseBody, IRestartRequestArgs, TimeTravelRuntime
+    ICompletionsResponseBody, IRestartRequestArgs, ITimeTravelRuntime
 } from '../debugAdapterInterfaces';
 
 import { ChromeConnection } from './chromeConnection';
@@ -36,7 +36,7 @@ import { ISession } from './client/session';
 import { IScript } from './internal/scripts/script';
 
 import { LocationInLoadedSource } from './internal/locations/location';
-import { EvaluateArguments, CompletionsArguments } from './internal/requests';
+import { IEvaluateArguments, ICompletionsArguments } from './internal/requests';
 import { EventSender } from './client/eventSender';
 import { parseResourceIdentifier, ConnectedCDAConfiguration } from '..';
 import { LoadedSourceCallFrame } from './internal/stackTraces/callFrame';
@@ -44,15 +44,15 @@ import { CodeFlowStackTrace } from './internal/stackTraces/codeFlowStackTrace';
 import { IResourceIdentifier } from './internal/sources/resourceIdentifier';
 import { FormattedExceptionParser } from './internal/formattedExceptionParser';
 import { DeleteMeScriptsRegistry } from './internal/scripts/scriptsRegistry';
-import { CDTPExceptionThrownEventsProvider, ExceptionThrownEvent } from './cdtpDebuggee/eventsProviders/cdtpExceptionThrownEventsProvider';
+import { CDTPExceptionThrownEventsProvider, IExceptionThrownEvent } from './cdtpDebuggee/eventsProviders/cdtpExceptionThrownEventsProvider';
 import { CDTPExecutionContextEventsProvider } from './cdtpDebuggee/eventsProviders/cdtpExecutionContextEventsProvider';
-import { IInspectDebugeeState, EvaluateOnCallFrameRequest } from './cdtpDebuggee/features/cdtpInspectDebugeeState';
+import { IInspectDebugeeState, IEvaluateOnCallFrameRequest } from './cdtpDebuggee/features/cdtpInspectDebugeeState';
 import { IUpdateDebugeeState } from './cdtpDebuggee/features/cdtpUpdateDebugeeState';
 import { injectable, inject } from 'inversify';
 import { TYPES } from './dependencyInjection.ts/types';
 import { ICDTDebuggeeExecutionEventsProvider, PausedEvent } from './cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
-import { LogEntry, CDTPLogEventsProvider } from './cdtpDebuggee/eventsProviders/cdtpLogEventsProvider';
-import { IConsoleEventsProvider, ConsoleAPICalledEvent } from './cdtpDebuggee/eventsProviders/cdtpConsoleEventsProvider';
+import { ILogEntry, CDTPLogEventsProvider } from './cdtpDebuggee/eventsProviders/cdtpLogEventsProvider';
+import { IConsoleEventsProvider, IConsoleAPICalledEvent } from './cdtpDebuggee/eventsProviders/cdtpConsoleEventsProvider';
 import { IPauseOnExceptionsConfigurer } from './cdtpDebuggee/features/CDTPPauseOnExceptionsConfigurer';
 
 // export class ChromeDebugAdapter extends ChromeDebugAdapterClass {
@@ -345,7 +345,7 @@ export class ChromeDebugLogic {
         }
     }
 
-    public onConsoleAPICalled(event: ConsoleAPICalledEvent): void {
+    public onConsoleAPICalled(event: IConsoleAPICalledEvent): void {
         if (this._launchAttachArgs._suppressConsoleOutput) {
             return;
         }
@@ -357,7 +357,7 @@ export class ChromeDebugLogic {
         }
     }
 
-    private onLogEntryAdded(entry: LogEntry): void {
+    private onLogEntryAdded(entry: ILogEntry): void {
         // The Debug Console doesn't give the user a way to filter by level, just ignore 'verbose' logs
         if (entry.level === 'verbose') {
             return;
@@ -424,7 +424,7 @@ export class ChromeDebugLogic {
             .catch(err => logger.error(err.toString()));
     }
 
-    protected async onExceptionThrown(params: ExceptionThrownEvent): Promise<void> {
+    protected async onExceptionThrown(params: IExceptionThrownEvent): Promise<void> {
         if (this._launchAttachArgs._suppressConsoleOutput) {
             return;
         }
@@ -450,7 +450,7 @@ export class ChromeDebugLogic {
     protected onMessageAdded(params: any): void {
         // message.type is undefined when Runtime.consoleAPICalled is being sent
         if (params && params.message && params.message.type) {
-            const onConsoleAPICalledParams: ConsoleAPICalledEvent = {
+            const onConsoleAPICalledParams: IConsoleAPICalledEvent = {
                 type: params.message.type,
                 timestamp: params.message.timestamp,
                 args: params.message.parameters || [{ type: 'string', value: params.message.text }],
@@ -504,7 +504,7 @@ export class ChromeDebugLogic {
     }
 
     public stepBack(): Promise<void> {
-        return (<TimeTravelRuntime>this._chromeConnection.api).TimeTravel.stepBack()
+        return (<ITimeTravelRuntime>this._chromeConnection.api).TimeTravel.stepBack()
             .then(() => { /* make void */ },
                 () => { });
     }
@@ -518,7 +518,7 @@ export class ChromeDebugLogic {
         }
     */
     public reverseContinue(): Promise<void> {
-        return (<TimeTravelRuntime>this._chromeConnection.api).TimeTravel.reverse()
+        return (<ITimeTravelRuntime>this._chromeConnection.api).TimeTravel.reverse()
             .then(() => { /* make void */ },
                 () => { });
     }
@@ -786,7 +786,7 @@ export class ChromeDebugLogic {
             ]
         }
     */
-    public async evaluate(args: EvaluateArguments): Promise<IEvaluateResponseBody> {
+    public async evaluate(args: IEvaluateArguments): Promise<IEvaluateResponseBody> {
         const expression = args.expression.startsWith('{') && args.expression.endsWith('}')
             ? `(${args.expression})`
             : args.expression;
@@ -851,7 +851,7 @@ export class ChromeDebugLogic {
     }
 
     public async evaluateOnCallFrame(expression: string, frame: LoadedSourceCallFrame, extraArgs?: Partial<CDTP.Runtime.EvaluateRequest>): Promise<CDTP.Debugger.EvaluateOnCallFrameResponse | CDTP.Runtime.EvaluateResponse> {
-        let args: EvaluateOnCallFrameRequest = {
+        let args: IEvaluateOnCallFrameRequest = {
             frame: frame.unmappedCallFrame,
             expression,
             // silent because of an issue where node will sometimes hang when breaking on exceptions in console messages. Fixed somewhere between 8 and 8.4
@@ -1029,7 +1029,7 @@ export class ChromeDebugLogic {
             ]
         }
     */
-    public async completions(args: CompletionsArguments): Promise<ICompletionsResponseBody> {
+    public async completions(args: ICompletionsArguments): Promise<ICompletionsResponseBody> {
         const text = args.text;
         const column = args.column;
 

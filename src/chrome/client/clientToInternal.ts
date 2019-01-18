@@ -13,7 +13,7 @@ import { IBPActionWhenHit, AlwaysBreak, ConditionalBreak } from '../internal/bre
 import { HandlesRegistry } from './handlesRegistry';
 import { createLineNumber, createColumnNumber } from '../internal/locations/subtypes';
 import { parseResourceIdentifier } from '../internal/sources/resourceIdentifier';
-import { PauseOnExceptionsStrategy, PauseOnAllExceptions, PauseOnUnhandledExceptions, DoNotPauseOnAnyExceptions, PauseOnAllRejections, DoNotPauseOnAnyRejections, PauseOnPromiseRejectionsStrategy } from '../internal/exceptions/strategies';
+import { IPauseOnExceptionsStrategy, PauseOnAllExceptions, PauseOnUnhandledExceptions, DoNotPauseOnAnyExceptions, PauseOnAllRejections, DoNotPauseOnAnyRejections, IPauseOnPromiseRejectionsStrategy } from '../internal/exceptions/strategies';
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../dependencyInjection.ts/types';
 import { ISource, SourceAlreadyResolvedToLoadedSource } from '../internal/sources/source';
@@ -21,7 +21,7 @@ import { IStackTracePresentationRow } from '../internal/stackTraces/stackTracePr
 
 @injectable()
 export class ClientToInternal {
-    public toPauseOnExceptionsStrategy(exceptionFilters: string[]): PauseOnExceptionsStrategy {
+    public toPauseOnExceptionsStrategy(exceptionFilters: string[]): IPauseOnExceptionsStrategy {
         if (exceptionFilters.indexOf('all') >= 0) {
             return new PauseOnAllExceptions();
         } else if (exceptionFilters.indexOf('uncaught') >= 0) {
@@ -31,7 +31,7 @@ export class ClientToInternal {
         }
     }
 
-    public toPauseOnPromiseRejectionsStrategy(exceptionFilters: string[]): PauseOnPromiseRejectionsStrategy {
+    public toPauseOnPromiseRejectionsStrategy(exceptionFilters: string[]): IPauseOnPromiseRejectionsStrategy {
         if (exceptionFilters.indexOf('promise_reject') >= 0) {
             return new PauseOnAllRejections();
         } else {

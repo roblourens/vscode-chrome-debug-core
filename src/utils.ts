@@ -607,13 +607,13 @@ export function toVoidP(p: Promise<any>): Promise<void> {
     return p.then(() => { });
 }
 
-export interface PromiseDefer<T> {
+export interface IPromiseDefer<T> {
     readonly promise: Promise<T>;
     resolve: (value?: T | PromiseLike<T>) => void;
     reject: (reason?: any) => void;
 }
 
-export function promiseDefer<T>(): PromiseDefer<T> {
+export function promiseDefer<T>(): IPromiseDefer<T> {
     let resolveCallback;
     let rejectCallback;
     const promise = new Promise<T>((resolve, reject) => {

@@ -9,7 +9,7 @@ import { LocationInScript, ScriptOrSourceOrURLOrURLRegexp } from '../../location
 import { IBreakpoint } from '../breakpoint';
 import { NotifyStoppedCommonLogic, ResumeCommonLogic, InformationAboutPausedProvider } from '../../features/takeProperActionOnPausedEvent';
 import { ReasonType } from '../../../stoppedEvent';
-import { VoteRelevance, Vote, Abstained } from '../../../communication/collaborativeDecision';
+import { VoteRelevance, IVote, Abstained } from '../../../communication/collaborativeDecision';
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../../../dependencyInjection.ts/types';
 import { IEventsToClientReporter } from '../../../client/eventSender';
@@ -21,7 +21,7 @@ import { IDebugeeRuntimeVersionProvider } from '../../../cdtpDebuggee/features/c
 import { PausedEvent } from '../../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
 export type Dummy = VoteRelevance; // If we don't do this the .d.ts doesn't include VoteRelevance and the compilation fails. Remove this when the issue disappears...
 
-export interface PauseScriptLoadsToSetBPsDependencies {
+export interface IPauseScriptLoadsToSetBPsDependencies {
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
     waitUntilUnbindedBPsAreSet(loadedSource: ILoadedSource): Promise<void>;
 
@@ -66,7 +66,7 @@ export class PauseScriptLoadsToSetBPs implements IComponent {
         }
     }
 
-    private async askForInformationAboutPaused(paused: PausedEvent): Promise<Vote<void>> {
+    private async askForInformationAboutPaused(paused: PausedEvent): Promise<IVote<void>> {
         if (this.isInstrumentationPause(paused)) {
             await asyncMap(paused.callFrames[0].location.script.allSources, async source => {
                 await this._reAddBPsWhenSourceIsLoaded.waitUntilBPsAreSet(source);
@@ -120,7 +120,7 @@ export class PauseScriptLoadsToSetBPs implements IComponent {
     }
 
     constructor(
-        @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: PauseScriptLoadsToSetBPsDependencies,
+        @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: IPauseScriptLoadsToSetBPsDependencies,
         @inject(TYPES.IDOMInstrumentationBreakpoints) private readonly _domInstrumentationBreakpoints: IDOMInstrumentationBreakpoints,
         @inject(TYPES.IDebugeeExecutionControl) private readonly _debugeeExecutionControl: IDebugeeExecutionController,
         @inject(TYPES.IEventsToClientReporter) protected readonly _eventsToClientReporter: IEventsToClientReporter,

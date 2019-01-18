@@ -7,24 +7,24 @@ import { createColumnNumber, createLineNumber } from '../../internal/locations/s
 import { CDTPScriptsRegistry } from '../registries/cdtpScriptsRegistry';
 import { Protocol as CDTP } from 'devtools-protocol';
 
-interface HasCoordinates {
+interface IHasCoordinates {
     lineNumber: number;
     columnNumber?: number;
 }
 
-interface HasScript {
+interface IHasScript {
     scriptId: CDTP.Runtime.ScriptId;
 }
 
-export interface HasScriptLocation extends HasCoordinates, HasScript { }
+export interface IHasScriptLocation extends IHasCoordinates, IHasScript { }
 
 export class CDTPLocationParser {
-    public async getLocationInScript(crdpObjectWithScriptLocation: HasScriptLocation): Promise<LocationInScript> {
+    public async getLocationInScript(crdpObjectWithScriptLocation: IHasScriptLocation): Promise<LocationInScript> {
         return new LocationInScript(await this._scriptsRegistry.getScriptByCdtpId(crdpObjectWithScriptLocation.scriptId),
             this.getCoordinates(crdpObjectWithScriptLocation));
     }
 
-    private getCoordinates(crdpObjectWithCoordinates: HasCoordinates): Position {
+    private getCoordinates(crdpObjectWithCoordinates: IHasCoordinates): Position {
         return new Position(createLineNumber(crdpObjectWithCoordinates.lineNumber), createColumnNumber(crdpObjectWithCoordinates.columnNumber));
     }
 

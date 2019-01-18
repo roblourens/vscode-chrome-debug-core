@@ -14,7 +14,7 @@ import * as nls from 'vscode-nls';
 import { injectable, inject, LazyServiceIdentifer } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
 import { ClientToInternal } from '../../client/clientToInternal';
-import { ScriptParsedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpOnScriptParsedEventProvider';
+import { IScriptParsedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpOnScriptParsedEventProvider';
 import { IBlackboxPatternsConfigurer } from '../../cdtpDebuggee/features/cdtpBlackboxPatternsConfigurer';
 import { IToggleSkipFileStatusArgs } from '../../../debugAdapterInterfaces';
 import * as utils from '../../../utils';
@@ -22,8 +22,8 @@ import { BaseSourceMapTransformer } from '../../../transformers/baseSourceMapTra
 import { ConnectedCDAConfiguration } from '../../client/chromeDebugAdapter/cdaConfiguration';
 const localize = nls.loadMessageBundle();
 
-export interface EventsConsumedBySkipFilesLogic {
-    onScriptParsed(listener: (scriptEvent: ScriptParsedEvent) => Promise<void>): void;
+export interface IEventsConsumedBySkipFilesLogic {
+    onScriptParsed(listener: (scriptEvent: IScriptParsedEvent) => Promise<void>): void;
 }
 
 export interface ISkipFilesConfiguration {
@@ -241,7 +241,7 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration>, ISta
         logger.log('Warning: this runtime does not support skipFiles');
     }
 
-    private async onScriptParsed(scriptEvent: ScriptParsedEvent): Promise<void> {
+    private async onScriptParsed(scriptEvent: IScriptParsedEvent): Promise<void> {
         const script = scriptEvent.script;
         const sources = script.mappedSources;
         await this.resolveSkipFiles(script, script.developmentSource.identifier, sources.map(source => source.identifier));
@@ -283,7 +283,7 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration>, ISta
     }
 
     constructor(
-        @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: EventsConsumedBySkipFilesLogic,
+        @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: IEventsConsumedBySkipFilesLogic,
         @inject(new LazyServiceIdentifer(() => TYPES.StackTracesLogic)) private readonly stackTracesLogic: StackTracesLogic,
         @inject(TYPES.BaseSourceMapTransformer) private readonly sourceMapTransformer: BaseSourceMapTransformer,
         @inject(TYPES.ClientToInternal) private readonly _clientToInternal: ClientToInternal,

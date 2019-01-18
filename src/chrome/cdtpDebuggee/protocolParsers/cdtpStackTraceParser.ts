@@ -7,7 +7,7 @@
 import { IScript, } from '../../internal/scripts/script';
 import { CodeFlowStackTrace } from '../../internal/stackTraces/codeFlowStackTrace';
 import { CodeFlowFrame } from '../../internal/stackTraces/callFrame';
-import { CDTPLocationParser, HasScriptLocation } from './cdtpLocationParser';
+import { CDTPLocationParser, IHasScriptLocation } from './cdtpLocationParser';
 import { CDTPScriptsRegistry } from '../registries/cdtpScriptsRegistry';
 import { asyncMap } from '../../collections/async';
 
@@ -26,7 +26,7 @@ export class CDTPStackTraceParser {
         return this.toCodeFlowFrame(index, callFrame, callFrame);
     }
 
-    public async toCodeFlowFrame(index: number, callFrame: CDTP.Runtime.CallFrame | CDTP.Debugger.CallFrame, location: HasScriptLocation): Promise<CodeFlowFrame<IScript>> {
+    public async toCodeFlowFrame(index: number, callFrame: CDTP.Runtime.CallFrame | CDTP.Debugger.CallFrame, location: IHasScriptLocation): Promise<CodeFlowFrame<IScript>> {
         const scriptLocation = await this._cdtpLocationParser.getLocationInScript(location);
         return new CodeFlowFrame(index, callFrame.functionName, scriptLocation);
     }

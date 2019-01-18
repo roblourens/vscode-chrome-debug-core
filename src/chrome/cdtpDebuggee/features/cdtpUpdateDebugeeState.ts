@@ -9,7 +9,7 @@ import { injectable, inject } from 'inversify';
 import { ScriptCallFrame } from '../../internal/stackTraces/callFrame';
 import { integer } from '../cdtpPrimitives';
 
-export interface SetVariableValueRequest {
+export interface ISetVariableValueRequest {
     readonly scopeNumber: integer;
     readonly variableName: string;
     readonly newValue: CDTP.Runtime.CallArgument;
@@ -17,7 +17,7 @@ export interface SetVariableValueRequest {
 }
 
 export interface IUpdateDebugeeState {
-    setVariableValue(params: SetVariableValueRequest): Promise<void>;
+    setVariableValue(params: ISetVariableValueRequest): Promise<void>;
 }
 
 @injectable()
@@ -27,7 +27,7 @@ export class CDTPUpdateDebugeeState implements IUpdateDebugeeState {
         private readonly _callFrameRegistry: CDTPCallFrameRegistry) {
     }
 
-    public setVariableValue(params: SetVariableValueRequest): Promise<void> {
+    public setVariableValue(params: ISetVariableValueRequest): Promise<void> {
         return this.api.Debugger.setVariableValue({
             callFrameId: this._callFrameRegistry.getFrameId(params.frame),
             scopeNumber: params.scopeNumber,

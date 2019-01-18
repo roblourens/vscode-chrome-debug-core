@@ -20,7 +20,7 @@ import { Source } from 'vscode-debugadapter';
 import { IStackTracePresentationRow, StackTraceLabel } from '../internal/stackTraces/stackTracePresentationRow';
 import { CallFramePresentation } from '../internal/stackTraces/callFramePresentation';
 
-interface ClientLocationInSource {
+interface IClientLocationInSource {
     source: DebugProtocol.Source;
     line: number;
     column: number;
@@ -81,7 +81,7 @@ export class InternalToClient {
         return source;
     }
 
-    public async toLocationInSource<T = {}>(locationInSource: LocationInLoadedSource, objectToUpdate: T): Promise<T & ClientLocationInSource> {
+    public async toLocationInSource<T = {}>(locationInSource: LocationInLoadedSource, objectToUpdate: T): Promise<T & IClientLocationInSource> {
         const source = await this.toSource(locationInSource.source);
         const clientLocationInSource = { source, line: locationInSource.position.lineNumber, column: locationInSource.position.columnNumber };
         this._lineColTransformer.convertDebuggerLocationToClient(clientLocationInSource);

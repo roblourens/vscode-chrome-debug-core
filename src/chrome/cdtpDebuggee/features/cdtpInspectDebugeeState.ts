@@ -9,7 +9,7 @@ import { injectable, inject } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
 import { ScriptCallFrame } from '../../internal/stackTraces/callFrame';
 
-export interface EvaluateOnCallFrameRequest {
+export interface IEvaluateOnCallFrameRequest {
     readonly frame: ScriptCallFrame;
     readonly expression: string;
     readonly objectGroup?: string;
@@ -25,7 +25,7 @@ export interface IInspectDebugeeState {
     callFunctionOn(params: CDTP.Runtime.CallFunctionOnRequest): Promise<CDTP.Runtime.CallFunctionOnResponse>;
     getProperties(params: CDTP.Runtime.GetPropertiesRequest): Promise<CDTP.Runtime.GetPropertiesResponse>;
     evaluate(params: CDTP.Runtime.EvaluateRequest): Promise<CDTP.Runtime.EvaluateResponse>;
-    evaluateOnCallFrame(params: EvaluateOnCallFrameRequest): Promise<CDTP.Debugger.EvaluateOnCallFrameResponse>;
+    evaluateOnCallFrame(params: IEvaluateOnCallFrameRequest): Promise<CDTP.Debugger.EvaluateOnCallFrameResponse>;
 }
 
 export class AddSourceUriToExpession {
@@ -66,7 +66,7 @@ export class CDTPInspectDebugeeState implements IInspectDebugeeState {
         return this.api.Runtime.evaluate(params);
     }
 
-    public evaluateOnCallFrame(params: EvaluateOnCallFrameRequest): Promise<CDTP.Debugger.EvaluateOnCallFrameResponse> {
+    public evaluateOnCallFrame(params: IEvaluateOnCallFrameRequest): Promise<CDTP.Debugger.EvaluateOnCallFrameResponse> {
         return this.api.Debugger.evaluateOnCallFrame({
             callFrameId: this._callFrameRegistry.getFrameId(params.frame),
             expression: this.addSourceUriToEvaluates.addURLIfMissing(params.expression),

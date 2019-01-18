@@ -14,7 +14,7 @@ import { Communicator, LoggingCommunicator } from '../../communication/communica
 import { DependencyInjection } from '../../dependencyInjection.ts/di';
 import { TYPES } from '../../dependencyInjection.ts/types';
 import { IExtensibilityPoints } from '../../extensibility/extensibilityPoints';
-import { Logging, LoggingConfiguration } from '../../internal/services/logging';
+import { Logging, ILoggingConfiguration } from '../../internal/services/logging';
 import { ExecutionLogger } from '../../logging/executionLogger';
 import { DelayMessagesUntilInitializedSession } from '../delayMessagesUntilInitializedSession';
 import { DoNotPauseWhileSteppingSession } from '../doNotPauseWhileSteppingSession';
@@ -48,7 +48,7 @@ export class UnconnectedCDA extends UnconnectedCDACommonLogic implements IDebugA
         return this.createConnection(ScenarioType.Attach, updatedArgs, telemetryPropertyCollector);
     }
 
-    private parseLoggingConfiguration(args: ILaunchRequestArgs | IAttachRequestArgs): LoggingConfiguration {
+    private parseLoggingConfiguration(args: ILaunchRequestArgs | IAttachRequestArgs): ILoggingConfiguration {
         const traceMapping: { [key: string]: Logger.LogLevel | undefined } = { true: Logger.LogLevel.Warn, verbose: Logger.LogLevel.Verbose };
         const traceValue = args.trace && traceMapping[args.trace.toString().toLowerCase()];
         return { logLevel: traceValue, logFilePath: args.logFilePath, shouldLogTimestamps: args.logTimestamps };

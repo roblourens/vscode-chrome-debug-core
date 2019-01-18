@@ -13,14 +13,14 @@ export enum VoteRelevance {
     Abstained,
 }
 
-export interface Vote<T> {
+export interface IVote<T> {
     relevance: VoteRelevance;
     isRelevant(): boolean;
 
-    execute(remainingRelevantVotes: Vote<T>[]): Promise<T>;
+    execute(remainingRelevantVotes: IVote<T>[]): Promise<T>;
 }
 
-export abstract class VoteCommonLogic<T> implements Vote<T> {
+export abstract class VoteCommonLogic<T> implements IVote<T> {
     public abstract execute(): Promise<T>;
     public abstract get relevance(): VoteRelevance;
 
@@ -54,7 +54,7 @@ export class Abstained<T> extends VoteCommonLogic<T> {
 }
 
 export class ExecuteDecisionBasedOnVotes<T> {
-    private readonly _votesByRelevance: ValidatedMultiMap<VoteRelevance, Vote<T>>;
+    private readonly _votesByRelevance: ValidatedMultiMap<VoteRelevance, IVote<T>>;
 
     public async execute(): Promise<T> {
         const overrideVotes = this.getVotesWithCertainRelevance(VoteRelevance.OverrideOtherVotes);
@@ -77,11 +77,11 @@ export class ExecuteDecisionBasedOnVotes<T> {
         return this.getVotesWithCertainRelevance(relevance).length;
     }
 
-    private getVotesWithCertainRelevance(relevance: VoteRelevance): Vote<T>[] {
+    private getVotesWithCertainRelevance(relevance: VoteRelevance): IVote<T>[] {
         return Array.from(this._votesByRelevance.tryGetting(relevance) || []);
     }
 
-    constructor(private readonly _actionIfNoOneVoted: () => PromiseOrNot<T>, votes: Vote<T>[]) {
+    constructor(private readonly _actionIfNoOneVoted: () => PromiseOrNot<T>, votes: IVote<T>[]) {
         this._votesByRelevance = groupByKey(votes, vote => vote.relevance);
     }
 }

@@ -6,13 +6,13 @@ import { ScriptOrSourceOrURLOrURLRegexp } from '../internal/locations/location';
 import { NotificationChannelIdentifier } from './notificationsCommunicator';
 import { Breakpoint } from '../internal/breakpoints/breakpoint';
 import { registerChannels } from './channel';
-import { ScriptParsedEvent } from '../cdtpDebuggee/eventsProviders/cdtpOnScriptParsedEventProvider';
+import { IScriptParsedEvent } from '../cdtpDebuggee/eventsProviders/cdtpOnScriptParsedEventProvider';
 import { PausedEvent } from '../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
 
 const _debugger = {
     // Notifications
     OnAsyncBreakpointResolved: new NotificationChannelIdentifier<Breakpoint<ScriptOrSourceOrURLOrURLRegexp>>(),
-    OnScriptParsed: new NotificationChannelIdentifier<ScriptParsedEvent>(),
+    OnScriptParsed: new NotificationChannelIdentifier<IScriptParsedEvent>(),
     OnPaused: new NotificationChannelIdentifier<PausedEvent, void>(),
     OnResumed: new NotificationChannelIdentifier<void, void>(),
 };

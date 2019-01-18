@@ -8,10 +8,10 @@ import { newResourceIdentifierMap, IResourceIdentifier } from './resourceIdentif
 import { IComponent } from '../features/feature';
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
-import { ScriptParsedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpOnScriptParsedEventProvider';
+import { IScriptParsedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpOnScriptParsedEventProvider';
 
-export interface EventsConsumedBySourceResolver {
-    onScriptParsed(listener: (scriptEvent: ScriptParsedEvent) => Promise<void>): void;
+export interface IEventsConsumedBySourceResolver {
+    onScriptParsed(listener: (scriptEvent: IScriptParsedEvent) => Promise<void>): void;
 }
 
 /**
@@ -53,5 +53,5 @@ export class SourceResolver implements IComponent {
     }
 
     constructor(
-        @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: EventsConsumedBySourceResolver) { }
+        @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: IEventsConsumedBySourceResolver) { }
 }

@@ -9,7 +9,7 @@ import { IScript } from '../scripts/script';
 import { IBPActionWhenHit, AlwaysBreak } from './bpActionWhenHit';
 import { utils } from '../../..';
 import { CDTPScriptUrl } from '../sources/resourceIdentifierSubtypes';
-import { IResourceIdentifier, URL } from '../sources/resourceIdentifier';
+import { IResourceIdentifier, IURL } from '../sources/resourceIdentifier';
 import { URLRegexp, createURLRegexp } from '../locations/subtypes';
 import { IEquivalenceComparable } from '../../utils/equivalence';
 
@@ -137,7 +137,7 @@ export class BPRecipieInScript<TBPActionWhenHit extends IBPActionWhenHit = IBPAc
 }
 
 export class BPRecipieInUrl<TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit>
-    extends MappedBPRecipieCommonLogic<URL<CDTPScriptUrl>, TBPActionWhenHit> implements IBPRecipie<URL<CDTPScriptUrl>, TBPActionWhenHit> {
+    extends MappedBPRecipieCommonLogic<IURL<CDTPScriptUrl>, TBPActionWhenHit> implements IBPRecipie<IURL<CDTPScriptUrl>, TBPActionWhenHit> {
 }
 
 export class BPRecipieInUrlRegexp<TBPActionWhenHit extends IBPActionWhenHit = IBPActionWhenHit>

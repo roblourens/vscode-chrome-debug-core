@@ -7,7 +7,7 @@ import { ITelemetryPropertyCollector, IComponent, ConnectedCDAConfiguration } fr
 import { ScriptOrSourceOrURLOrURLRegexp } from '../locations/location';
 import { BPRecipiesInUnresolvedSource, BPRecipiesInLoadedSource } from './bpRecipies';
 import { Breakpoint } from './breakpoint';
-import { ReAddBPsWhenSourceIsLoaded, EventsConsumedByReAddBPsWhenSourceIsLoaded } from './features/reAddBPsWhenSourceIsLoaded';
+import { ReAddBPsWhenSourceIsLoaded, IEventsConsumedByReAddBPsWhenSourceIsLoaded } from './features/reAddBPsWhenSourceIsLoaded';
 import { asyncMap } from '../../collections/async';
 import { IBPRecipieStatus } from './bpRecipieStatus';
 import { ClientCurrentBPRecipiesRegistry } from './clientCurrentBPRecipiesRegistry';
@@ -15,7 +15,7 @@ import { BreakpointsRegistry } from './breakpointsRegistry';
 import { BPRecipieAtLoadedSourceLogic } from './bpRecipieAtLoadedSourceLogic';
 import { RemoveProperty } from '../../../typeUtils';
 import { IEventsToClientReporter } from '../../client/eventSender';
-import { PauseScriptLoadsToSetBPs, PauseScriptLoadsToSetBPsDependencies } from './features/pauseScriptLoadsToSetBPs';
+import { PauseScriptLoadsToSetBPs, IPauseScriptLoadsToSetBPsDependencies } from './features/pauseScriptLoadsToSetBPs';
 import { inject, injectable } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
 import { IDebuggeeBreakpoints } from '../../cdtpDebuggee/features/cdtpDebuggeeBreakpoints';
@@ -24,8 +24,8 @@ import { CDTPBreakpoint } from '../../cdtpDebuggee/cdtpPrimitives';
 import { ISource } from '../sources/source';
 
 export interface InternalDependencies extends
-    EventsConsumedByReAddBPsWhenSourceIsLoaded,
-    PauseScriptLoadsToSetBPsDependencies {
+    IEventsConsumedByReAddBPsWhenSourceIsLoaded,
+    IPauseScriptLoadsToSetBPsDependencies {
 
     onAsyncBreakpointResolved(listener: (params: Breakpoint<ScriptOrSourceOrURLOrURLRegexp>) => void): void;
 }

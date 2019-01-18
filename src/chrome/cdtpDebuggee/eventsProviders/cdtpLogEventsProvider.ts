@@ -16,7 +16,7 @@ import { CDTPDomainsEnabler } from '../infrastructure/cdtpDomainsEnabler';
 export type LogEntrySource = 'xml' | 'javascript' | 'network' | 'storage' | 'appcache' | 'rendering' | 'security' | 'deprecation' | 'worker' | 'violation' | 'intervention' | 'recommendation' | 'other';
 export type LogLevel = 'verbose' | 'info' | 'warning' | 'error';
 
-export interface LogEntry {
+export interface ILogEntry {
     readonly source: LogEntrySource;
     readonly level: LogLevel;
     readonly text: string;
@@ -30,7 +30,7 @@ export interface LogEntry {
 }
 
 export interface ILogEventsProvider {
-    onEntryAdded(listener: (entry: LogEntry) => void): void;
+    onEntryAdded(listener: (entry: ILogEntry) => void): void;
 }
 
 export class CDTPLogEventsProvider extends CDTPEventsEmitterDiagnosticsModule<CDTP.LogApi> implements ILogEventsProvider {
@@ -48,7 +48,7 @@ export class CDTPLogEventsProvider extends CDTPEventsEmitterDiagnosticsModule<CD
         super(domainsEnabler);
     }
 
-    private async toLogEntry(entry: CDTP.Log.LogEntry): Promise<LogEntry> {
+    private async toLogEntry(entry: CDTP.Log.LogEntry): Promise<ILogEntry> {
         return {
             source: entry.source,
             level: entry.level,

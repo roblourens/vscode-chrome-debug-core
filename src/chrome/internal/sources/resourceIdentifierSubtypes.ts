@@ -12,11 +12,11 @@ export function createCDTPScriptUrl(textRepresentation: string): CDTPScriptUrl {
 }
 
 const ScriptDevelopmentLocationSymbol = Symbol();
-export interface ScriptDevelopmentLocation extends IResourceIdentifier {
+export interface IScriptDevelopmentLocation extends IResourceIdentifier {
     readonly [ScriptDevelopmentLocationSymbol]: true;
 }
 
 const MappedSourceLocationSymbol = Symbol();
-export interface MappedSourceLocation extends IResourceIdentifier {
+export interface IMappedSourceLocation extends IResourceIdentifier {
     readonly [MappedSourceLocationSymbol]: true;
 }

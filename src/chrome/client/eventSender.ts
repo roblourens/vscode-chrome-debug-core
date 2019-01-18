@@ -16,45 +16,45 @@ import { TYPES } from '../dependencyInjection.ts/types';
 import { Protocol as CDTP } from 'devtools-protocol';
 import { ChromeDebugLogic } from '../chromeDebugAdapter';
 
-export interface OutputParameters {
+export interface IOutputParameters {
     readonly output: string;
     readonly category: string;
     readonly variablesReference?: number;
     readonly location?: LocationInLoadedSource;
 }
 
-export interface SourceWasLoadedParameters {
+export interface ISourceWasLoadedParameters {
     readonly reason: 'new' | 'changed' | 'removed';
     readonly source: ILoadedSource;
 }
 
-export interface BPStatusChangedParameters {
+export interface IBPStatusChangedParameters {
     readonly reason: string;
     readonly bpRecipieStatus: IBPRecipieStatus;
 }
 
-export interface ExceptionThrownParameters {
+export interface IExceptionThrownParameters {
     readonly exceptionStackTrace: IFormattedExceptionLineDescription[];
     readonly category: string;
     readonly location?: LocationInLoadedSource;
 }
 
-export interface DebugeeIsStoppedParameters {
+export interface IDebugeeIsStoppedParameters {
     reason: ReasonType;
     exception?: CDTP.Runtime.RemoteObject;
 }
 
 export interface IEventsToClientReporter {
-    sendOutput(params: OutputParameters): void;
-    sendSourceWasLoaded(params: SourceWasLoadedParameters): Promise<void>;
-    sendBPStatusChanged(params: BPStatusChangedParameters): Promise<void>;
-    sendExceptionThrown(params: ExceptionThrownParameters): Promise<void>;
-    sendDebugeeIsStopped(params: DebugeeIsStoppedParameters): Promise<void>;
+    sendOutput(params: IOutputParameters): void;
+    sendSourceWasLoaded(params: ISourceWasLoadedParameters): Promise<void>;
+    sendBPStatusChanged(params: IBPStatusChangedParameters): Promise<void>;
+    sendExceptionThrown(params: IExceptionThrownParameters): Promise<void>;
+    sendDebugeeIsStopped(params: IDebugeeIsStoppedParameters): Promise<void>;
 }
 
 @injectable()
 export class EventSender implements IEventsToClientReporter {
-    public sendOutput(params: OutputParameters): void {
+    public sendOutput(params: IOutputParameters): void {
         const event = new OutputEvent(params.output, params.category) as DebugProtocol.OutputEvent;
 
         if (params.variablesReference) {
@@ -68,21 +68,21 @@ export class EventSender implements IEventsToClientReporter {
         this._session.sendEvent(event);
     }
 
-    public async sendSourceWasLoaded(params: SourceWasLoadedParameters): Promise<void> {
+    public async sendSourceWasLoaded(params: ISourceWasLoadedParameters): Promise<void> {
         const clientSource = await this._internalToClient.toSource(params.source);
         const event = new LoadedSourceEvent(params.reason, clientSource);
 
         this._session.sendEvent(event);
     }
 
-    public async sendBPStatusChanged(params: BPStatusChangedParameters): Promise<void> {
+    public async sendBPStatusChanged(params: IBPStatusChangedParameters): Promise<void> {
         const breakpointStatus = await this._internalToClient.toBPRecipieStatus(params.bpRecipieStatus);
         const event = new BreakpointEvent(params.reason, breakpointStatus);
 
         this._session.sendEvent(event);
     }
 
-    public async sendExceptionThrown(params: ExceptionThrownParameters): Promise<void> {
+    public async sendExceptionThrown(params: IExceptionThrownParameters): Promise<void> {
         return this.sendOutput({
             output: this._internalToClient.toExceptionStackTracePrintted(params.exceptionStackTrace),
             category: params.category,
@@ -90,7 +90,7 @@ export class EventSender implements IEventsToClientReporter {
         });
     }
 
-    public async sendDebugeeIsStopped(params: DebugeeIsStoppedParameters): Promise<void> {
+    public async sendDebugeeIsStopped(params: IDebugeeIsStoppedParameters): Promise<void> {
         return this._session.sendEvent(new StoppedEvent2(params.reason, /*threadId=*/ChromeDebugLogic.THREAD_ID, params.exception));
     }
 

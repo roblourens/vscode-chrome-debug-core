@@ -5,7 +5,7 @@
 import { Logger, logger } from 'vscode-debugadapter';
 import { IExtensibilityPoints } from '../../extensibility/extensibilityPoints';
 
-export interface LoggingConfiguration {
+export interface ILoggingConfiguration {
     logLevel?: Logger.LogLevel;
     shouldLogTimestamps: boolean;
     logFilePath: string;
@@ -16,12 +16,12 @@ export class Logging {
         logger.verbose(entry);
     }
 
-    public install(extensibilityPoints: IExtensibilityPoints, configuration: LoggingConfiguration): this {
+    public install(extensibilityPoints: IExtensibilityPoints, configuration: ILoggingConfiguration): this {
         this.configure(extensibilityPoints, configuration);
         return this;
     }
 
-    public configure(extensibilityPoints: IExtensibilityPoints, configuration: LoggingConfiguration): void {
+    public configure(extensibilityPoints: IExtensibilityPoints, configuration: ILoggingConfiguration): void {
         const logToFile = !!configuration.logLevel;
 
         // The debug configuration provider should have set logFilePath on the launch config. If not, default to 'true' to use the

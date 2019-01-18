@@ -5,7 +5,7 @@
  import { IExtensibilityPoints } from '../../extensibility/extensibilityPoints';
 import { IClientCapabilities, ILaunchRequestArgs, IAttachRequestArgs } from '../../../debugAdapterInterfaces';
 import { ChromeConnection } from '../../chromeConnection';
-import { LoggingConfiguration } from '../../internal/services/logging';
+import { ILoggingConfiguration } from '../../internal/services/logging';
 import { ScenarioType } from './unconnectedCDA';
 import { injectable } from 'inversify';
 import { ISession } from '../session';
@@ -15,7 +15,7 @@ export interface IConnectedCDAConfiguration {
     args: ILaunchRequestArgs | IAttachRequestArgs;
     isVSClient: boolean;
     _extensibilityPoints: IExtensibilityPoints;
-    loggingConfiguration: LoggingConfiguration;
+    loggingConfiguration: ILoggingConfiguration;
     _session: ISession;
     _clientCapabilities: IClientCapabilities;
     _chromeConnectionClass: typeof ChromeConnection;
@@ -29,7 +29,7 @@ export class ConnectedCDAConfiguration implements IConnectedCDAConfiguration {
     public readonly isVSClient = this._clientCapabilities.clientID === 'visualstudio';
 
     constructor(public readonly _extensibilityPoints: IExtensibilityPoints,
-        public readonly loggingConfiguration: LoggingConfiguration,
+        public readonly loggingConfiguration: ILoggingConfiguration,
         public readonly _session: ISession,
         public readonly _clientCapabilities: IClientCapabilities,
         public readonly _chromeConnectionClass: typeof ChromeConnection,

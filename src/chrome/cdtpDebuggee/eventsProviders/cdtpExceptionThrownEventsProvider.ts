@@ -14,12 +14,12 @@ import { IScript } from '../../internal/scripts/script';
 import { CodeFlowStackTrace } from '../../internal/stackTraces/codeFlowStackTrace';
 import { CDTPDomainsEnabler } from '../infrastructure/cdtpDomainsEnabler';
 
-export interface ExceptionThrownEvent {
+export interface IExceptionThrownEvent {
     readonly timestamp: CDTP.Runtime.Timestamp;
-    readonly exceptionDetails: ExceptionDetails;
+    readonly exceptionDetails: IExceptionDetails;
 }
 
-export interface ExceptionDetails {
+export interface IExceptionDetails {
     readonly exceptionId: integer;
     readonly text: string;
     readonly lineNumber: integer;
@@ -32,7 +32,7 @@ export interface ExceptionDetails {
 }
 
 export interface IExceptionThrownEventProvider {
-    onExceptionThrown(listener: (event: ExceptionThrownEvent) => void): void;
+    onExceptionThrown(listener: (event: IExceptionThrownEvent) => void): void;
 }
 
 @injectable()
@@ -55,7 +55,7 @@ export class CDTPExceptionThrownEventsProvider extends CDTPEventsEmitterDiagnost
         super(domainsEnabler);
     }
 
-    private async toExceptionDetails(exceptionDetails: CDTP.Runtime.ExceptionDetails): Promise<ExceptionDetails> {
+    private async toExceptionDetails(exceptionDetails: CDTP.Runtime.ExceptionDetails): Promise<IExceptionDetails> {
         return {
             exceptionId: exceptionDetails.exceptionId,
             text: exceptionDetails.text,

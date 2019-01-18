@@ -4,7 +4,7 @@
 
 import { LoadedSourceCallFrame } from './stackTraces/callFrame';
 
-export interface EvaluateArguments {
+export interface IEvaluateArguments {
     readonly expression: string;
     readonly frame?: LoadedSourceCallFrame;
     readonly context?: string;
@@ -14,7 +14,7 @@ export interface EvaluateArguments {
     };
 }
 
-export interface CompletionsArguments {
+export interface ICompletionsArguments {
     readonly frame?: LoadedSourceCallFrame;
     readonly text: string;
     readonly column: number;
