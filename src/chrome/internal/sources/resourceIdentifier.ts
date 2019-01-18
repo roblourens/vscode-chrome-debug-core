@@ -8,7 +8,8 @@ import { IValidatedMap } from '../../collections/validatedMap';
 import { MapUsingProjection } from '../../collections/mapUsingProjection';
 import { IEquivalenceComparable } from '../../utils/equivalence';
 
-/** Hierarchy:
+/**
+ * Hierarchy:
  * IResourceIdentifier: Identifies a resource
  *   IResourceLocation: Identifies and tells us how to get the resource
  *     URL: Url

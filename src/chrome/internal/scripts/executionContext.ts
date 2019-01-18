@@ -2,7 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-/** This interface represents the execution context in CDTP where a script is executed. A new context is created when a page is refreshed, etc...
+/**
+ * This interface represents the execution context in CDTP where a script is executed. A new context is created when a page is refreshed, etc...
  * We keep track of this because only scripts of non destroyed execution contexts should be displayed to the user
  */
 export interface IExecutionContext {
