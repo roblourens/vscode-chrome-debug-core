@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { IComponent } from '../../features/feature';
 import { BPRecipieInSource, AnyBPRecipie } from '../bpRecipie';
 import { BreakOnHitCount } from '../bpActionWhenHit';

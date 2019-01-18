@@ -1,4 +1,8 @@
-import { EventsConsumedByStackTrace } from '../../internal/stackTraces/stackTracesLogic';
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
+ import { EventsConsumedByStackTrace } from '../../internal/stackTraces/stackTracesLogic';
 import { EventsConsumedBySkipFilesLogic } from '../../internal/features/skipFiles';
 import { EventsConsumedByBreakpointsLogic } from '../../internal/breakpoints/breakpointsLogic';
 import { ICommunicator } from '../../communication/communicator';

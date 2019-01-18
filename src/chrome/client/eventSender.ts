@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { ILoadedSource } from '../internal/sources/loadedSource';
 import { ISession } from './session';
 import { LoadedSourceEvent, OutputEvent, BreakpointEvent } from 'vscode-debugadapter';

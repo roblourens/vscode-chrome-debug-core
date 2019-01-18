@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { CDTPEventsEmitterDiagnosticsModule } from '../infrastructure/cdtpDiagnosticsModule';
 import { asyncMap } from '../../collections/async';
 import { CDTPStackTraceParser } from '../protocolParsers/cdtpStackTraceParser';

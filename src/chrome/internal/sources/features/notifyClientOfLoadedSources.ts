@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { IComponent } from '../../features/feature';
 import { IScript } from '../../scripts/script';
 import { telemetry } from '../../../../telemetry';

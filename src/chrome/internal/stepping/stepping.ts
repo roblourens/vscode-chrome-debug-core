@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { IComponent } from '../features/feature';
 import { AsyncStepping } from './features/asyncStepping';
 import { SyncStepping } from './features/syncStepping';

@@ -1,4 +1,8 @@
-import { Protocol as CDTP } from 'devtools-protocol';
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
+ import { Protocol as CDTP } from 'devtools-protocol';
 
 export class CDTPSchema {
     constructor(protected api: CDTP.SchemaApi) { }

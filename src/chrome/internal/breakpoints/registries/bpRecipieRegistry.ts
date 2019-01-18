@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { injectable } from 'inversify';
 import { ISource } from '../../sources/source';
 import { IBPRecipie } from '../bpRecipie';

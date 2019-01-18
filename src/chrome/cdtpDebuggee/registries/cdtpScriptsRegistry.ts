@@ -1,4 +1,8 @@
-import { Protocol as CDTP } from 'devtools-protocol';
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
+ import { Protocol as CDTP } from 'devtools-protocol';
 import { IScript } from '../../internal/scripts/script';
 import { ValidatedMap } from '../../collections/validatedMap';
 import { ExecutionContext, IExecutionContext } from '../../internal/scripts/executionContext';

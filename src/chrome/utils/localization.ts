@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 // import { LocalizeInfo, loadMessageBundle, config } from 'vscode-nls';
 // let _localize = loadMessageBundle(); // Initialize to an unlocalized version until we know which locale to use
 

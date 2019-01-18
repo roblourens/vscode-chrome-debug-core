@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { ConnectedCDAConfiguration } from '../../client/chromeDebugAdapter/cdaConfiguration';
 import { PromiseOrNot } from '../../utils/promises';
 

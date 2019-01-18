@@ -1,4 +1,8 @@
-import { Protocol as CDTP } from 'devtools-protocol';
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
+ import { Protocol as CDTP } from 'devtools-protocol';
 import { CDTPCallFrameRegistry } from '../registries/cdtpCallFrameRegistry';
 import { TYPES } from '../../dependencyInjection.ts/types';
 import { injectable, inject } from 'inversify';

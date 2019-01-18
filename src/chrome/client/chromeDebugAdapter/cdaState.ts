@@ -1,4 +1,8 @@
-import { ITelemetryPropertyCollector, ISetBreakpointsResponseBody, IStackTraceResponseBody, IScopesResponseBody, IVariablesResponseBody, ISourceResponseBody, IEvaluateResponseBody, IGetLoadedSourcesResponseBody, IDebugAdapterState, ILaunchRequestArgs, IAttachRequestArgs, IExceptionInfoResponseBody } from '../../../debugAdapterInterfaces';
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
+ import { ITelemetryPropertyCollector, ISetBreakpointsResponseBody, IStackTraceResponseBody, IScopesResponseBody, IVariablesResponseBody, ISourceResponseBody, IEvaluateResponseBody, IGetLoadedSourcesResponseBody, IDebugAdapterState, ILaunchRequestArgs, IAttachRequestArgs, IExceptionInfoResponseBody } from '../../../debugAdapterInterfaces';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { PromiseOrNot } from '../../utils/promises';
 import { ChromeDebugLogic } from '../../chromeDebugAdapter';

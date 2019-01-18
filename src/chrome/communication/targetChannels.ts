@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { ScriptOrSourceOrURLOrURLRegexp } from '../internal/locations/location';
 import { NotificationChannelIdentifier } from './notificationsCommunicator';
 import { Breakpoint } from '../internal/breakpoints/breakpoint';

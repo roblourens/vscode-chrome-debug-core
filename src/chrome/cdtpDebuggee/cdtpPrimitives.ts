@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { IScript } from '../internal/scripts/script';
 import { CDTPScriptUrl } from '../internal/sources/resourceIdentifierSubtypes';
 import { URLRegexp } from '../internal/locations/subtypes';

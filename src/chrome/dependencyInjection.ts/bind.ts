@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { Container, interfaces } from 'inversify';
 import { TYPES } from './types';
 import { EventSender } from '../client/eventSender';

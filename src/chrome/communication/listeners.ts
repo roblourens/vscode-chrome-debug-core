@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 type Callback<Args, Result> = (args: Args) => Result;
 
 export class Listeners<Args, Result> {

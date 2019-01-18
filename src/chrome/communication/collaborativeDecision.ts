@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { ValidatedMultiMap } from '../collections/validatedMultiMap';
 import { groupByKey } from '../collections/utilities';
 import { PromiseOrNot } from '../utils/promises';

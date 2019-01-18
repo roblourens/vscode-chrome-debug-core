@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { Logger, logger } from 'vscode-debugadapter';
 import { IExtensibilityPoints } from '../../extensibility/extensibilityPoints';
 

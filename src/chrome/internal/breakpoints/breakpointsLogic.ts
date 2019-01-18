@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { IBPRecipie } from './bpRecipie';
 import { ITelemetryPropertyCollector, IComponent, ConnectedCDAConfiguration } from '../../..';
 import { ScriptOrSourceOrURLOrURLRegexp } from '../locations/location';

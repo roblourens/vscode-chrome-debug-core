@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 export type HitCountConditionFunction = (numHits: number) => boolean;
 
 export class HitCountConditionParser {

@@ -1,4 +1,8 @@
-import { Position, LocationInScript } from '../../internal/locations/location';
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
+ import { Position, LocationInScript } from '../../internal/locations/location';
 import { createColumnNumber, createLineNumber } from '../../internal/locations/subtypes';
 import { CDTPScriptsRegistry } from '../registries/cdtpScriptsRegistry';
 import { Protocol as CDTP } from 'devtools-protocol';

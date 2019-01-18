@@ -1,4 +1,8 @@
-import { IExtensibilityPoints } from '../../extensibility/extensibilityPoints';
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
+ import { IExtensibilityPoints } from '../../extensibility/extensibilityPoints';
 import { IClientCapabilities, ILaunchRequestArgs, IAttachRequestArgs } from '../../../debugAdapterInterfaces';
 import { ChromeConnection } from '../../chromeConnection';
 import { LoggingConfiguration } from '../../internal/services/logging';

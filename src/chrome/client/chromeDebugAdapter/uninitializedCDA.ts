@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { UnconnectedCDACommonLogic } from './unconnectedCDACommonLogic';
 import { ChromeConnection } from '../../chromeConnection';
 import { IDebugAdapterState, ChromeDebugLogic, ITelemetryPropertyCollector, IInitializeRequestArgs, ChromeDebugSession } from '../../..';

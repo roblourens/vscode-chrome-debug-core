@@ -1,4 +1,8 @@
-import { Protocol as CDTP } from 'devtools-protocol';
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
+ import { Protocol as CDTP } from 'devtools-protocol';
 import { PauseOnExceptionsStrategy, PauseOnAllExceptions, PauseOnUnhandledExceptions, DoNotPauseOnAnyExceptions } from '../../internal/exceptions/strategies';
 import { inject, injectable } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';

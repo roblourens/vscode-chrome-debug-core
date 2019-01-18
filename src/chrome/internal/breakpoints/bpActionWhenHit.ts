@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { IEquivalenceComparable } from '../../utils/equivalence';
 
 export interface IBPActionWhenHit extends IEquivalenceComparable {

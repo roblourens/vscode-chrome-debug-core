@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { BPRecipieInLoadedSource, BPRecipie } from './bpRecipie';
 import { ConditionalBreak, AlwaysBreak } from './bpActionWhenHit';
 import { IBreakpoint } from './breakpoint';

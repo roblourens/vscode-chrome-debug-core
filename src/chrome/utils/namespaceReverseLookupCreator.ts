@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 export type NamespaceTree<T> = { [name: string]: NamespaceTree<T> | T };
 
 export class NamespaceReverseLookupCreator<T> {

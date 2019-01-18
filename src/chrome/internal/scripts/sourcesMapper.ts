@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { LineNumber, ColumnNumber, createColumnNumber, createLineNumber } from '../locations/subtypes';
 import { SourceMap } from '../../../sourceMaps/sourceMap';
 

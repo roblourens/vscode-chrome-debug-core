@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { SourceTextLogic } from './sourcesTextLogic';
 import { SourcesTreeNodeLogic } from './sourcesTreeNodeLogic';
 import { SourceResolver } from './sourceResolver';

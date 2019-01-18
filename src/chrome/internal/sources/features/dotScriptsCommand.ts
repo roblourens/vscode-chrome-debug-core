@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { inject, injectable } from 'inversify';
 import { parseResourceIdentifier } from '../../../..';
 import { BaseSourceMapTransformer } from '../../../../transformers/baseSourceMapTransformer';

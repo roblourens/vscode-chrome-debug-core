@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { CDTP, parseResourceIdentifier, BasePathTransformer, BaseSourceMapTransformer } from '../../..';
 import { CDTPEventsEmitterDiagnosticsModule } from '../infrastructure/cdtpDiagnosticsModule';
 import { CDTPScriptsRegistry } from '../registries/cdtpScriptsRegistry';

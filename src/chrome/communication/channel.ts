@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { RequestChannelIdentifier } from './requestsCommunicator';
 import { NamespaceReverseLookupCreator, NamespaceTree } from '../utils/namespaceReverseLookupCreator';
 import { NotificationChannelIdentifier } from './notificationsCommunicator';

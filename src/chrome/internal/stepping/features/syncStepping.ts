@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { ScriptCallFrame } from '../../stackTraces/callFrame';
 import { InformationAboutPausedProvider, } from '../../features/takeProperActionOnPausedEvent';
 import { IComponent } from '../../features/feature';

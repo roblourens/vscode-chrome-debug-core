@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { PromiseOrNot } from '../utils/promises';
 import { Logging } from '../internal/services/logging';
 

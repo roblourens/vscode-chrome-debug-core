@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { IComponent } from '../../features/feature';
 import { InformationAboutPausedProvider, ResumeCommonLogic } from '../../features/takeProperActionOnPausedEvent';
 import { VoteRelevance, Vote, Abstained } from '../../../communication/collaborativeDecision';

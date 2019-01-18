@@ -1,4 +1,8 @@
-import * as errors from '../../../errors';
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
+ import * as errors from '../../../errors';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { ChromeDebugLogic } from '../../chromeDebugAdapter';
 import { ClientToInternal } from '../clientToInternal';

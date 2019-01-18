@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { ILoadedSource } from '../internal/sources/loadedSource';
 import { BPRecipieInSource } from '../internal/breakpoints/bpRecipie';
 import { DebugProtocol } from 'vscode-debugprotocol';

@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import * as Validation from '../../../validation';
 import { IScript } from '../scripts/script';
 import { ISource } from '../sources/source';

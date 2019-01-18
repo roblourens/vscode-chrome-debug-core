@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { IResourceIdentifier } from './resourceIdentifier';
 
 // We use this class so the compiler will check that we don't send a file path where the URL provided by CDTP is expected

@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { BPRecipiesInUnresolvedSource } from './bpRecipies';
 
 import { BPRsDeltaCalculator, BPRsDeltaInRequestedSource } from './bpsDeltaCalculator';

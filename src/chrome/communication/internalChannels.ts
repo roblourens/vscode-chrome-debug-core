@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { NotificationChannelIdentifier } from './notificationsCommunicator';
 import { BPRecipie } from '../internal/breakpoints/bpRecipie';
 import { ScriptOrSourceOrURLOrURLRegexp } from '../internal/locations/location';

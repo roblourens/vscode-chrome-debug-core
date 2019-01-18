@@ -1,4 +1,8 @@
-import { InitializedEvent, Logger } from 'vscode-debugadapter';
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
+ import { InitializedEvent, Logger } from 'vscode-debugadapter';
 import { ChromeDebugLogic, ChromeDebugSession, IAttachRequestArgs, IDebugAdapterState, ILaunchRequestArgs, ITelemetryPropertyCollector, LineColTransformer, utils, BaseSourceMapTransformer, BasePathTransformer } from '../../..';
 import { IClientCapabilities } from '../../../debugAdapterInterfaces';
 import * as errors from '../../../errors';

@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { LocationInScript, ScriptOrSourceOrURLOrURLRegexp } from '../locations/location';
 import { IBPRecipie } from './bpRecipie';
 import { ILoadedSource } from '../sources/loadedSource';

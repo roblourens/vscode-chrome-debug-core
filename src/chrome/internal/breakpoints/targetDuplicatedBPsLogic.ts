@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 // import { BPRecipieInScript, BPRecipieInUrl, BPRecipieInUrlRegexp, IBPRecipie, BPRecipie } from './bpRecipie';
 // import { AlwaysBreak, ConditionalBreak } from './bpBehavior';
 // import { BreakpointInScript, BreakpointInUrl, BreakpointInUrlRegexp, IBreakpoint } from './breakpoint';

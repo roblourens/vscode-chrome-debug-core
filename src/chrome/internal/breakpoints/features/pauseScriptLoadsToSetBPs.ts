@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { asyncMap } from '../../../collections/async';
 import { ILoadedSource } from '../../sources/loadedSource';
 import { IComponent } from '../../features/feature';

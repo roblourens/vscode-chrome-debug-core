@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { LoadedSourceCallFrame } from './stackTraces/callFrame';
 
 export interface EvaluateArguments {

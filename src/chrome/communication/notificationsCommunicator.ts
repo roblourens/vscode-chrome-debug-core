@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { ValidatedMap } from '../collections/validatedMap';
 import { ChannelIdentifier } from './channelIdentifier';
 import { getChannelName } from './channel';

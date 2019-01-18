@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { IBPRecipie, AnyBPRecipie } from './bpRecipie';
 
 import { ILoadedSource } from '../sources/loadedSource';

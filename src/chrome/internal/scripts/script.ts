@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import * as fs from 'fs';
 import {
     ILoadedSource, MappedSource, ScriptRunFromLocalStorage, DynamicScript,

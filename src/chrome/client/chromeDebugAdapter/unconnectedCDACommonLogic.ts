@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { ITelemetryPropertyCollector, ISetBreakpointsResponseBody, IStackTraceResponseBody, IScopesResponseBody, IVariablesResponseBody, ISourceResponseBody, IEvaluateResponseBody, IGetLoadedSourcesResponseBody } from '../../../debugAdapterInterfaces';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { ChromeDebugLogic, ILaunchRequestArgs, IAttachRequestArgs, IExceptionInfoResponseBody, IDebugAdapterState } from '../../..';

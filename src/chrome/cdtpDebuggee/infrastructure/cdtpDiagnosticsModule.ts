@@ -1,4 +1,8 @@
-import { TransformedListenerRegistry } from '../../communication/transformedListenerRegistry';
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
+ import { TransformedListenerRegistry } from '../../communication/transformedListenerRegistry';
 import { PromiseOrNot } from '../../utils/promises';
 import { injectable } from 'inversify';
 import { CDTPDomainsEnabler } from './cdtpDomainsEnabler';

@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { WrappedSessionCommonLogic } from './session';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { utils } from '../..';

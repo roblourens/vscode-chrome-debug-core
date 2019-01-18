@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { ValidatedMap } from '../collections/validatedMap';
 
 export function combine<T1, T2>(object1: T1, object2: T2): T1 & T2;

@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 export function undefinedOnFailure<R>(operation: () => R): R | undefined {
     try {
         return operation();

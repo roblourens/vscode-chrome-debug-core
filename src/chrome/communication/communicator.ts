@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { NotificationsCommunicator, NotificationChannelIdentifier, PublisherFunction, SubscriberFunction, PublisherWithParamsFunction } from './notificationsCommunicator';
 import { RequestsCommunicator, RequestChannelIdentifier, RequestHandlerCallback } from './requestsCommunicator';
 import { IExecutionLogger } from '../logging/executionLogger';

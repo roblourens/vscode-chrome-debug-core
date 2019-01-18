@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { ValidatedMap, IValidatedMap } from './validatedMap';
 import { IProjection } from './setUsingProjection';
 import { printMap } from './printing';

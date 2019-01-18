@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { ISource } from '../sources/source';
 import { Location, ScriptOrSourceOrURLOrURLRegexp, LocationInUrl, LocationInUrlRegexp, LocationInScript, ILocation } from '../locations/location';
 import { ILoadedSource } from '../sources/loadedSource';

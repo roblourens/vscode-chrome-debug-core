@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { BasePathTransformer } from '../../../transformers/basePathTransformer';
 import { BaseSourceMapTransformer } from '../../../transformers/baseSourceMapTransformer';
 import { ScriptCallFrame } from '../stackTraces/callFrame';

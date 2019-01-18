@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { ILoadedSource } from './loadedSource';
 import { ValidatedMap } from '../../collections/validatedMap';
 import { printIterable } from '../../collections/printting';

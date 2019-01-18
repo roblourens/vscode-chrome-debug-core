@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { parseResourceIdentifier } from '../..';
 import { LocationInScript, Position, LocationInLoadedSource } from './locations/location';
 import { IResourceIdentifier } from './sources/resourceIdentifier';

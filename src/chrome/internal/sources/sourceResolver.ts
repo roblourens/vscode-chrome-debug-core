@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { ILoadedSource } from './loadedSource';
 import { ISource, SourceToBeResolvedViaPath } from './source';
 import { newResourceIdentifierMap, IResourceIdentifier } from './resourceIdentifier';

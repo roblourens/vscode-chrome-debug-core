@@ -1,4 +1,8 @@
-import { BidirectionalMap } from '../../collections/bidirectionalMap';
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
+ import { BidirectionalMap } from '../../collections/bidirectionalMap';
 import { Protocol as CDTP } from 'devtools-protocol';
 import { injectable } from 'inversify';
 import { CDTPBPRecipie } from '../cdtpPrimitives';
