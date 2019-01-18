@@ -9,7 +9,7 @@ import { injectable, inject } from 'inversify';
 import { TYPES } from '../../../dependencyInjection.ts/types';
 import { PausedEvent } from '../../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
 import { IDebugeeExecutionController } from '../../../cdtpDebuggee/features/cdtpDebugeeExecutionController';
-import { IDebugeeSteppingController } from '../../../cdtpDebuggee/features/CDTPDebugeeSteppingController';
+import { IDebugeeSteppingController } from '../../../cdtpDebuggee/features/cdtpDebugeeSteppingController';
 
 export interface IEventsConsumedByAsyncStepping {
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;

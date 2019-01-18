@@ -10,7 +10,7 @@ import { injectable, inject } from 'inversify';
 import { IDebugeeExecutionController } from '../../../cdtpDebuggee/features/cdtpDebugeeExecutionController';
 import { TYPES } from '../../../dependencyInjection.ts/types';
 import { PausedEvent } from '../../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
-import { IDebugeeSteppingController } from '../../../cdtpDebuggee/features/CDTPDebugeeSteppingController';
+import { IDebugeeSteppingController } from '../../../cdtpDebuggee/features/cdtpDebugeeSteppingController';
 
 type SteppingAction = () => Promise<void>;
 

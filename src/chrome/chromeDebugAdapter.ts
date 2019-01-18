@@ -53,7 +53,7 @@ import { TYPES } from './dependencyInjection.ts/types';
 import { ICDTDebuggeeExecutionEventsProvider, PausedEvent } from './cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
 import { ILogEntry, CDTPLogEventsProvider } from './cdtpDebuggee/eventsProviders/cdtpLogEventsProvider';
 import { IConsoleEventsProvider, IConsoleAPICalledEvent } from './cdtpDebuggee/eventsProviders/cdtpConsoleEventsProvider';
-import { IPauseOnExceptionsConfigurer } from './cdtpDebuggee/features/CDTPPauseOnExceptionsConfigurer';
+import { IPauseOnExceptionsConfigurer } from './cdtpDebuggee/features/cdtpPauseOnExceptionsConfigurer';
 
 // export class ChromeDebugAdapter extends ChromeDebugAdapterClass {
 //     /** These methods are called by the ChromeDebugAdapter subclass in chrome-debug. We need to redirect them like this
