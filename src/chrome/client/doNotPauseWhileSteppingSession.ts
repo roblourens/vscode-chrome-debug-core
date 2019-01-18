@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { WrappedSessionCommonLogic } from './session';
+import { BaseWrappedSession } from './session';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { utils } from '../..';
 
@@ -15,7 +15,7 @@ const steppingRequests = {
     restartFrame: true,
 };
 
-export class DoNotPauseWhileSteppingSession extends WrappedSessionCommonLogic {
+export class DoNotPauseWhileSteppingSession extends BaseWrappedSession {
     private readonly _onFlightSteppingRequests = new Set<Promise<void>>();
 
     public async dispatchRequest(request: DebugProtocol.Request): Promise<void> {

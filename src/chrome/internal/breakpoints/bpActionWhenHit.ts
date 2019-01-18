@@ -4,106 +4,89 @@
 
 import { IEquivalenceComparable } from '../../utils/equivalence';
 
+/**
+ * These classes represents the different actions that a pausepoint can take when hit
+ * Pausepoint: AlwaysPause
+ * Conditional Pausepoint: ConditionalPause
+ * Logpoint: LogMessage
+ * Hit Count Pausepoint: PauseOnHitCount
+ */
 export interface IBPActionWhenHit extends IEquivalenceComparable {
     isEquivalentTo(bpActionWhenHit: IBPActionWhenHit): boolean;
-
-    basedOnTypeDo<R>(actionBasedOnClass: {
-        alwaysBreak?: (alwaysBreak: AlwaysBreak) => R,
-        conditionalBreak?: (conditionalBreak: ConditionalBreak) => R,
-        logMessage?: (logMessage: LogMessage) => R,
-        breakOnSpecificHitCounts?: (breakOnSpecificHitCounts: BreakOnHitCount) => R
-    }): R;
-
-    isBreakOnHitCount(): this is BreakOnHitCount;
-    isAlwaysBreak(): this is AlwaysBreak;
-    isConditionalBreak(): this is ConditionalBreak;
-    isLogMessage(): this is LogMessage;
+    accept<T>(visitor: IBPActionWhenHitVisitor<T>): T;
 }
 
-export abstract class BasedOnTypeDoCommonLogic implements IBPActionWhenHit {
-    public abstract isEquivalentTo(bpActionWhenHit: IBPActionWhenHit): boolean;
+export interface IBPActionWhenHitVisitor<T> {
+    alwaysPause(alwaysPause: AlwaysPause): T;
+    conditionalPause(conditionalPause: ConditionalPause): T;
+    pauseOnHitCount(pauseOnHitCount: PauseOnHitCount): T;
+    logMessage(logMessage: LogMessage): T;
+}
 
-    basedOnTypeDo<R>(actionBasedOnClass: {
-        alwaysBreak?: (alwaysBreak: AlwaysBreak) => R,
-        conditionalBreak?: (conditionalBreak: ConditionalBreak) => R,
-        logMessage?: (logMessage: LogMessage) => R,
-        breakOnSpecificHitCounts?: (breakOnSpecificHitCounts: BreakOnHitCount) => R;
-    }): R {
-        if (this.isAlwaysBreak() && actionBasedOnClass.alwaysBreak) {
-            return actionBasedOnClass.alwaysBreak(this);
-        } else if (this.isConditionalBreak() && actionBasedOnClass.conditionalBreak) {
-            return actionBasedOnClass.conditionalBreak(this);
-        } else if (this.isBreakOnHitCount() && actionBasedOnClass.breakOnSpecificHitCounts) {
-            return actionBasedOnClass.breakOnSpecificHitCounts(this);
-        } else if (this.isLogMessage() && actionBasedOnClass.logMessage) {
-            return actionBasedOnClass.logMessage(this);
-        } else {
-            throw new Error(`Unexpected case. The logic wasn't prepared to handle the specified breakpoint action when hit: ${this}`);
-        }
-    }
+abstract class BaseBPActionWhenHit {
+    public abstract accept<T>(visitor: IBPActionWhenHitVisitor<T>): T;
 
-    public isAlwaysBreak(): this is AlwaysBreak {
-        return false;
-    }
-
-    public isConditionalBreak(): this is ConditionalBreak {
-        return false;
-    }
-
-    public isBreakOnHitCount(): this is BreakOnHitCount {
-        return false;
-    }
-
-    public isLogMessage(): this is LogMessage {
-        return false;
+    public isEquivalentTo(bpActionWhenHit: IBPActionWhenHit): boolean {
+        return bpActionWhenHit.accept(new BPActionWhenHitIsEquivalentVisitor(this));
     }
 }
 
-export class AlwaysBreak extends BasedOnTypeDoCommonLogic implements IBPActionWhenHit {
-    public isEquivalentTo(otherBPActionWhenHit: IBPActionWhenHit): boolean {
-        return otherBPActionWhenHit.isAlwaysBreak();
+class BPActionWhenHitIsEquivalentVisitor implements IBPActionWhenHitVisitor<boolean> {
+    public alwaysPause(alwaysPause: AlwaysPause): boolean {
+        return this.areSameClass(this._left, alwaysPause);
     }
 
-    public isAlwaysBreak(): this is AlwaysBreak {
-        return true;
+    public conditionalPause(conditionalPause: ConditionalPause): boolean {
+        return this.areSameClass(this._left, conditionalPause)
+            && this._left.expressionOfWhenToPause === conditionalPause.expressionOfWhenToPause;
+    }
+    public pauseOnHitCount(pauseOnHitCount: PauseOnHitCount): boolean {
+        return this.areSameClass(this._left, pauseOnHitCount)
+            && this._left.pauseOnHitCondition === pauseOnHitCount.pauseOnHitCondition;
+    }
+    public logMessage(logMessage: LogMessage): boolean {
+        return this.areSameClass(this._left, logMessage)
+            && this._left.expressionToLog === logMessage.expressionToLog;
+    }
+
+    private areSameClass<T extends IBPActionWhenHit>(left: IBPActionWhenHit, right: T): left is T {
+        return left.constructor === right.constructor;
+    }
+
+    constructor(private readonly _left: IBPActionWhenHit) { }
+}
+
+export class AlwaysPause extends BaseBPActionWhenHit {
+    public accept<T>(visitor: IBPActionWhenHitVisitor<T>): T {
+        return visitor.alwaysPause(this);
     }
 
     public toString(): string {
-        return 'always break';
+        return 'always pause';
     }
 }
 
-export class ConditionalBreak extends BasedOnTypeDoCommonLogic implements IBPActionWhenHit {
-    public isEquivalentTo(otherBPActionWhenHit: IBPActionWhenHit): boolean {
-        return otherBPActionWhenHit.isConditionalBreak()
-            && otherBPActionWhenHit.expressionOfWhenToBreak === this.expressionOfWhenToBreak;
-    }
-
-    public isConditionalBreak(): this is ConditionalBreak {
-        return true;
+export class ConditionalPause extends BaseBPActionWhenHit {
+    public accept<T>(visitor: IBPActionWhenHitVisitor<T>): T {
+        return visitor.conditionalPause(this);
     }
 
     public toString(): string {
-        return `break if: ${this.expressionOfWhenToBreak}`;
+        return `pause if: ${this.expressionOfWhenToPause}`;
     }
 
-    constructor(public readonly expressionOfWhenToBreak: string) {
+    constructor(public readonly expressionOfWhenToPause: string) {
         super();
     }
 }
 
-export class BreakOnHitCount extends BasedOnTypeDoCommonLogic implements IBPActionWhenHit {
-    public isEquivalentTo(otherBPActionWhenHit: IBPActionWhenHit): boolean {
-        return otherBPActionWhenHit.isBreakOnHitCount()
-            && otherBPActionWhenHit.pauseOnHitCondition === this.pauseOnHitCondition;
-    }
-
-    public isBreakOnHitCount(): this is BreakOnHitCount {
-        return true;
+export class PauseOnHitCount extends BaseBPActionWhenHit {
+    public accept<T>(visitor: IBPActionWhenHitVisitor<T>): T {
+        return visitor.pauseOnHitCount(this);
     }
 
     public toString(): string {
-        return `break when hits: ${this.pauseOnHitCondition}`;
+        return `pause when hits: ${this.pauseOnHitCondition}`;
     }
 
     constructor(public readonly pauseOnHitCondition: string) {
@@ -111,14 +94,9 @@ export class BreakOnHitCount extends BasedOnTypeDoCommonLogic implements IBPActi
     }
 }
 
-export class LogMessage extends BasedOnTypeDoCommonLogic implements IBPActionWhenHit {
-    public isEquivalentTo(otherBPActionWhenHit: IBPActionWhenHit): boolean {
-        return otherBPActionWhenHit.isLogMessage()
-            && otherBPActionWhenHit.expressionToLog === this.expressionToLog;
-    }
-
-    public isLogMessage(): this is LogMessage {
-        return true;
+export class LogMessage extends BaseBPActionWhenHit {
+    public accept<T>(visitor: IBPActionWhenHitVisitor<T>): T {
+        return visitor.logMessage(this);
     }
 
     public toString(): string {

@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { UnconnectedCDACommonLogic } from './unconnectedCDACommonLogic';
+import { BaseUnconnectedCDA } from './unconnectedCDACommonLogic';
 import { ChromeConnection } from '../../chromeConnection';
 import { IDebugAdapterState, ChromeDebugLogic, ITelemetryPropertyCollector, IInitializeRequestArgs, ChromeDebugSession } from '../../..';
 import { DebugProtocol } from 'vscode-debugprotocol';
@@ -11,7 +11,7 @@ import { IExtensibilityPoints } from '../../extensibility/extensibilityPoints';
 import * as nls from 'vscode-nls';
 let localize = nls.loadMessageBundle(); // Initialize to an unlocalized version until we know which locale to use
 
-export class UninitializedCDA extends UnconnectedCDACommonLogic implements IDebugAdapterState {
+export class UninitializedCDA extends BaseUnconnectedCDA implements IDebugAdapterState {
     public chromeDebugAdapter(): ChromeDebugLogic {
         throw new Error('Method not implemented.');
     }

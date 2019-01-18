@@ -15,7 +15,7 @@ export interface ISession {
     dispatchRequest(request: DebugProtocol.Request): Promise<void>;
 }
 
-export abstract class WrappedSessionCommonLogic implements ISession {
+export abstract class BaseWrappedSession implements ISession {
     public dispatchRequest(request: DebugProtocol.Request): Promise<void> {
         return this._wrappedSession.dispatchRequest(request);
     }

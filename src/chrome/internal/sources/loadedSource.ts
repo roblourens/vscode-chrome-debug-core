@@ -12,12 +12,21 @@ import { IEquivalenceComparable } from '../../utils/equivalence';
  * This interface represents a source or text that is related to a script that the debugee is executing. The text can be the contents of the script itself,
  *  or a file from which the script was loaded, or a file that was compiled to generate the contents of the script
  */
+const ImplementsLoadedSource = Symbol();
 export interface ILoadedSource<TString = string> extends IEquivalenceComparable {
+    [ImplementsLoadedSource]: void;
+
     readonly script: IScript;
     readonly identifier: IResourceIdentifier<TString>;
     readonly origin: string;
     doesScriptHasUrl(): boolean; // TODO DIEGO: Figure out if we can delete this property
     isMappedSource(): boolean;
+
+    isEquivalentTo(right: ILoadedSource<TString>): boolean;
+}
+
+export function isLoadedSource(object: object): object is ILoadedSource {
+    return object.hasOwnProperty(ImplementsLoadedSource);
 }
 
 /**
@@ -29,7 +38,9 @@ export interface ILoadedSource<TString = string> extends IEquivalenceComparable 
  *  2. Two: We assume one path is from the webserver, and the other path is in the workspace: RuntimeScriptWithSourceOnWorkspace
  */
 
-abstract class LoadedSourceWithURLCommonLogic<TSource = string> implements ILoadedSource<TSource> {
+abstract class BaseLoadedSourceWithURL<TSource = string> implements ILoadedSource<TSource> {
+    [ImplementsLoadedSource]: void;
+
     public isMappedSource(): boolean {
         return false;
     }
@@ -52,12 +63,14 @@ abstract class LoadedSourceWithURLCommonLogic<TSource = string> implements ILoad
         public readonly origin: string) { }
 }
 
-export class ScriptRunFromLocalStorage extends LoadedSourceWithURLCommonLogic<CDTPScriptUrl> implements ILoadedSource<CDTPScriptUrl> { }
-export class DynamicScript extends LoadedSourceWithURLCommonLogic<CDTPScriptUrl> implements ILoadedSource<CDTPScriptUrl> { }
-export class ScriptRuntimeSource extends LoadedSourceWithURLCommonLogic<CDTPScriptUrl> implements ILoadedSource<CDTPScriptUrl> { }
-export class ScriptDevelopmentSource extends LoadedSourceWithURLCommonLogic implements ILoadedSource { }
+export class ScriptRunFromLocalStorage extends BaseLoadedSourceWithURL<CDTPScriptUrl> implements ILoadedSource<CDTPScriptUrl> { }
+export class DynamicScript extends BaseLoadedSourceWithURL<CDTPScriptUrl> implements ILoadedSource<CDTPScriptUrl> { }
+export class ScriptRuntimeSource extends BaseLoadedSourceWithURL<CDTPScriptUrl> implements ILoadedSource<CDTPScriptUrl> { }
+export class ScriptDevelopmentSource extends BaseLoadedSourceWithURL implements ILoadedSource { }
 
 export class NoURLScriptSource implements ILoadedSource<CDTPScriptUrl> {
+    [ImplementsLoadedSource]: void;
+
     public get identifier(): IResourceIdentifier<CDTPScriptUrl> {
         return parseResourceIdentifier<CDTPScriptUrl>(`${NoURLScriptSource.EVAL_PSEUDO_PREFIX}${this.name.textRepresentation}` as any);
     }
@@ -90,7 +103,7 @@ export class NoURLScriptSource implements ILoadedSource<CDTPScriptUrl> {
 }
 
 // This represents a path to a development source that was compiled to generate the runtime code of the script
-export class MappedSource extends LoadedSourceWithURLCommonLogic implements ILoadedSource {
+export class MappedSource extends BaseLoadedSourceWithURL implements ILoadedSource {
     public isMappedSource(): boolean {
         return true;
     }

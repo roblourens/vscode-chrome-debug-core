@@ -3,13 +3,13 @@
  *--------------------------------------------------------*/
 
 import * as Validation from '../../../validation';
-import { IScript } from '../scripts/script';
-import { ISource } from '../sources/source';
-import { ILoadedSource } from '../sources/loadedSource';
+import { IScript, Script } from '../scripts/script';
+import { ISource, isSource } from '../sources/source';
+import { ILoadedSource, isLoadedSource } from '../sources/loadedSource';
 import { logger } from 'vscode-debugadapter';
-import { ColumnNumber, LineNumber, URLRegexp } from './subtypes';
+import { ColumnNumber, LineNumber, URLRegexp, createURLRegexp } from './subtypes';
 import { CDTPScriptUrl } from '../sources/resourceIdentifierSubtypes';
-import { IResourceIdentifier, parseResourceIdentifier, IURL } from '../sources/resourceIdentifier';
+import { IResourceIdentifier, parseResourceIdentifier, IURL, isResourceIdentifier } from '../sources/resourceIdentifier';
 import { IEquivalenceComparable } from '../../utils/equivalence';
 
 export type integer = number;
@@ -41,15 +41,33 @@ export interface ILocation<T extends ScriptOrSourceOrURLOrURLRegexp> extends IEq
     readonly resource: T;
 }
 
-export type ScriptOrSourceOrURLOrURLRegexp = IScript | ILoadedSource | ISource | URLRegexp | IURL<CDTPScriptUrl>;
+// The LocationInUrl is used with the URL that is associated with each Script in CDTP. This should be a URL, but it could also be a string that is not a valid URL
+// For that reason we use IResourceIdentifier<CDTPScriptUrl> for this type, instead of IURL<CDTPScriptUrl>
+export type ScriptOrSourceOrURLOrURLRegexp = ISource | ILoadedSource | IScript | URLRegexp | IResourceIdentifier<CDTPScriptUrl>;
 
 export type Location<T extends ScriptOrSourceOrURLOrURLRegexp> =
-    T extends ISource ? LocationInSource : // Used when receiving locations from the client
-    T extends ILoadedSource ? LocationInLoadedSource : // Used to translate between locations on the client and the debugee
-    T extends IScript ? LocationInScript : // Used when receiving locations from the debugee
-    T extends URLRegexp ? LocationInUrlRegexp : // Used when setting a breakpoint by URL in a local file path in windows, to make it case insensitive
-    T extends IURL<CDTPScriptUrl> ? LocationInUrl : // Used when setting a breakpoint by URL for case-insensitive URLs
-    ILocation<never>; // TODO: Figure out how to replace this by never (We run into some issues with the isEquivalentTo call if we do)
+    ILocation<T> & (T extends ISource ? LocationInSource : // Used when receiving locations from the client
+        T extends ILoadedSource ? LocationInLoadedSource : // Used to translate between locations on the client and the debugee
+        T extends IScript ? LocationInScript : // Used when receiving locations from the debugee
+        T extends URLRegexp ? LocationInUrlRegexp : // Used when setting a breakpoint by URL in a local file path in windows, to make it case insensitive
+        T extends IResourceIdentifier<CDTPScriptUrl> ? LocationInUrl : // Used when setting a breakpoint by URL for case-insensitive URLs
+        ILocation<never>); // TODO: Figure out how to replace this by never (We run into some issues with the isEquivalentTo call if we do)
+
+export function createLocation<T extends ScriptOrSourceOrURLOrURLRegexp>(resource: T, position: Position): Location<T> {
+    if (isSource(resource)) {
+        return <Location<T>>new LocationInSource(resource, position); // TODO: Figure out way to remove this cast
+    } else if (isLoadedSource(resource)) {
+        return <Location<T>>new LocationInLoadedSource(resource, position); // TODO: Figure out way to remove this cast
+    } else if (resource instanceof Script) {
+        return <Location<T>>new LocationInScript(resource, position); // TODO: Figure out way to remove this cast
+    } else if (typeof resource === 'string') {
+        return <Location<T>>new LocationInUrlRegexp(createURLRegexp(<string>resource), position); // TODO: Figure out way to remove this cast
+    } else if (isResourceIdentifier(resource)) {
+        return <Location<T>>new LocationInUrl(<IURL<CDTPScriptUrl>>resource, position); // TODO: Figure out way to remove this cast
+    } else {
+        throw Error(`Can't create a location because the type of resource ${resource} wasn't recognized`);
+    }
+}
 
 abstract class LocationCommonLogic<T extends ScriptOrSourceOrURLOrURLRegexp> implements ILocation<T> {
     public isEquivalentTo(right: this): boolean {
@@ -151,8 +169,10 @@ export class LocationInLoadedSource extends LocationCommonLogic<ILoadedSource> {
     }
 }
 
+// The LocationInUrl is used with the URL that is associated with each Script in CDTP. This should be a URL, but it could also be a string that is not a valid URL
+// For that reason we use IResourceIdentifier<CDTPScriptUrl> for this type, instead of IURL<CDTPScriptUrl>
 export class LocationInUrl extends LocationCommonLogic<IResourceIdentifier<CDTPScriptUrl>> {
-    public get url(): IURL<CDTPScriptUrl> {
+    public get url(): IResourceIdentifier<CDTPScriptUrl> {
         return this.resource;
     }
 }

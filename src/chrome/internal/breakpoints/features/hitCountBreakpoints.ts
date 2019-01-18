@@ -3,10 +3,11 @@
  *--------------------------------------------------------*/
 
 import { IComponent } from '../../features/feature';
-import { BPRecipieInSource, AnyBPRecipie } from '../bpRecipie';
-import { BreakOnHitCount } from '../bpActionWhenHit';
+import { IBPRecipie } from '../bpRecipie';
+import { BPRecipieInSource } from "../bpRecipieInSource";
+import { PauseOnHitCount } from '../bpActionWhenHit';
 import { ValidatedMap } from '../../../collections/validatedMap';
-import { HitCountConditionParser, HitCountConditionFunction } from '../hitCountConditionParser';
+import { HitCountConditionParser, HitCountConditionFunction } from './hitCountConditionParser';
 import { NotifyStoppedCommonLogic, InformationAboutPausedProvider } from '../../features/takeProperActionOnPausedEvent';
 import { ReasonType } from '../../../stoppedEvent';
 import { IVote, Abstained, VoteRelevance } from '../../../communication/collaborativeDecision';
@@ -14,6 +15,7 @@ import { injectable, inject } from 'inversify';
 import { IEventsToClientReporter } from '../../../client/eventSender';
 import { TYPES } from '../../../dependencyInjection.ts/types';
 import { PausedEvent } from '../../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
+import { ScriptOrSourceOrURLOrURLRegexp } from '../../locations/location';
 
 export interface IHitCountBreakpointsDependencies {
     registerAddBPRecipieHandler(handlerRequirements: (bpRecipie: BPRecipieInSource) => boolean,
@@ -36,7 +38,7 @@ class HitCountBPData {
     }
 
     constructor(
-        public readonly hitBPRecipie: BPRecipieInSource<BreakOnHitCount>,
+        public readonly hitBPRecipie: BPRecipieInSource<PauseOnHitCount>,
         private readonly _shouldPauseCondition: HitCountConditionFunction) { }
 }
 
@@ -53,16 +55,16 @@ export class HitAndSatisfiedCountBPCondition extends NotifyStoppedCommonLogic {
 // TODO DIEGO: Install and use this feature
 @injectable()
 export class HitCountBreakpoints implements IComponent {
-    private readonly underlyingToBPRecipie = new ValidatedMap<AnyBPRecipie, HitCountBPData>();
+    private readonly underlyingToBPRecipie = new ValidatedMap<IBPRecipie<ScriptOrSourceOrURLOrURLRegexp>, HitCountBPData>();
 
     public install(): void {
         this._dependencies.registerAddBPRecipieHandler(
-            bpRecipie => bpRecipie.bpActionWhenHit.isBreakOnHitCount(),
-            bpRecipie => this.addBPRecipie(bpRecipie as BPRecipieInSource<BreakOnHitCount>));
+            bpRecipie => bpRecipie.bpActionWhenHit instanceof PauseOnHitCount,
+            bpRecipie => this.addBPRecipie(bpRecipie as BPRecipieInSource<PauseOnHitCount>));
         this._dependencies.subscriberForAskForInformationAboutPaused(paused => this.askForInformationAboutPaused(paused));
     }
 
-    private async addBPRecipie(bpRecipie: BPRecipieInSource<BreakOnHitCount>): Promise<void> {
+    private async addBPRecipie(bpRecipie: BPRecipieInSource<PauseOnHitCount>): Promise<void> {
         const underlyingBPRecipie = bpRecipie.withAlwaysBreakAction();
         const shouldPauseCondition = new HitCountConditionParser(bpRecipie.bpActionWhenHit.pauseOnHitCondition).parse();
         this._dependencies.addBPRecipie(underlyingBPRecipie);

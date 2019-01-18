@@ -8,38 +8,37 @@ import { BPRecipie } from './bpRecipie';
 import { printArray } from '../../collections/printting';
 import { IResourceIdentifier } from '../sources/resourceIdentifier';
 
-export class BPRecipiesCommonLogic<TResource extends ILoadedSource | ISource> {
-    constructor(public readonly resource: TResource, public readonly breakpoints: BPRecipie<TResource>[]) {
+/**
+ * These classes are used to handle all the set of breakpoints for a single file as a unit, and be able to resolve them all together
+ */
+export class BaseBPRecipies<TResource extends ILoadedSource | ISource> {
+    constructor(public readonly source: TResource, public readonly breakpoints: BPRecipie<TResource>[]) {
         this.breakpoints.forEach(breakpoint => {
-            const bpResource = breakpoint.location.resource;
-            if (!(<any>bpResource).isEquivalentTo(this.resource)) { // TODO: Figure out a way to remove this any
-                throw new Error(`Expected all the breakpoints to have source ${resource} yet the breakpoint ${breakpoint} had ${bpResource} as it's source`);
+            const bpResource: TResource = breakpoint.location.resource;
+            if (!(<any>bpResource).isEquivalentTo(this.source)) { // TODO: Figure out a way to remove this any
+                throw new Error(`Expected all the breakpoints to have source ${source} yet the breakpoint ${breakpoint} had ${bpResource} as it's source`);
             }
         });
     }
 
     public toString(): string {
-        return printArray(`Bps @ ${this.resource}`, this.breakpoints);
+        return printArray(`BPs @ ${this.source}`, this.breakpoints);
     }
 }
 
-export class BPRecipiesInLoadedSource extends BPRecipiesCommonLogic<ILoadedSource> {
-    public get source(): ILoadedSource {
-        return this.resource;
-    }
-}
-
-export class BPRecipiesInUnresolvedSource extends BPRecipiesCommonLogic<ISource> {
-    public tryGettingBPsInLoadedSource<R>(ifSuccesfulDo: (desiredBPsInLoadedSource: BPRecipiesInLoadedSource) => R, ifFaileDo: () => R): R {
-        return this.resource.tryResolving(
+export class BPRecipiesInSource extends BaseBPRecipies<ISource> {
+    public tryResolving<R>(ifSuccesfulDo: (desiredBPsInLoadedSource: BPRecipiesInLoadedSource) => R, ifFaileDo: () => R): R {
+        return this.source.tryResolving(
             loadedSource => {
-                const loadedSourceBPs = this.breakpoints.map(breakpoint => breakpoint.resolvedToLoadedSource());
+                const loadedSourceBPs = this.breakpoints.map(breakpoint => breakpoint.resolvedWithLoadedSource(loadedSource));
                 return ifSuccesfulDo(new BPRecipiesInLoadedSource(loadedSource, loadedSourceBPs));
             },
             ifFaileDo);
     }
 
     public get requestedSourcePath(): IResourceIdentifier {
-        return this.resource.sourceIdentifier;
+        return this.source.sourceIdentifier;
     }
 }
+
+export class BPRecipiesInLoadedSource extends BaseBPRecipies<ILoadedSource> { }

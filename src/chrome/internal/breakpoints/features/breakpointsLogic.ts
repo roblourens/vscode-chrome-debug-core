@@ -2,32 +2,30 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IBPRecipie } from './bpRecipie';
-import { ITelemetryPropertyCollector, IComponent, ConnectedCDAConfiguration } from '../../..';
-import { ScriptOrSourceOrURLOrURLRegexp } from '../locations/location';
-import { BPRecipiesInUnresolvedSource, BPRecipiesInLoadedSource } from './bpRecipies';
-import { Breakpoint } from './breakpoint';
-import { ReAddBPsWhenSourceIsLoaded, IEventsConsumedByReAddBPsWhenSourceIsLoaded } from './features/reAddBPsWhenSourceIsLoaded';
-import { asyncMap } from '../../collections/async';
-import { IBPRecipieStatus } from './bpRecipieStatus';
-import { ClientCurrentBPRecipiesRegistry } from './clientCurrentBPRecipiesRegistry';
-import { BreakpointsRegistry } from './breakpointsRegistry';
+import { IBPRecipie } from '../bpRecipie';
+import { ITelemetryPropertyCollector, IComponent, ConnectedCDAConfiguration } from '../../../..';
+import { BPRecipiesInSource, BPRecipiesInLoadedSource } from '../bpRecipies';
+import { ReAddBPsWhenSourceIsLoaded, IEventsConsumedByReAddBPsWhenSourceIsLoaded } from './reAddBPsWhenSourceIsLoaded';
+import { asyncMap } from '../../../collections/async';
+import { IBPRecipieStatus } from '../bpRecipieStatus';
+import { ClientCurrentBPRecipiesRegistry } from '../registries/clientCurrentBPRecipiesRegistry';
+import { BreakpointsRegistry } from '../registries/breakpointsRegistry';
 import { BPRecipieAtLoadedSourceLogic } from './bpRecipieAtLoadedSourceLogic';
-import { RemoveProperty } from '../../../typeUtils';
-import { IEventsToClientReporter } from '../../client/eventSender';
-import { PauseScriptLoadsToSetBPs, IPauseScriptLoadsToSetBPsDependencies } from './features/pauseScriptLoadsToSetBPs';
+import { RemoveProperty } from '../../../../typeUtils';
+import { IEventsToClientReporter } from '../../../client/eventSender';
+import { PauseScriptLoadsToSetBPs, IPauseScriptLoadsToSetBPsDependencies } from './pauseScriptLoadsToSetBPs';
 import { inject, injectable } from 'inversify';
-import { TYPES } from '../../dependencyInjection.ts/types';
-import { IDebuggeeBreakpoints } from '../../cdtpDebuggee/features/cdtpDebuggeeBreakpoints';
+import { TYPES } from '../../../dependencyInjection.ts/types';
+import { IDebuggeeBreakpoints } from '../../../cdtpDebuggee/features/cdtpDebuggeeBreakpoints';
 import { BPRsDeltaInRequestedSource } from './bpsDeltaCalculator';
-import { CDTPBreakpoint } from '../../cdtpDebuggee/cdtpPrimitives';
-import { ISource } from '../sources/source';
+import { CDTPBreakpoint } from '../../../cdtpDebuggee/cdtpPrimitives';
+import { ISource } from '../../sources/source';
 
 export interface InternalDependencies extends
     IEventsConsumedByReAddBPsWhenSourceIsLoaded,
     IPauseScriptLoadsToSetBPsDependencies {
 
-    onAsyncBreakpointResolved(listener: (params: Breakpoint<ScriptOrSourceOrURLOrURLRegexp>) => void): void;
+    onAsyncBreakpointResolved(listener: (params: CDTPBreakpoint) => void): void;
 }
 
 export type EventsConsumedByBreakpointsLogic = RemoveProperty<InternalDependencies,
@@ -51,15 +49,15 @@ export class BreakpointsLogic implements IComponent {
         this._eventsToClientReporter.sendBPStatusChanged({ reason: 'changed', bpRecipieStatus });
     }
 
-    public async updateBreakpointsForFile(requestedBPs: BPRecipiesInUnresolvedSource, _?: ITelemetryPropertyCollector): Promise<IBPRecipieStatus[]> {
+    public async updateBreakpointsForFile(requestedBPs: BPRecipiesInSource, _?: ITelemetryPropertyCollector): Promise<IBPRecipieStatus[]> {
         const bpsDelta = this._clientBreakpointsRegistry.updateBPRecipiesAndCalculateDelta(requestedBPs);
-        const requestedBPsToAdd = new BPRecipiesInUnresolvedSource(bpsDelta.resource, bpsDelta.requestedToAdd);
+        const requestedBPsToAdd = new BPRecipiesInSource(bpsDelta.resource, bpsDelta.requestedToAdd);
         bpsDelta.requestedToAdd.forEach(requestedBP => this._breakpointRegistry.registerBPRecipie(requestedBP));
 
-        await requestedBPsToAdd.tryGettingBPsInLoadedSource(
+        await requestedBPsToAdd.tryResolving(
             async requestedBPsToAddInLoadedSources => {
                 // Match desired breakpoints to existing breakpoints
-                if (requestedBPsToAddInLoadedSources.resource.doesScriptHasUrl()) {
+                if (requestedBPsToAddInLoadedSources.source.doesScriptHasUrl()) {
                     await this.addNewBreakpointsForFile(requestedBPsToAddInLoadedSources);
                     await this.removeDeletedBreakpointsFromFile(bpsDelta);
                 } else {
@@ -70,7 +68,7 @@ export class BreakpointsLogic implements IComponent {
             },
             () => {
                 const existingUnbindedBPs = bpsDelta.existingToLeaveAsIs.filter(bp => !this._breakpointRegistry.getStatusOfBPRecipie(bp).isVerified());
-                const requestedBPsPendingToAdd = new BPRecipiesInUnresolvedSource(bpsDelta.resource, bpsDelta.requestedToAdd.concat(existingUnbindedBPs));
+                const requestedBPsPendingToAdd = new BPRecipiesInSource(bpsDelta.resource, bpsDelta.requestedToAdd.concat(existingUnbindedBPs));
                 if (this._isBpsWhileLoadingEnable) {
                     this._bpsWhileLoadingLogic.enableIfNeccesary();
                 }

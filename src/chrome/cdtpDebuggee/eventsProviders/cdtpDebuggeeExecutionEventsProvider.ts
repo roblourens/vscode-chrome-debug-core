@@ -6,7 +6,6 @@ import { CDTPEventsEmitterDiagnosticsModule } from '../infrastructure/cdtpDiagno
 import { asyncMap } from '../../collections/async';
 import { CDTPStackTraceParser } from '../protocolParsers/cdtpStackTraceParser';
 import { adaptToSinglIntoToMulti } from '../../../utils';
-import { AnyBPRecipie } from '../../internal/breakpoints/bpRecipie';
 import { CDTPBreakpointIdsRegistry } from '../registries/cdtpBreakpointIdsRegistry';
 import { ScriptCallFrame, CodeFlowFrame } from '../../internal/stackTraces/callFrame';
 import { asyncUndefinedOnFailure } from '../../utils/failures';
@@ -20,6 +19,7 @@ import { CodeFlowStackTrace } from '../../internal/stackTraces/codeFlowStackTrac
 import { CDTPScriptsRegistry } from '../registries/cdtpScriptsRegistry';
 import { CDTPCallFrameRegistry } from '../registries/cdtpCallFrameRegistry';
 import { CDTPDomainsEnabler } from '../infrastructure/cdtpDomainsEnabler';
+import { CDTPBPRecipie } from '../cdtpPrimitives';
 
 export type PauseEventReason = 'XHR' | 'DOM' | 'EventListener' | 'exception' | 'assert' | 'debugCommand' | 'promiseRejection' | 'OOM' | 'other' | 'ambiguous';
 
@@ -28,7 +28,7 @@ export class PausedEvent {
         public readonly callFrames: ScriptCallFrame[],
         public readonly reason: PauseEventReason,
         public readonly data: any,
-        public readonly hitBreakpoints: AnyBPRecipie[],
+        public readonly hitBreakpoints: CDTPBPRecipie[],
         public readonly asyncStackTrace: CodeFlowStackTrace | undefined,
         public readonly asyncStackTraceId: CDTP.Runtime.StackTraceId | undefined,
         public readonly asyncCallStackTraceId: CDTP.Runtime.StackTraceId | undefined) { }
@@ -74,7 +74,7 @@ export class CDTDebuggeeExecutionEventsProvider extends CDTPEventsEmitterDiagnos
         super(domainsEnabler);
     }
 
-    private getBPFromID(hitBreakpoint: CDTP.Debugger.BreakpointId): AnyBPRecipie {
+    private getBPFromID(hitBreakpoint: CDTP.Debugger.BreakpointId): CDTPBPRecipie {
         return this._breakpointIdRegistry.getRecipieByBreakpointId(hitBreakpoint);
     }
 

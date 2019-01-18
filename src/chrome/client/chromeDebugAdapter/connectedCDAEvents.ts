@@ -4,7 +4,7 @@
 
  import { IEventsConsumedByStackTrace } from '../../internal/stackTraces/stackTracesLogic';
 import { IEventsConsumedBySkipFilesLogic } from '../../internal/features/skipFiles';
-import { EventsConsumedByBreakpointsLogic } from '../../internal/breakpoints/breakpointsLogic';
+import { EventsConsumedByBreakpointsLogic } from '../../internal/breakpoints/features/breakpointsLogic';
 import { ICommunicator } from '../../communication/communicator';
 import { Internal } from '../../communication/internalChannels';
 import { Target } from '../../communication/targetChannels';

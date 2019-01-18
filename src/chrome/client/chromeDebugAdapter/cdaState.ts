@@ -7,7 +7,7 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { PromiseOrNot } from '../../utils/promises';
 import { ChromeDebugLogic } from '../../chromeDebugAdapter';
 
-export abstract class UnconnectedCDACommonLogic implements IDebugAdapterState {
+export abstract class BaseUnconnectedCDA implements IDebugAdapterState {
     public abstract chromeDebugAdapter(): ChromeDebugLogic;
 
     public initialize(_args: DebugProtocol.InitializeRequestArguments, _telemetryPropertyCollector?: ITelemetryPropertyCollector, _requestSeq?: number): Promise<{capabilities: DebugProtocol.Capabilities, newState: IDebugAdapterState}> {

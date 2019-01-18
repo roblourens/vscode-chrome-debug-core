@@ -2,39 +2,41 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { LocationInScript, ScriptOrSourceOrURLOrURLRegexp } from '../locations/location';
+import { LocationInScript, LocationInLoadedSource } from '../locations/location';
 import { IBPRecipie } from './bpRecipie';
-import { ILoadedSource } from '../sources/loadedSource';
 import { IScript } from '../scripts/script';
-import { IURL } from '../sources/resourceIdentifier';
-import { CDTPScriptUrl } from '../sources/resourceIdentifierSubtypes';
 import { URLRegexp } from '../locations/subtypes';
+import { IResourceIdentifier } from '../sources/resourceIdentifier';
+import { CDTPScriptUrl } from '../sources/resourceIdentifierSubtypes';
+import { CDTPSupportedResources } from '../../cdtpDebuggee/cdtpPrimitives';
+import { ISource } from '../sources/source';
 
-// Should we rename this to ActionPoint? Given that it can be a LogPoint too?
-export interface IBreakpoint<TResource extends ScriptOrSourceOrURLOrURLRegexp> {
+export type BPPossibleResources = IScript | ISource | URLRegexp | IResourceIdentifier<CDTPScriptUrl>;
+export type ActualLocation<TResource> =
+    TResource extends IScript ? LocationInScript :
+    TResource extends URLRegexp ? LocationInScript :
+    TResource extends IResourceIdentifier<CDTPScriptUrl> ? LocationInScript :
+    TResource extends ISource ? LocationInLoadedSource :
+    LocationInScript;
+
+/// We use the breakpoint class when the debugger actually configures a file to stop (or do something) at a certain place under certain conditions
+export interface IBreakpoint<TResource extends BPPossibleResources> {
     readonly recipie: IBPRecipie<TResource>;
-    readonly actualLocation: LocationInScript;
+    readonly actualLocation: ActualLocation<TResource>;
 }
 
-export class Breakpoint<TResource extends ScriptOrSourceOrURLOrURLRegexp> implements IBreakpoint<TResource>{
+export abstract class BaseBreakpoint<TResource extends BPPossibleResources> implements IBreakpoint<TResource>{
     public toString(): string {
         return `${this.recipie} actual location is ${this.actualLocation}`;
     }
 
-    constructor(public readonly recipie: IBPRecipie<TResource>, public readonly actualLocation: LocationInScript) { }
+    constructor(public readonly recipie: IBPRecipie<TResource>, public readonly actualLocation: ActualLocation<TResource>) { }
 }
 
-export class BreakpointInLoadedSource extends Breakpoint<ILoadedSource> { }
+export class MappableBreakpoint<TResource extends CDTPSupportedResources> extends BaseBreakpoint<TResource> {
+    public mappedToSource(): BreakpointInSource {
+        return new BreakpointInSource(this.recipie.unmappedBPRecipie, this.actualLocation.mappedToSource());
+    }
+}
 
-export class BreakpointInScript extends Breakpoint<IScript> { }
-
-export class BreakpointInUrl extends Breakpoint<IURL<CDTPScriptUrl>> { }
-
-export class BreakpointInUrlRegexp extends Breakpoint<URLRegexp> { }
-
-// export type Breakpoint<TResource> =
-//     TResource extends ILoadedSource ? BreakpointInLoadedSource :
-//     TResource extends IScript ? BreakpointInScript :
-//     TResource extends IResourceIdentifier ? BreakpointInUrl :
-//     TResource extends URLRegexp ? BreakpointInUrlRegexp :
-//     never;
+export class BreakpointInSource extends BaseBreakpoint<ISource> { }

@@ -3,13 +3,13 @@
  *--------------------------------------------------------*/
 
 import { ILoadedSource } from '../internal/sources/loadedSource';
-import { BPRecipieInSource } from '../internal/breakpoints/bpRecipie';
+import { BPRecipieInSource } from '../internal/breakpoints/bpRecipieInSource';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { SourcesLogic } from '../internal/sources/sourcesLogic';
 import { Position, LocationInSource } from '../internal/locations/location';
 import { LineColTransformer } from '../../transformers/lineNumberTransformer';
-import { BPRecipiesInUnresolvedSource } from '../internal/breakpoints/bpRecipies';
-import { IBPActionWhenHit, AlwaysBreak, ConditionalBreak } from '../internal/breakpoints/bpActionWhenHit';
+import { BPRecipiesInSource } from '../internal/breakpoints/bpRecipies';
+import { IBPActionWhenHit, AlwaysPause, ConditionalPause } from '../internal/breakpoints/bpActionWhenHit';
 import { HandlesRegistry } from './handlesRegistry';
 import { createLineNumber, createColumnNumber } from '../internal/locations/subtypes';
 import { parseResourceIdentifier } from '../internal/sources/resourceIdentifier';
@@ -60,10 +60,10 @@ export class ClientToInternal {
         }
     }
 
-    public toBPRecipies(args: DebugProtocol.SetBreakpointsArguments): BPRecipiesInUnresolvedSource {
+    public toBPRecipies(args: DebugProtocol.SetBreakpointsArguments): BPRecipiesInSource {
         const source = this.toSource(args.source);
         const breakpoints = args.breakpoints.map(breakpoint => this.toBPRecipie(source, breakpoint));
-        return new BPRecipiesInUnresolvedSource(source, breakpoints);
+        return new BPRecipiesInSource(source, breakpoints);
     }
 
     public toBPRecipie(source: ISource, clientBreakpoint: DebugProtocol.SourceBreakpoint): BPRecipieInSource {
@@ -84,14 +84,14 @@ export class ClientToInternal {
         howManyDefined += actionWhenHit.hitCondition ? 1 : 0;
         howManyDefined += actionWhenHit.logMessage ? 1 : 0;
         if (howManyDefined === 0) {
-            return new AlwaysBreak();
+            return new AlwaysPause();
         } else if (howManyDefined === 1) {
             if (actionWhenHit.condition) {
-                return new ConditionalBreak(actionWhenHit.condition);
+                return new ConditionalPause(actionWhenHit.condition);
             } else if (actionWhenHit.hitCondition) {
-                return new ConditionalBreak(actionWhenHit.hitCondition);
+                return new ConditionalPause(actionWhenHit.hitCondition);
             } else if (actionWhenHit.logMessage) {
-                return new ConditionalBreak(actionWhenHit.logMessage);
+                return new ConditionalPause(actionWhenHit.logMessage);
             } else {
                 throw new Error(`Couldn't parse the desired action when hit for the breakpoint: 'condition' (${actionWhenHit.condition}), 'hitCondition' (${actionWhenHit.hitCondition}) or 'logMessage' (${actionWhenHit.logMessage})`);
             }

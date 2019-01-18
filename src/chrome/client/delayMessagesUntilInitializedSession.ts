@@ -4,9 +4,9 @@
 
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { InitializedEvent } from 'vscode-debugadapter';
-import { WrappedSessionCommonLogic } from './session';
+import { BaseWrappedSession } from './session';
 
-export class DelayMessagesUntilInitializedSession extends WrappedSessionCommonLogic {
+export class DelayMessagesUntilInitializedSession extends BaseWrappedSession {
     private _hasSentInitializedMessage = false;
     private _eventsWaitingInitialization: DebugProtocol.Event[] = [];
 

@@ -5,7 +5,7 @@
 import { asyncMap } from '../../../collections/async';
 import { ILoadedSource } from '../../sources/loadedSource';
 import { IComponent } from '../../features/feature';
-import { LocationInScript, ScriptOrSourceOrURLOrURLRegexp } from '../../locations/location';
+import { LocationInScript } from '../../locations/location';
 import { IBreakpoint } from '../breakpoint';
 import { NotifyStoppedCommonLogic, ResumeCommonLogic, InformationAboutPausedProvider } from '../../features/takeProperActionOnPausedEvent';
 import { ReasonType } from '../../../stoppedEvent';
@@ -15,17 +15,18 @@ import { TYPES } from '../../../dependencyInjection.ts/types';
 import { IEventsToClientReporter } from '../../../client/eventSender';
 import { IDebugeeExecutionController } from '../../../cdtpDebuggee/features/cdtpDebugeeExecutionController';
 import { ReAddBPsWhenSourceIsLoaded } from './reAddBPsWhenSourceIsLoaded';
-import { BreakpointsRegistry } from '../breakpointsRegistry';
+import { BreakpointsRegistry } from '../registries/breakpointsRegistry';
 import { IDOMInstrumentationBreakpoints } from '../../../cdtpDebuggee/features/cdtpDOMInstrumentationBreakpoints';
 import { IDebugeeRuntimeVersionProvider } from '../../../cdtpDebuggee/features/cdtpDebugeeRuntimeVersionProvider';
 import { PausedEvent } from '../../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
+import { IScript } from '../../scripts/script';
 export type Dummy = VoteRelevance; // If we don't do this the .d.ts doesn't include VoteRelevance and the compilation fails. Remove this when the issue disappears...
 
 export interface IPauseScriptLoadsToSetBPsDependencies {
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
     waitUntilUnbindedBPsAreSet(loadedSource: ILoadedSource): Promise<void>;
 
-    tryGettingBreakpointAtLocation(locationInScript: LocationInScript): IBreakpoint<ScriptOrSourceOrURLOrURLRegexp>[];
+    tryGettingBreakpointAtLocation(locationInScript: LocationInScript): IBreakpoint<IScript>[];
     publishGoingToPauseClient(): void;
 }
 

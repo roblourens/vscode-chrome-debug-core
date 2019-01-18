@@ -12,7 +12,7 @@ import * as assert from 'assert';
 import { InternalSourceBreakpoint } from './internalSourceBreakpoint';
 import { Version, parseResourceIdentifier } from '..';
 import { LocationInScript } from './internal/locations/location';
-import { BreakpointsLogic } from './internal/breakpoints/breakpointsLogic';
+import { BreakpointsLogic } from './internal/breakpoints/features/breakpointsLogic';
 import { IResourceIdentifier, newResourceIdentifierMap } from './internal/sources/resourceIdentifier';
 import { PausedEvent } from './cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
 import { IDOMInstrumentationBreakpoints } from './cdtpDebuggee/features/cdtpDOMInstrumentationBreakpoints';

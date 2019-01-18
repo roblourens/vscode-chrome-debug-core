@@ -2,26 +2,26 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { BPRecipieInLoadedSource, BPRecipie } from './bpRecipie';
-import { ConditionalBreak, AlwaysBreak } from './bpActionWhenHit';
-import { IBreakpoint } from './breakpoint';
-import { ScriptOrSourceOrURLOrURLRegexp, LocationInScript, Position } from '../locations/location';
-import { ISource } from '../sources/source';
-import { chromeUtils, logger } from '../../..';
-import { createColumnNumber, createLineNumber } from '../locations/subtypes';
-import { RangeInScript } from '../locations/rangeInScript';
-import { BreakpointsRegistry } from './breakpointsRegistry';
-import { PausedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
-import { VoteRelevance, IVote, Abstained } from '../../communication/collaborativeDecision';
+import { BPRecipie } from '../bpRecipie';
+import { ConditionalPause, AlwaysPause } from '../bpActionWhenHit';
+import { LocationInScript, Position } from '../../locations/location';
+import { ISource } from '../../sources/source';
+import { chromeUtils, logger } from '../../../..';
+import { createColumnNumber, createLineNumber } from '../../locations/subtypes';
+import { RangeInScript } from '../../locations/rangeInScript';
+import { BreakpointsRegistry } from '../registries/breakpointsRegistry';
+import { PausedEvent } from '../../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
+import { VoteRelevance, IVote, Abstained } from '../../../communication/collaborativeDecision';
 import { inject, injectable } from 'inversify';
-import { IDebuggeeBreakpoints } from '../../cdtpDebuggee/features/cdtpDebuggeeBreakpoints';
-import { IBreakpointFeaturesSupport } from '../../cdtpDebuggee/features/cdtpBreakpointFeaturesSupport';
-import { TYPES } from '../../dependencyInjection.ts/types';
-import { InformationAboutPausedProvider, NotifyStoppedCommonLogic } from '../features/takeProperActionOnPausedEvent';
-import { IEventsToClientReporter } from '../../client/eventSender';
-import { ReasonType } from '../../stoppedEvent';
-import { CDTPBreakpoint } from '../../cdtpDebuggee/cdtpPrimitives';
-import { CDTPBPRecipiesRegistry } from './registries/bpRecipieRegistry';
+import { IDebuggeeBreakpoints } from '../../../cdtpDebuggee/features/cdtpDebuggeeBreakpoints';
+import { IBreakpointFeaturesSupport } from '../../../cdtpDebuggee/features/cdtpBreakpointFeaturesSupport';
+import { TYPES } from '../../../dependencyInjection.ts/types';
+import { InformationAboutPausedProvider, NotifyStoppedCommonLogic } from '../../features/takeProperActionOnPausedEvent';
+import { IEventsToClientReporter } from '../../../client/eventSender';
+import { ReasonType } from '../../../stoppedEvent';
+import { CDTPBreakpoint } from '../../../cdtpDebuggee/cdtpPrimitives';
+import { CDTPBPRecipiesRegistry } from '../registries/bpRecipieRegistry';
+import { BPRecipieInLoadedSource } from '../BaseMappedBPRecipie';
 
 export type Dummy = VoteRelevance; // If we don't do this the .d.ts doesn't include VoteRelevance and the compilation fails. Remove this when the issue disappears...
 
@@ -36,7 +36,7 @@ export class HitBreakpoint extends NotifyStoppedCommonLogic {
 }
 
 export interface IBreakpointsInLoadedSource {
-    addBreakpointAtLoadedSource(bpRecipie: BPRecipieInLoadedSource<ConditionalBreak | AlwaysBreak>): Promise<IBreakpoint<ScriptOrSourceOrURLOrURLRegexp>[]>;
+    addBreakpointAtLoadedSource(bpRecipie: BPRecipieInLoadedSource<ConditionalPause | AlwaysPause>): Promise<CDTPBreakpoint[]>;
 }
 
 export interface IBPRecipieAtLoadedSourceLogicDependencies {
@@ -59,7 +59,7 @@ export class BPRecipieAtLoadedSourceLogic implements IBreakpointsInLoadedSource 
         }
     }
 
-    public async addBreakpointAtLoadedSource(bpRecipie: BPRecipieInLoadedSource<ConditionalBreak | AlwaysBreak>): Promise<IBreakpoint<ScriptOrSourceOrURLOrURLRegexp>[]> {
+    public async addBreakpointAtLoadedSource(bpRecipie: BPRecipieInLoadedSource<ConditionalPause | AlwaysPause>): Promise<CDTPBreakpoint[]> {
         const bpInScriptRecipie = bpRecipie.mappedToScript();
         const bestLocation = await this.considerColumnAndSelectBestBPLocation(bpInScriptRecipie.location);
         const bpRecipieInBestLocation = bpInScriptRecipie.withLocationReplaced(bestLocation);

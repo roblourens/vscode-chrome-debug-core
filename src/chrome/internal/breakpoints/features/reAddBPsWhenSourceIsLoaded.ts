@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { BPRecipiesInUnresolvedSource } from '../bpRecipies';
+import { BPRecipiesInSource } from '../bpRecipies';
 import { ILoadedSource } from '../../sources/loadedSource';
 import { asyncMap } from '../../../collections/async';
 import { BPRecipieIsUnbinded, BPRecipieIsBinded } from '../bpRecipieStatus';
@@ -11,7 +11,7 @@ import { IEventsToClientReporter } from '../../../client/eventSender';
 import { IPromiseDefer, promiseDefer } from '../../../../utils';
 import { IComponent } from '../../features/feature';
 import { injectable, inject } from 'inversify';
-import { IBreakpointsInLoadedSource } from '../bpRecipieAtLoadedSourceLogic';
+import { IBreakpointsInLoadedSource } from './bpRecipieAtLoadedSourceLogic';
 import { TYPES } from '../../../dependencyInjection.ts/types';
 
 export interface IEventsConsumedByReAddBPsWhenSourceIsLoaded {
@@ -21,14 +21,14 @@ export interface IEventsConsumedByReAddBPsWhenSourceIsLoaded {
 
 @injectable()
 export class ReAddBPsWhenSourceIsLoaded implements IComponent {
-    private readonly _sourcePathToBPRecipies = newResourceIdentifierMap<BPRecipiesInUnresolvedSource>();
+    private readonly _sourcePathToBPRecipies = newResourceIdentifierMap<BPRecipiesInSource>();
     private readonly _sourcePathToBPsAreSetDefer = newResourceIdentifierMap<IPromiseDefer<void>>();
 
     public install(): void {
         this._dependencies.onLoadedSourceIsAvailable(source => this.onLoadedSourceIsAvailable(source));
     }
 
-    public replaceBPsForSourceWith(requestedBPs: BPRecipiesInUnresolvedSource): void {
+    public replaceBPsForSourceWith(requestedBPs: BPRecipiesInSource): void {
         this._sourcePathToBPRecipies.set(requestedBPs.requestedSourcePath, requestedBPs);
     }
 
@@ -56,9 +56,11 @@ export class ReAddBPsWhenSourceIsLoaded implements IComponent {
             const remainingBPRecipies = new Set(unbindBPRecipies.breakpoints);
             await asyncMap(unbindBPRecipies.breakpoints, async bpRecipie => {
                 try {
-                    const bpStatus = await this._breakpointsInLoadedSource.addBreakpointAtLoadedSource(bpRecipie.resolvedWithLoadedSource(source));
+                    const bpRecepieResolved = bpRecipie.resolvedWithLoadedSource(source);
+                    const bpStatus = await this._breakpointsInLoadedSource.addBreakpointAtLoadedSource(bpRecepieResolved);
+                    const mappedBreakpoints = bpStatus.map(breakpoint => breakpoint.mappedToSource());
                     this._eventsToClientReporter.sendBPStatusChanged({
-                        bpRecipieStatus: new BPRecipieIsBinded(bpRecipie, bpStatus, 'TODO DIEGO'),
+                        bpRecipieStatus: new BPRecipieIsBinded(bpRecipie.unmappedBPRecipie, mappedBreakpoints, 'TODO DIEGO'),
                         reason: 'changed'
                     });
                     remainingBPRecipies.delete(bpRecipie);
@@ -77,7 +79,7 @@ export class ReAddBPsWhenSourceIsLoaded implements IComponent {
             if (remainingBPRecipies.size > 0) {
                 // TODO DIEGO: Add telemetry given that we don't expect this to happen
                 // If we still have BPs recipies that we couldn't add, we put them back in
-                this._sourcePathToBPRecipies.set(source.identifier, new BPRecipiesInUnresolvedSource(unbindBPRecipies.resource, Array.from(remainingBPRecipies)));
+                this._sourcePathToBPRecipies.set(source.identifier, new BPRecipiesInSource(unbindBPRecipies.source, Array.from(remainingBPRecipies)));
             }
 
             if (this._sourcePathToBPRecipies.size === 0) {

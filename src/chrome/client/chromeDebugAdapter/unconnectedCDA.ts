@@ -21,7 +21,7 @@ import { DoNotPauseWhileSteppingSession } from '../doNotPauseWhileSteppingSessio
 import { ConnectedCDAConfiguration } from './cdaConfiguration';
 import { ConnectedCDA } from './connectedCDA';
 import { ConnectedCDAEventsCreator } from './connectedCDAEvents';
-import { UnconnectedCDACommonLogic } from './unconnectedCDACommonLogic';
+import { BaseUnconnectedCDA } from './unconnectedCDACommonLogic';
 import { IDebuggeeLauncher } from '../../debugeeStartup/debugeeLauncher';
 import { IDomainsEnabler } from '../../cdtpDebuggee/infrastructure/cdtpDomainsEnabler';
 
@@ -30,7 +30,7 @@ export enum ScenarioType {
     Attach
 }
 
-export class UnconnectedCDA extends UnconnectedCDACommonLogic implements IDebugAdapterState {
+export class UnconnectedCDA extends BaseUnconnectedCDA implements IDebugAdapterState {
     private readonly _session = new DelayMessagesUntilInitializedSession(new DoNotPauseWhileSteppingSession(this._basicSession));
 
     private configuration: ConnectedCDAConfiguration;

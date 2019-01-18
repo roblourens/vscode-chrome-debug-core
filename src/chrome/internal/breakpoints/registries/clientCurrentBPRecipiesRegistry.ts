@@ -2,18 +2,18 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { BPRecipiesInUnresolvedSource } from './bpRecipies';
+import { BPRecipiesInSource } from '../bpRecipies';
 
-import { BPRsDeltaCalculator, BPRsDeltaInRequestedSource } from './bpsDeltaCalculator';
-import { BPRecipieInSource } from './bpRecipie';
-import { newResourceIdentifierMap, IResourceIdentifier } from '../sources/resourceIdentifier';
+import { BPRsDeltaCalculator, BPRsDeltaInRequestedSource } from '../features/bpsDeltaCalculator';
+import { BPRecipieInSource } from '../bpRecipieInSource';
+import { newResourceIdentifierMap, IResourceIdentifier } from '../../sources/resourceIdentifier';
 
 export class ClientCurrentBPRecipiesRegistry {
     private readonly _requestedSourcePathToCurrentBPRecipies = newResourceIdentifierMap<BPRecipieInSource[]>();
 
-    public updateBPRecipiesAndCalculateDelta(requestedBPRecipies: BPRecipiesInUnresolvedSource): BPRsDeltaInRequestedSource {
+    public updateBPRecipiesAndCalculateDelta(requestedBPRecipies: BPRecipiesInSource): BPRsDeltaInRequestedSource {
         const bpsDelta = this.calculateBPSDeltaFromExistingBPs(requestedBPRecipies);
-        this.registerCurrentBPRecipies(requestedBPRecipies.resource.sourceIdentifier, bpsDelta.matchesForRequested);
+        this.registerCurrentBPRecipies(requestedBPRecipies.source.sourceIdentifier, bpsDelta.matchesForRequested);
         return bpsDelta;
     }
 
@@ -21,9 +21,9 @@ export class ClientCurrentBPRecipiesRegistry {
         this._requestedSourcePathToCurrentBPRecipies.setAndReplaceIfExist(requestedSourceIdentifier, Array.from(bpRecipies));
     }
 
-    private calculateBPSDeltaFromExistingBPs(requestedBPRecipies: BPRecipiesInUnresolvedSource): BPRsDeltaInRequestedSource {
+    private calculateBPSDeltaFromExistingBPs(requestedBPRecipies: BPRecipiesInSource): BPRsDeltaInRequestedSource {
         const bpRecipiesInSource = this._requestedSourcePathToCurrentBPRecipies.getOrAdd(requestedBPRecipies.requestedSourcePath, () => []);
-        return new BPRsDeltaCalculator(requestedBPRecipies.resource, requestedBPRecipies, bpRecipiesInSource).calculate();
+        return new BPRsDeltaCalculator(requestedBPRecipies.source, requestedBPRecipies, bpRecipiesInSource).calculate();
     }
 
     public toString(): string {

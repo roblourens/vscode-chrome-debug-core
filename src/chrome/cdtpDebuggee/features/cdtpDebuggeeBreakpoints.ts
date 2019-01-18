@@ -2,11 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { BPRecipieInScript, BPRecipieInUrl, BPRecipieInUrlRegexp, BPRecipie, IBPRecipie } from '../../internal/breakpoints/bpRecipie';
-import { AlwaysBreak, ConditionalBreak } from '../../internal/breakpoints/bpActionWhenHit';
-import { BreakpointInScript, BreakpointInUrl, BreakpointInUrlRegexp, Breakpoint } from '../../internal/breakpoints/breakpoint';
+import { BPRecipie, IBPRecipie } from '../../internal/breakpoints/bpRecipie';
 import { RangeInScript } from '../../internal/locations/rangeInScript';
-import { LocationInScript, ScriptOrSourceOrURLOrURLRegexp } from '../../internal/locations/location';
+import { LocationInScript } from '../../internal/locations/location';
 import { Protocol as CDTP } from 'devtools-protocol';
 import { TYPES } from '../../dependencyInjection.ts/types';
 import { inject, injectable } from 'inversify';
@@ -20,22 +18,25 @@ import { Position } from '../../internal/locations/location';
 import { singleOne } from '../../collections/utilities';
 import { CDTPSupportedResources, CDTPSupportedHitActions, CDTPBreakpoint } from '../cdtpPrimitives';
 import { Listeners } from '../../communication/listeners';
+import { IScript } from '../../internal/scripts/script';
+import { IURL, IResourceIdentifier } from '../../internal/sources/resourceIdentifier';
+import { CDTPScriptUrl } from '../../internal/sources/resourceIdentifierSubtypes';
+import { URLRegexp } from '../../internal/locations/subtypes';
+import { MappableBreakpoint, ActualLocation } from '../../internal/breakpoints/breakpoint';
+import { BPRecipieInScript, BPRecipieInUrl, BPRecipieInUrlRegexp } from '../../internal/breakpoints/BaseMappedBPRecipie';
+import { ConditionalPause } from '../../internal/breakpoints/bpActionWhenHit';
 
 type SetBPInCDTPCall<TResource extends CDTPSupportedResources> = (resource: TResource, position: Position, cdtpConditionField: string) => Promise<CDTP.Debugger.SetBreakpointByUrlResponse>;
 export type OnBreakpointResolvedListener = (breakpoint: CDTPBreakpoint) => void;
 
 export interface IDebuggeeBreakpoints {
-    setBreakpoint(bpRecipie: BPRecipieInScript<AlwaysBreak | ConditionalBreak>): Promise<BreakpointInScript>;
-    setBreakpointByUrl(bpRecipie: BPRecipieInUrl<AlwaysBreak | ConditionalBreak>): Promise<BreakpointInUrl[]>;
-    setBreakpointByUrlRegexp(bpRecipie: BPRecipieInUrlRegexp<AlwaysBreak | ConditionalBreak>): Promise<BreakpointInUrlRegexp[]>;
+    setBreakpoint(bpRecipie: BPRecipieInScript): Promise<MappableBreakpoint<IScript>>;
+    setBreakpointByUrl(bpRecipie: BPRecipieInUrl): Promise<MappableBreakpoint<IURL<CDTPScriptUrl>>[]>;
+    setBreakpointByUrlRegexp(bpRecipie: BPRecipieInUrlRegexp): Promise<MappableBreakpoint<URLRegexp>[]>;
     getPossibleBreakpoints(rangeInScript: RangeInScript): Promise<LocationInScript[]>;
     removeBreakpoint(bpRecipie: IBPRecipie<CDTPSupportedResources>): Promise<void>;
     onBreakpointResolvedAsync(listener: OnBreakpointResolvedListener): void;
     onBreakpointResolvedSyncOrAsync(listener: OnBreakpointResolvedListener): void;
-}
-
-interface IBreakpointClass<TResource extends CDTPSupportedResources> {
-    new(recipie: IBPRecipie<TResource>, actualLocation: LocationInScript): Breakpoint<TResource>;
 }
 
 @injectable()
@@ -48,7 +49,7 @@ export class CDTPDebuggeeBreakpoints extends CDTPEventsEmitterDiagnosticsModule<
 
     public readonly onBreakpointResolvedAsync = this.addApiListener('breakpointResolved', async (params: CDTP.Debugger.BreakpointResolvedEvent) => {
         const bpRecipie = this._breakpointIdRegistry.getRecipieByBreakpointId(params.breakpointId);
-        const breakpoint = new Breakpoint(bpRecipie,
+        const breakpoint = new MappableBreakpoint(bpRecipie,
             await this.toLocationInScript(params.location));
         return breakpoint;
     });
@@ -63,12 +64,12 @@ export class CDTPDebuggeeBreakpoints extends CDTPEventsEmitterDiagnosticsModule<
         this.onBreakpointResolvedAsync(bp => this.onBreakpointResolvedSyncOrAsyncListeners.call(bp));
     }
 
-    public onBreakpointResolvedSyncOrAsync(listener: (breakpoint: Breakpoint<ScriptOrSourceOrURLOrURLRegexp>) => void): void {
+    public onBreakpointResolvedSyncOrAsync(listener: (breakpoint: MappableBreakpoint<CDTPSupportedResources>) => void): void {
         this.onBreakpointResolvedSyncOrAsyncListeners.add(listener);
     }
 
-    public async setBreakpoint(bpRecipie: BPRecipieInScript<AlwaysBreak | ConditionalBreak>): Promise<BreakpointInScript> {
-        const breakpoints = await this.setBreakpointHelper(BreakpointInScript, bpRecipie, async (_resource, _position, cdtpConditionField) => {
+    public async setBreakpoint(bpRecipie: BPRecipieInScript): Promise<MappableBreakpoint<IScript>> {
+        const breakpoints = await this.setBreakpointHelper(bpRecipie, async (_resource, _position, cdtpConditionField) => {
             const response = await this.api.setBreakpoint({ location: this.toCrdpLocation(bpRecipie.location), condition: cdtpConditionField });
             return { breakpointId: response.breakpointId, locations: [response.actualLocation] };
         });
@@ -76,27 +77,27 @@ export class CDTPDebuggeeBreakpoints extends CDTPEventsEmitterDiagnosticsModule<
         return singleOne(breakpoints);
     }
 
-    public async setBreakpointByUrl(bpRecipie: BPRecipieInUrl<AlwaysBreak | ConditionalBreak>): Promise<BreakpointInUrl[]> {
-        return this.setBreakpointHelper(BreakpointInUrl, bpRecipie, (resource, position, cdtpConditionField) =>
+    public async setBreakpointByUrl(bpRecipie: BPRecipieInUrl): Promise<MappableBreakpoint<IURL<CDTPScriptUrl>>[]> {
+        return this.setBreakpointHelper(bpRecipie, (resource, position, cdtpConditionField) =>
             this.api.setBreakpointByUrl({
                 url: resource.textRepresentation, lineNumber: position.lineNumber,
                 columnNumber: position.columnNumber, condition: cdtpConditionField
             }));
     }
 
-    public async setBreakpointByUrlRegexp(bpRecipie: BPRecipieInUrlRegexp<AlwaysBreak | ConditionalBreak>): Promise<BreakpointInUrlRegexp[]> {
-        return this.setBreakpointHelper(BreakpointInUrlRegexp, bpRecipie, (resource, position, cdtpConditionField) =>
+    public async setBreakpointByUrlRegexp(bpRecipie: BPRecipieInUrlRegexp): Promise<MappableBreakpoint<URLRegexp>[]> {
+        return this.setBreakpointHelper(bpRecipie, (resource, position, cdtpConditionField) =>
             this.api.setBreakpointByUrl({
                 urlRegex: resource, lineNumber: position.lineNumber,
                 columnNumber: position.columnNumber, condition: cdtpConditionField
             }));
     }
 
-    private async setBreakpointHelper<TResource extends CDTPSupportedResources, TBPActionWhenHit extends CDTPSupportedHitActions>
-        (classToUse: IBreakpointClass<TResource>, bpRecipie: IBPRecipie<TResource, TBPActionWhenHit>,
-            setBPInCDTPCall: SetBPInCDTPCall<TResource>): Promise<Breakpoint<TResource>[]> {
+    private async setBreakpointHelper<TResource extends IScript | IResourceIdentifier<CDTPScriptUrl> | URLRegexp, TBPActionWhenHit extends CDTPSupportedHitActions>
+        (bpRecipie: IBPRecipie<TResource, TBPActionWhenHit>,
+            setBPInCDTPCall: SetBPInCDTPCall<TResource>): Promise<MappableBreakpoint<TResource>[]> {
         const cdtpConditionField = this.getCDTPConditionField(bpRecipie);
-        const resource = <TResource>bpRecipie.location.resource; // TODO: Figure out why the <TResource> is needed and remove it
+        const resource: TResource = bpRecipie.location.resource; // TODO: Figure out why the <TResource> is needed and remove it
         const position = bpRecipie.location.position;
 
         const response = await setBPInCDTPCall(resource, position, cdtpConditionField);
@@ -107,7 +108,7 @@ export class CDTPDebuggeeBreakpoints extends CDTPEventsEmitterDiagnosticsModule<
          */
         this._breakpointIdRegistry.registerRecipie(response.breakpointId, bpRecipie);
 
-        const breakpoints = await Promise.all(response.locations.map(cdtpLocation => this.toBreakpoinInResource(classToUse, bpRecipie, cdtpLocation)));
+        const breakpoints = await Promise.all(response.locations.map(cdtpLocation => this.toBreakpoinInResource(bpRecipie, cdtpLocation)));
         breakpoints.forEach(bp => this.onBreakpointResolvedSyncOrAsyncListeners.call(bp));
         return breakpoints;
     }
@@ -126,16 +127,14 @@ export class CDTPDebuggeeBreakpoints extends CDTPEventsEmitterDiagnosticsModule<
         this._breakpointIdRegistry.unregisterRecipie(bpRecipie);
     }
 
-    private getCDTPConditionField(bpRecipie: IBPRecipie<CDTPSupportedResources, AlwaysBreak | ConditionalBreak>): string | undefined {
-        return bpRecipie.bpActionWhenHit.basedOnTypeDo({
-            alwaysBreak: () => undefined,
-            conditionalBreak: conditionalBreak => conditionalBreak.expressionOfWhenToBreak
-        });
+    private getCDTPConditionField(bpRecipie: IBPRecipie<CDTPSupportedResources, CDTPSupportedHitActions>): string | undefined {
+        return bpRecipie.bpActionWhenHit instanceof ConditionalPause
+            ? bpRecipie.bpActionWhenHit.expressionOfWhenToPause
+            : undefined;
     }
 
-    private async toBreakpoinInResource<TResource extends CDTPSupportedResources>(classToUse: IBreakpointClass<TResource>,
-        bpRecipie: IBPRecipie<TResource>, actualLocation: CDTP.Debugger.Location): Promise<Breakpoint<TResource>> {
-        const breakpoint = new classToUse(bpRecipie, await this.toLocationInScript(actualLocation));
+    private async toBreakpoinInResource<TResource extends CDTPSupportedResources>(bpRecipie: IBPRecipie<TResource>, actualLocation: CDTP.Debugger.Location): Promise<MappableBreakpoint<TResource>> {
+        const breakpoint = new MappableBreakpoint<TResource>(bpRecipie, <ActualLocation<TResource>>await this.toLocationInScript(actualLocation));
         return breakpoint;
     }
 

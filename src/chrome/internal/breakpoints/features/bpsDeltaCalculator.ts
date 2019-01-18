@@ -2,12 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { BPRecipieInSource, BPRecipie } from './bpRecipie';
-import { BPRecipiesInUnresolvedSource } from './bpRecipies';
-import { ISource } from '../sources/source';
-import { ILoadedSource } from '../sources/loadedSource';
-import { IBPActionWhenHit } from './bpActionWhenHit';
-import { SetUsingProjection } from '../../collections/setUsingProjection';
+import { BPRecipie } from '../bpRecipie';
+import { BPRecipieInSource } from '../bpRecipieInSource';
+import { BPRecipiesInSource } from '../bpRecipies';
+import { ISource } from '../../sources/source';
+import { ILoadedSource } from '../../sources/loadedSource';
+import { IBPActionWhenHit } from '../bpActionWhenHit';
+import { SetUsingProjection } from '../../../collections/setUsingProjection';
 import assert = require('assert');
 
 function canonicalizeBPLocation(breakpoint: BPRecipieInSource): string {
@@ -19,7 +20,7 @@ export class BPRsDeltaCalculator {
 
     constructor(
         public readonly requestedSourceIdentifier: ISource,
-        private readonly _requestedBPRecipies: BPRecipiesInUnresolvedSource,
+        private readonly _requestedBPRecipies: BPRecipiesInSource,
         currentBPRecipies: BPRecipieInSource[]) {
         this._currentBPRecipies = new SetUsingProjection(canonicalizeBPLocation, currentBPRecipies);
     }

@@ -9,7 +9,7 @@ import { asyncAdaptToSinglIntoToMulti } from '../../utils';
 import { ILoadedSource, ILoadedSourceTreeNode } from '../internal/sources/loadedSource';
 import { LocationInLoadedSource } from '../internal/locations/location';
 import { RemoveProperty } from '../../typeUtils';
-import { IBPRecipieStatus } from '../internal/breakpoints/bpRecipieStatus';
+import { IBPRecipieStatus, BPRecipieIsBinded } from '../internal/breakpoints/bpRecipieStatus';
 import { IBPRecipie } from '../internal/breakpoints/bpRecipie';
 import { HandlesRegistry } from './handlesRegistry';
 import { IExceptionInformation } from '../internal/exceptions/pauseOnException';
@@ -19,6 +19,8 @@ import { TYPES } from '../dependencyInjection.ts/types';
 import { Source } from 'vscode-debugadapter';
 import { IStackTracePresentationRow, StackTraceLabel } from '../internal/stackTraces/stackTracePresentationRow';
 import { CallFramePresentation } from '../internal/stackTraces/callFramePresentation';
+import { asyncMap } from '../collections/async';
+import { ISource } from '../internal/sources/source';
 
 interface IClientLocationInSource {
     source: DebugProtocol.Source;
@@ -28,9 +30,12 @@ interface IClientLocationInSource {
 
 @injectable()
 export class InternalToClient {
-    public readonly toStackFrames = asyncAdaptToSinglIntoToMulti(this, this.toStackFrame);
     public readonly toSourceTrees = asyncAdaptToSinglIntoToMulti(this, this.toSourceTree);
     public readonly toBPRecipiesStatus = asyncAdaptToSinglIntoToMulti(this, this.toBPRecipieStatus);
+
+    public toStackFrames(rows: IStackTracePresentationRow[]): Promise<DebugProtocol.StackFrame[]> {
+        return asyncMap(rows, row => this.toStackFrame(row));
+    }
 
     public getFrameId(stackFrame: IStackTracePresentationRow): number {
         return this._handlesRegistry.frames.getIdByObject(stackFrame);
@@ -90,19 +95,19 @@ export class InternalToClient {
 
     public async toBPRecipieStatus(bpRecipieStatus: IBPRecipieStatus): Promise<DebugProtocol.Breakpoint> {
         const clientStatus = {
-            id: this.toBreakpointId(bpRecipieStatus.recipie),
+            id: this.toBreakpointId(bpRecipieStatus.recipie.unmappedBPRecipie),
             verified: bpRecipieStatus.isVerified(),
             message: bpRecipieStatus.statusDescription
         };
 
-        if (bpRecipieStatus.isBinded()) {
+        if (bpRecipieStatus instanceof BPRecipieIsBinded) {
             await this.toLocationInSource(bpRecipieStatus.actualLocationInSource, clientStatus);
         }
 
         return clientStatus;
     }
 
-    public toBreakpointId(recipie: IBPRecipie<ILoadedSource<string>>): number {
+    public toBreakpointId(recipie: IBPRecipie<ISource>): number {
         return this._handlesRegistry.breakpoints.getIdByObject(recipie);
     }
 

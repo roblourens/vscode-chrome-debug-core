@@ -11,12 +11,23 @@ import { IEquivalenceComparable } from '../../utils/equivalence';
  * VS Code debug protocol sends breakpoint requests with a path?: string; or sourceReference?: number; Before we can use the path, we need to wait for the related script to be loaded so we can match it with a script id.
  * This set of classes will let us represent the information we get from either a path or a sourceReference, and then let us try to resolve it to a script id when possible.
  */
+const ImplementsSource = Symbol();
 export interface ISource extends IEquivalenceComparable {
+    [ImplementsSource]: void;
+
     readonly sourceIdentifier: IResourceIdentifier;
     tryResolving<R>(succesfulAction: (resolvedSource: ILoadedSource) => R, failedAction: (sourceIdentifier: IResourceIdentifier) => R): R;
+
+    isEquivalentTo(right: ISource): boolean;
 }
 
-abstract class SourceCommonLogic implements ISource {
+export function isSource(object: object): object is ISource {
+    return object.hasOwnProperty(ImplementsSource);
+}
+
+abstract class BaseSource implements ISource {
+    [ImplementsSource]: void;
+
     public abstract tryResolving<R>(succesfulAction: (loadedSource: ILoadedSource) => R, failedAction: (identifier: IResourceIdentifier) => R): R;
     public abstract get sourceIdentifier(): IResourceIdentifier;
 
@@ -26,7 +37,7 @@ abstract class SourceCommonLogic implements ISource {
 }
 
 // Find the related source by using the source's path
-export class SourceToBeResolvedViaPath extends SourceCommonLogic implements ISource {
+export class SourceToBeResolvedViaPath extends BaseSource implements ISource {
     public tryResolving<R>(succesfulAction: (resolvedSource: ILoadedSource) => R, failedAction: (sourceIdentifier: IResourceIdentifier) => R) {
         return this._sourceResolver.tryResolving(this.sourceIdentifier, succesfulAction, failedAction);
     }
@@ -41,7 +52,7 @@ export class SourceToBeResolvedViaPath extends SourceCommonLogic implements ISou
 }
 
 // This source was already loaded, so we store it in this class
-export class SourceAlreadyResolvedToLoadedSource extends SourceCommonLogic implements ISource {
+export class SourceAlreadyResolvedToLoadedSource extends BaseSource implements ISource {
     public tryResolving<R>(succesfulAction: (resolvedSource: ILoadedSource) => R, _failedAction: (sourceIdentifier: IResourceIdentifier) => R) {
         return succesfulAction(this.loadedSource);
     }

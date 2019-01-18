@@ -2,17 +2,16 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IBPRecipieStatus, BPRecipieIsBinded, BPRecipieIsUnbinded } from './bpRecipieStatus';
-import { ValidatedMultiMap } from '../../collections/validatedMultiMap';
-import { IBPRecipie } from './bpRecipie';
-import { LocationInScript } from '../locations/location';
+import { IBPRecipieStatus, BPRecipieIsBinded, BPRecipieIsUnbinded } from '../bpRecipieStatus';
+import { ValidatedMultiMap } from '../../../collections/validatedMultiMap';
+import { IBPRecipie } from '../bpRecipie';
+import { LocationInScript } from '../../locations/location';
 import { injectable } from 'inversify';
-import { CDTPBreakpoint } from '../../cdtpDebuggee/cdtpPrimitives';
-import { ISource } from '../sources/source';
+import { CDTPBreakpoint } from '../../../cdtpDebuggee/cdtpPrimitives';
+import { ISource } from '../../sources/source';
 
 @injectable()
 export class BreakpointsRegistry {
-    // TODO DIEGO: Figure out how to handle if two breakpoint rules set a breakpoint in the same location so it ends up being the same breakpoint id
     private readonly _unmappedRecipieToBreakpoints = new ValidatedMultiMap<IBPRecipie<ISource>, CDTPBreakpoint>();
 
     public registerBPRecipie(bpRecipie: IBPRecipie<ISource>): void {
@@ -24,9 +23,10 @@ export class BreakpointsRegistry {
     }
 
     public getStatusOfBPRecipie(bpRecipie: IBPRecipie<ISource>): IBPRecipieStatus {
-        const breakpoints = this._unmappedRecipieToBreakpoints.get(bpRecipie);
-        if (breakpoints.size > 0) {
-            return new BPRecipieIsBinded(bpRecipie, Array.from(breakpoints), 'TODO DIEGO');
+        const breakpoints = Array.from(this._unmappedRecipieToBreakpoints.get(bpRecipie));
+        if (breakpoints.length > 0) {
+            const mappedBreakpoints = breakpoints.map(breakpoint => breakpoint.mappedToSource());
+            return new BPRecipieIsBinded(bpRecipie, mappedBreakpoints, 'TODO DIEGO');
         } else {
             return new BPRecipieIsUnbinded(bpRecipie, 'TODO DIEGO');
         }

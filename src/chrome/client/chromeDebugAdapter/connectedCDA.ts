@@ -10,7 +10,7 @@ import { InternalToClient } from '../internalToClient';
 import { IGetLoadedSourcesResponseBody, IDebugAdapterState, PromiseOrNot, ISetBreakpointsResponseBody, IStackTraceResponseBody, IScopesResponseBody, IVariablesResponseBody, ISourceResponseBody, IThreadsResponseBody, IEvaluateResponseBody, IExceptionInfoResponseBody, ILaunchRequestArgs, IAttachRequestArgs } from '../../../debugAdapterInterfaces';
 import { StackTracesLogic } from '../../internal/stackTraces/stackTracesLogic';
 import { SourcesLogic } from '../../internal/sources/sourcesLogic';
-import { BreakpointsLogic } from '../../internal/breakpoints/breakpointsLogic';
+import { BreakpointsLogic } from '../../internal/breakpoints/features/breakpointsLogic';
 import { CDTPScriptsRegistry } from '../../cdtpDebuggee/registries/cdtpScriptsRegistry';
 import { PauseOnExceptionOrRejection } from '../../internal/exceptions/pauseOnException';
 import { Stepping } from '../../internal/stepping/stepping';
