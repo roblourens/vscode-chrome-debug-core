@@ -5,7 +5,7 @@
 import { DebugProtocol } from 'vscode-debugprotocol';
 
 import { IResourceIdentifier } from '../chrome/internal/sources/resourceIdentifier';
-import { StackTracePresentation } from '../chrome/internal/stackTraces/stackTracePresentation';
+import { IStackTracePresentation } from '../chrome/internal/stackTraces/stackTracePresentation';
 import { IComponent } from '../chrome/internal/features/feature';
 import { injectable } from 'inversify';
 
@@ -28,7 +28,7 @@ export class BasePathTransformer implements IComponent {
         return this.getClientPathFromTargetPath(targetPath) || targetPath;
     }
 
-    public stackTraceResponse(_response: StackTracePresentation): void {
+    public stackTraceResponse(_response: IStackTracePresentation): void {
     }
 
     public async fixSource(_source: DebugProtocol.Source): Promise<void> {
