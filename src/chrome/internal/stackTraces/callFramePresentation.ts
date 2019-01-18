@@ -1,8 +1,12 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
+import * as path from 'path';
 import { Location } from '../locations/location';
 import { ILoadedSource } from '../sources/loadedSource';
 import { CodeFlowFrame, ICallFrame, CallFrame } from './callFrame';
-import { StackTracePresentationRow, CallFramePresentationHint } from './stackTracePresentationRow';
-import { formatCallFrameDescription } from './formatCallFrameDescription';
+import { CallFramePresentationHint, IStackTracePresentationRow } from './stackTracePresentationRow';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { IScript } from '../scripts/script';
 
@@ -13,7 +17,7 @@ export interface ICallFramePresentationDetails {
     readonly sourcePresentationHint: SourcePresentationHint;
 }
 
-export class CallFramePresentation implements StackTracePresentationRow {
+export class CallFramePresentation implements IStackTracePresentationRow {
     public get source(): ILoadedSource {
         return this.codeFlow.source;
     }
@@ -38,8 +42,25 @@ export class CallFramePresentation implements StackTracePresentationRow {
         return true;
     }
 
+    /** The clients can requests the stack traces frames descriptions in different formats.
+     * We use this method to create the description for the call frame according to the parameters supplied by the client.
+     */
     public get description(): string {
-        return formatCallFrameDescription(this.callFrame, this._descriptionFormatArgs);
+        const location = this.callFrame.location;
+
+        let formattedDescription = functionDescription(this.callFrame.codeFlow.functionName, location.source.script);
+
+        if (this._descriptionFormatArgs) {
+            if (this._descriptionFormatArgs.module) {
+                formattedDescription += ` [${path.basename(location.source.identifier.textRepresentation)}]`;
+            }
+
+            if (this._descriptionFormatArgs.line) {
+                formattedDescription += ` Line ${location.position.lineNumber}`;
+            }
+        }
+
+        return formattedDescription;
     }
 
     constructor(

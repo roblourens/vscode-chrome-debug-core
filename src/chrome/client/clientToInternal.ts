@@ -13,7 +13,7 @@ import { PauseOnExceptionsStrategy, PauseOnAllExceptions, PauseOnUnhandledExcept
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../dependencyInjection.ts/types';
 import { ISource, SourceAlreadyResolvedToLoadedSource } from '../internal/sources/source';
-import { StackTracePresentationRow } from '../internal/stackTraces/StackTracePresentationRow';
+import { IStackTracePresentationRow } from '../internal/stackTraces/stackTracePresentationRow';
 
 @injectable()
 export class ClientToInternal {
@@ -36,7 +36,7 @@ export class ClientToInternal {
     }
 
     // V1 reseted the frames on an onPaused event. Figure out if that is the right thing to do
-    public getCallFrameById(frameId: number): StackTracePresentationRow {
+    public getCallFrameById(frameId: number): IStackTracePresentationRow {
         return this._handlesRegistry.frames.getObjectById(frameId);
     }
 

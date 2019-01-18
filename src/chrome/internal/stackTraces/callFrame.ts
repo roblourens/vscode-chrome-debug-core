@@ -1,9 +1,12 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { Location } from '../locations/location';
 import { ILoadedSource } from '../sources/loadedSource';
 import { IScript } from '../scripts/script';
 import { Protocol as CDTP } from 'devtools-protocol';
 import { Scope } from './scopes';
-import { integer } from '../../cdtpDebuggee/cdtpPrimitives';
 
 /** CDTP has two types of stack traces:
  * 1. CDTP.Runtime stack traces have only information about which code was executed, but not the state associated with it
@@ -20,7 +23,7 @@ export type ScriptOrLoadedSource = IScript | ILoadedSource;
  */
 export class CodeFlowFrame<TResource extends ScriptOrLoadedSource> {
     constructor(
-        public readonly index: integer,
+        public readonly index: number,
         public readonly functionName: string | undefined,
         public readonly location: Location<TResource>) { }
 
@@ -60,7 +63,7 @@ export type CallFrame<TResource extends ScriptOrLoadedSource> =
     TResource extends IScript ? ScriptCallFrame :
     ICallFrame<never>; // TODO: Figure out how to change this for never
 
-abstract class CallFrameCommonLogic<TResource extends ScriptOrLoadedSource> implements ICallFrame<TResource> {
+abstract class BaseCallFrame<TResource extends ScriptOrLoadedSource> implements ICallFrame<TResource> {
     public abstract get scopeChain(): Scope[];
     public abstract get codeFlow(): CodeFlowFrame<TResource>;
 
@@ -89,7 +92,7 @@ abstract class CallFrameCommonLogic<TResource extends ScriptOrLoadedSource> impl
     }
 }
 
-export class ScriptCallFrame extends CallFrameCommonLogic<IScript> {
+export class ScriptCallFrame extends BaseCallFrame<IScript> {
     constructor(
         public readonly codeFlow: CodeFlowFrame<IScript>,
         public readonly scopeChain: Scope[],
@@ -104,7 +107,13 @@ export class ScriptCallFrame extends CallFrameCommonLogic<IScript> {
     }
 }
 
-export class LoadedSourceCallFrame extends CallFrameCommonLogic<ILoadedSource> {
+export class LoadedSourceCallFrame extends BaseCallFrame<ILoadedSource> {
+    constructor(
+        public readonly unmappedCallFrame: ScriptCallFrame,
+        public readonly codeFlow: CodeFlowFrame<ILoadedSource>) {
+        super();
+    }
+
     public get scopeChain(): Scope[] {
         return this.unmappedCallFrame.scopeChain;
     }
@@ -115,11 +124,5 @@ export class LoadedSourceCallFrame extends CallFrameCommonLogic<ILoadedSource> {
 
     public get returnValue(): CDTP.Runtime.RemoteObject {
         return this.unmappedCallFrame.returnValue;
-    }
-
-    constructor(
-        public readonly unmappedCallFrame: ScriptCallFrame,
-        public readonly codeFlow: CodeFlowFrame<ILoadedSource>) {
-        super();
     }
 }

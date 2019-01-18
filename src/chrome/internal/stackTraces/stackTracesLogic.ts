@@ -6,7 +6,6 @@ import * as errors from '../../../errors';
 import * as nls from 'vscode-nls';
 const localize = nls.loadMessageBundle();
 import { PausedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
-import { StackTracePresentation } from './stackTracePresentation';
 import { CodeFlowStackTrace } from './codeFlowStackTrace';
 import { IScript } from '../scripts/script';
 import { CodeFlowFrame, ScriptCallFrame } from './callFrame';
@@ -19,7 +18,8 @@ import { TYPES } from '../../dependencyInjection.ts/types';
 import { ConnectedCDAConfiguration } from '../../..';
 import { Vote, Abstained } from '../../communication/collaborativeDecision';
 import { IAsyncDebuggingConfigurer } from '../../cdtpDebuggee/features/CDTPAsyncDebuggingConfigurer';
-import { StackTracePresentationRow, StackTraceLabel, CallFramePresentationHint } from './stackTracePresentationRow';
+import { IStackTracePresentationRow, StackTraceLabel, CallFramePresentationHint } from './stackTracePresentationRow';
+import { IStackTracePresentation } from './stackTracePresentation';
 
 export interface EventsConsumedByStackTrace {
     subscriberForAskForInformationAboutPaused(listener: InformationAboutPausedProvider): void;
@@ -49,12 +49,12 @@ export class StackTracesLogic implements IComponent {
         return new Abstained(this);
     }
 
-    public async stackTrace(args: DebugProtocol.StackTraceArguments): Promise<StackTracePresentation> {
+    public async stackTrace(args: DebugProtocol.StackTraceArguments): Promise<IStackTracePresentation> {
         if (!this._currentPauseEvent) {
             return Promise.reject(errors.noCallStackAvailable());
         }
 
-        const syncFames: StackTracePresentationRow[] = await asyncMap(this._currentPauseEvent.callFrames, frame => this.toPresentation(frame, args.format));
+        const syncFames: IStackTracePresentationRow[] = await asyncMap(this._currentPauseEvent.callFrames, frame => this.toPresentation(frame, args.format));
         const asyncStackTrace = this._currentPauseEvent.asyncStackTrace;
         let stackFrames = asyncStackTrace ? syncFames.concat(await this.asyncCallFrames(asyncStackTrace, args.format)) : syncFames;
 
@@ -67,7 +67,7 @@ export class StackTracesLogic implements IComponent {
             stackFrames = stackFrames.slice(0, args.levels);
         }
 
-        const stackTraceResponse: StackTracePresentation = {
+        const stackTraceResponse: IStackTracePresentation = {
             stackFrames,
             totalFrames
         };
@@ -75,8 +75,8 @@ export class StackTracesLogic implements IComponent {
         return stackTraceResponse;
     }
 
-    private async asyncCallFrames(stackTrace: CodeFlowStackTrace, formatArgs?: DebugProtocol.StackFrameFormat): Promise<StackTracePresentationRow[]> {
-        const asyncFrames: StackTracePresentationRow[] = await asyncMap(stackTrace.codeFlowFrames,
+    private async asyncCallFrames(stackTrace: CodeFlowStackTrace, formatArgs?: DebugProtocol.StackFrameFormat): Promise<IStackTracePresentationRow[]> {
+        const asyncFrames: IStackTracePresentationRow[] = await asyncMap(stackTrace.codeFlowFrames,
             frame => this.toPresentation(this.codeFlowToCallFrame(frame), formatArgs));
 
         asyncFrames.unshift(new StackTraceLabel(stackTrace.description));

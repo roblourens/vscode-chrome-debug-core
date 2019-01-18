@@ -2,7 +2,7 @@ import { ILoadedSource } from '../internal/sources/loadedSource';
 import { IBPRecipie } from '../internal/breakpoints/bpRecipie';
 import { BidirectionalMap } from '../collections/bidirectionalMap';
 import { injectable } from 'inversify';
-import { StackTracePresentationRow } from '../internal/stackTraces/stackTracePresentationRow';
+import { IStackTracePresentationRow } from '../internal/stackTraces/stackTracePresentationRow';
 
 export class BidirectionalHandles<T> {
     private readonly _idToObject = new BidirectionalMap<number, T>();
@@ -36,7 +36,7 @@ export class HandlesRegistry {
     // TODO DIEGO: V1 reseted the frames on an onPaused event. Figure out if that is the right thing to do
     // We use different prefixes so it's easier to identify the IDs in the logs...
     public readonly breakpoints = new BidirectionalHandles<IBPRecipie<ILoadedSource<string>>>(888 * prefixMultiplier);
-    public readonly frames = new BidirectionalHandles<StackTracePresentationRow>(123 * prefixMultiplier);
+    public readonly frames = new BidirectionalHandles<IStackTracePresentationRow>(123 * prefixMultiplier);
     public readonly sources = new BidirectionalHandles<ILoadedSource>(555 * prefixMultiplier);
 
     public toString(): string {

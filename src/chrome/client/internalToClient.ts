@@ -13,7 +13,7 @@ import { IFormattedExceptionLineDescription } from '../internal/formattedExcepti
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../dependencyInjection.ts/types';
 import { Source } from 'vscode-debugadapter';
-import { StackTracePresentationRow, StackTraceLabel } from '../internal/stackTraces/StackTracePresentationRow';
+import { IStackTracePresentationRow, StackTraceLabel } from '../internal/stackTraces/stackTracePresentationRow';
 import { CallFramePresentation } from '../internal/stackTraces/callFramePresentation';
 
 interface ClientLocationInSource {
@@ -28,11 +28,11 @@ export class InternalToClient {
     public readonly toSourceTrees = asyncAdaptToSinglIntoToMulti(this, this.toSourceTree);
     public readonly toBPRecipiesStatus = asyncAdaptToSinglIntoToMulti(this, this.toBPRecipieStatus);
 
-    public getFrameId(stackFrame: StackTracePresentationRow): number {
+    public getFrameId(stackFrame: IStackTracePresentationRow): number {
         return this._handlesRegistry.frames.getIdByObject(stackFrame);
     }
 
-    public async toStackFrame(stackFrame: StackTracePresentationRow): Promise<DebugProtocol.StackFrame> {
+    public async toStackFrame(stackFrame: IStackTracePresentationRow): Promise<DebugProtocol.StackFrame> {
         if (stackFrame instanceof CallFramePresentation) {
             const clientStackFrame: RemoveProperty<DebugProtocol.StackFrame, 'line' | 'column'> = {
                 id: this.getFrameId(stackFrame),
