@@ -6,7 +6,7 @@ import { Protocol as CDTP } from 'devtools-protocol';
 
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
-import { Version } from '../../utils/Version';
+import { Version } from '../../utils/version';
 
 export interface IDebugeeRuntimeVersionProvider {
     version(): Promise<Version>;

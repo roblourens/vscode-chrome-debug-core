@@ -36,11 +36,11 @@ import { IDOMInstrumentationBreakpoints, CDTPDOMDebugger } from '../cdtpDebuggee
 import { CDTPBrowserNavigator } from '../cdtpDebuggee/features/cdtpBrowserNavigator';
 import { CDTPLogEventsProvider } from '../cdtpDebuggee/eventsProviders/cdtpLogEventsProvider';
 import { CDTPConsoleEventsProvider } from '../cdtpDebuggee/eventsProviders/cdtpConsoleEventsProvider';
-import { IAsyncDebuggingConfigurer, CDTPAsyncDebuggingConfigurer } from '../cdtpDebuggee/features/CDTPAsyncDebuggingConfigurer';
-import { IScriptSourcesRetriever, CDTPScriptSourcesRetriever } from '../cdtpDebuggee/features/CDTPScriptSourcesRetriever';
+import { IAsyncDebuggingConfigurer, CDTPAsyncDebuggingConfigurer } from '../cdtpDebuggee/features/cdtpAsyncDebuggingConfigurer';
+import { IScriptSourcesRetriever, CDTPScriptSourcesRetriever } from '../cdtpDebuggee/features/cdtpScriptSourcesRetriever';
 import { CDTPDebugeeExecutionController } from '../cdtpDebuggee/features/cdtpDebugeeExecutionController';
-import { CDTPPauseOnExceptionsConfigurer } from '../cdtpDebuggee/features/CDTPPauseOnExceptionsConfigurer';
-import { CDTPDebugeeSteppingController } from '../cdtpDebuggee/features/CDTPDebugeeSteppingController';
+import { CDTPPauseOnExceptionsConfigurer } from '../cdtpDebuggee/features/cdtpPauseOnExceptionsConfigurer';
+import { CDTPDebugeeSteppingController } from '../cdtpDebuggee/features/cdtpDebugeeSteppingController';
 import { CDTPDebugeeRuntimeVersionProvider } from '../cdtpDebuggee/features/cdtpDebugeeRuntimeVersionProvider';
 import { CDTPBlackboxPatternsConfigurer } from '../cdtpDebuggee/features/cdtpBlackboxPatternsConfigurer';
 import { CDTPDomainsEnabler } from '../cdtpDebuggee/infrastructure/cdtpDomainsEnabler';

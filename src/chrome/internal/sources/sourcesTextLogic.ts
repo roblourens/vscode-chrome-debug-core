@@ -8,7 +8,7 @@ import { printIterable } from '../../collections/printting';
 import { IComponent } from '../features/feature';
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../../dependencyInjection.ts/types';
-import { IScriptSourcesRetriever } from '../../cdtpDebuggee/features/CDTPScriptSourcesRetriever';
+import { IScriptSourcesRetriever } from '../../cdtpDebuggee/features/cdtpScriptSourcesRetriever';
 
 @injectable()
 export class SourceTextLogic implements IComponent {

@@ -21,7 +21,7 @@ import { asyncMap } from '../../collections/async';
 import { TYPES } from '../../dependencyInjection.ts/types';
 import { ConnectedCDAConfiguration } from '../../..';
 import { IVote, Abstained } from '../../communication/collaborativeDecision';
-import { IAsyncDebuggingConfigurer } from '../../cdtpDebuggee/features/CDTPAsyncDebuggingConfigurer';
+import { IAsyncDebuggingConfigurer } from '../../cdtpDebuggee/features/cdtpAsyncDebuggingConfigurer';
 import { IStackTracePresentationRow, StackTraceLabel, CallFramePresentationHint } from './stackTracePresentationRow';
 import { IStackTracePresentation } from './stackTracePresentation';
 

@@ -14,7 +14,7 @@ import { TYPES } from '../../dependencyInjection.ts/types';
 import { IEventsToClientReporter } from '../../client/eventSender';
 import { DeleteMeScriptsRegistry } from '../scripts/scriptsRegistry';
 import { PausedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
-import { IPauseOnExceptionsConfigurer } from '../../cdtpDebuggee/features/CDTPPauseOnExceptionsConfigurer';
+import { IPauseOnExceptionsConfigurer } from '../../cdtpDebuggee/features/cdtpPauseOnExceptionsConfigurer';
 
 type ExceptionBreakMode = 'never' | 'always' | 'unhandled' | 'userUnhandled';
 
