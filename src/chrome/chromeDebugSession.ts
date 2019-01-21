@@ -151,32 +151,32 @@ export class ChromeDebugSession extends LoggingDebugSession implements IObservab
         if (AvailableCommands.has(request.command)) {
             const command = request.command as CommandText;
 
-        // We want the request to be non-blocking, so we won't await for reportTelemetry
-        return this.reportTelemetry(`ClientRequest/${request.command}`, async (reportFailure, telemetryPropertyCollector) => {
-            const response: DebugProtocol.Response = new Response(request);
-            try {
-                logger.verbose(`From client: ${request.command}(${JSON.stringify(request.arguments) })`);
+            // We want the request to be non-blocking, so we won't await for reportTelemetry
+            return this.reportTelemetry(`ClientRequest/${request.command}`, async (reportFailure, telemetryPropertyCollector) => {
+                const response: DebugProtocol.Response = new Response(request);
+                try {
+                    logger.verbose(`From client: ${request.command}(${JSON.stringify(request.arguments) })`);
 
-                if (!(request.command in this._debugAdapter)) {
-                    reportFailure('The debug adapter doesn\'t recognize this command');
-                    this.sendUnknownCommandResponse(response, request.command);
-                } else {
-                    telemetryPropertyCollector.addTelemetryProperty('requestType', request.type);
-                    const requestHandler = (this._debugAdapter as any) [command] as Function;
-                    if (requestHandler instanceof Function) {
-                        response.body = await requestHandler.call(this._debugAdapter, request.arguments, telemetryPropertyCollector, request.seq);
+                    if (!(request.command in this._debugAdapter)) {
+                        reportFailure('The debug adapter doesn\'t recognize this command');
+                        this.sendUnknownCommandResponse(response, request.command);
                     } else {
-                        throw new Error(`Couldn't find a handler for request ${command}`);
+                        telemetryPropertyCollector.addTelemetryProperty('requestType', request.type);
+                        const requestHandler = (this._debugAdapter as any) [command] as Function;
+                        if (requestHandler instanceof Function) {
+                            response.body = await requestHandler.call(this._debugAdapter, request.arguments, telemetryPropertyCollector, request.seq);
+                        } else {
+                            throw new Error(`Couldn't find a handler for request ${command}`);
+                        }
+                        this.sendResponse(response);
                     }
-                    this.sendResponse(response);
+                } catch (e) {
+                    if (!this.isEvaluateRequest(request.command, e)) {
+                        reportFailure(e);
+                    }
+                    this.failedRequest(request.command, response, e);
                 }
-            } catch (e) {
-                if (!this.isEvaluateRequest(request.command, e)) {
-                    reportFailure(e);
-                }
-                this.failedRequest(request.command, response, e);
-            }
-        });
+            });
         } else {
             throw new Error(`The client requested ${request.command} which is not a recognized command`);
         }

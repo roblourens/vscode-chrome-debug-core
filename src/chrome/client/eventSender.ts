@@ -49,7 +49,7 @@ export interface IEventsToClientReporter {
     sendSourceWasLoaded(params: ISourceWasLoadedParameters): Promise<void>;
     sendBPStatusChanged(params: IBPStatusChangedParameters): Promise<void>;
     sendExceptionThrown(params: IExceptionThrownParameters): Promise<void>;
-    sendDebugeeIsStopped(params: IDebugeeIsStoppedParameters): Promise<void>;
+    sendDebuggeeIsStopped(params: IDebugeeIsStoppedParameters): Promise<void>;
 }
 
 @injectable()
@@ -90,7 +90,7 @@ export class EventSender implements IEventsToClientReporter {
         });
     }
 
-    public async sendDebugeeIsStopped(params: IDebugeeIsStoppedParameters): Promise<void> {
+    public async sendDebuggeeIsStopped(params: IDebugeeIsStoppedParameters): Promise<void> {
         return this._session.sendEvent(new StoppedEvent2(params.reason, /*threadId=*/ChromeDebugLogic.THREAD_ID, params.exception));
     }
 

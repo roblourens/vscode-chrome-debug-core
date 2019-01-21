@@ -2,21 +2,21 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { BasePathTransformer } from '../../../transformers/basePathTransformer';
-import { BaseSourceMapTransformer } from '../../../transformers/baseSourceMapTransformer';
-import { ScriptCallFrame } from '../stackTraces/callFrame';
-import { PausedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
-import { InformationAboutPausedProvider } from './takeProperActionOnPausedEvent';
+import { inject, injectable } from 'inversify';
 import { logger } from 'vscode-debugadapter';
-import { IComponent } from './feature';
+import * as nls from 'vscode-nls';
+import { ConnectedCDAConfiguration, utils } from '../../..';
+import { BaseSourceMapTransformer } from '../../../transformers/baseSourceMapTransformer';
+import { PausedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
+import { Abstained, IVote, VoteOverride } from '../../communication/collaborativeDecision';
+import { TYPES } from '../../dependencyInjection.ts/types';
 import { LocationInLoadedSource } from '../locations/location';
 import { ICallFramePresentationDetails } from '../stackTraces/callFramePresentation';
-import { Abstained, VoteRelevance, VoteCommonLogic, IVote } from '../../communication/collaborativeDecision';
-import * as nls from 'vscode-nls';
-import { injectable, inject } from 'inversify';
 import { IStackTracePresentationLogicProvider } from '../stackTraces/stackTracesLogic';
-import { TYPES } from '../../dependencyInjection.ts/types';
-import { utils, ConnectedCDAConfiguration } from '../../..';
+import { Stepping } from '../stepping/stepping';
+import { IComponent } from './feature';
+import { InformationAboutPausedProvider } from './takeProperActionOnPausedEvent';
+
 const localize = nls.loadMessageBundle();
 
 export interface IEventsConsumedBySmartStepLogic {
@@ -27,45 +27,22 @@ export interface ISmartStepLogicConfiguration {
     isEnabled: boolean;
 }
 
-export interface IShouldStepInToAvoidSkippedSourceDependencies {
-    stepIntoDebugee(): Promise<void>;
-}
-export class ShouldStepInToAvoidSkippedSource extends VoteCommonLogic<void> {
-    public readonly relevance = VoteRelevance.OverrideOtherVotes;
-
-    private readonly _dependencies: IShouldStepInToAvoidSkippedSourceDependencies;
-
-    public async execute(): Promise<void> {
-        return this._dependencies.stepIntoDebugee();
-    }
-}
-
 @injectable()
 export class SmartStepLogic implements IComponent, IStackTracePresentationLogicProvider {
     private _smartStepCount = 0;
     private _isEnabled = false;
 
-    public isEnabled(): boolean {
-        return this._isEnabled;
-    }
-
-    public toggleEnabled(): void {
-        this.enable(!this._isEnabled);
-    }
-
-    public enable(shouldEnable: boolean): void {
-        this._isEnabled = shouldEnable;
-    }
-
     public async toggleSmartStep(): Promise<void> {
-        this.toggleEnabled();
-        this.stepInIfOnSkippedSource();
+        this._isEnabled = !this._isEnabled;
+        this.sendUpdatedPause();
     }
 
     public async askForInformationAboutPaused(paused: PausedEvent): Promise<IVote<void>> {
-        if (this.isEnabled() && await this.shouldSkip(paused.callFrames[0])) {
-            this._smartStepCount++;
-            return new ShouldStepInToAvoidSkippedSource();
+        if (this._isEnabled && await this.shouldSkip(paused)) {
+            return new VoteOverride(() => {
+                this._smartStepCount++;
+                return this._stepping.stepIn();
+            });
         } else {
             if (this._smartStepCount > 0) {
                 logger.log(`SmartStep: Skipped ${this._smartStepCount} steps`);
@@ -75,21 +52,23 @@ export class SmartStepLogic implements IComponent, IStackTracePresentationLogicP
         }
     }
 
-    public stepInIfOnSkippedSource(): void {
-        throw new Error('Not implemented TODO DIEGO');
+    public sendUpdatedPause(): void {
+        // TODO
+        // this._eventsToClientReporter.sendDebuggeeIsStopped({ reason: Reason})
     }
 
-    public async shouldSkip(frame: ScriptCallFrame): Promise<boolean> {
+    public async shouldSkip(paused: PausedEvent): Promise<boolean> {
         if (!this._isEnabled) return false;
 
-        const clientPath = this._pathTransformer.getClientPathFromTargetPath(frame.location.script.runtimeSource.identifier)
-            || frame.location.script.runtimeSource.identifier;
-        const mapping = await this._sourceMapTransformer.mapToAuthored(clientPath.canonicalized, frame.codeFlow.location.position.lineNumber, frame.codeFlow.location.position.columnNumber);
+        if (paused.reason !== 'other') return false;
+
+        const frame = paused.callFrames[0];
+        const mapping = await this._sourceMapTransformer.mapToAuthored(frame.location.script.url, frame.codeFlow.location.position.lineNumber, frame.codeFlow.location.position.columnNumber);
         if (mapping) {
             return false;
         }
 
-        if ((await this._sourceMapTransformer.allSources(clientPath.canonicalized)).length) {
+        if ((await this._sourceMapTransformer.allSources(frame.location.script.runtimeSource.identifier.canonicalized)).length) {
             return true;
         }
 
@@ -97,7 +76,7 @@ export class SmartStepLogic implements IComponent, IStackTracePresentationLogicP
     }
 
     public getCallFrameAdditionalDetails(locationInLoadedSource: LocationInLoadedSource): ICallFramePresentationDetails[] {
-        return this.isEnabled && !locationInLoadedSource.source.isMappedSource()
+        return this._isEnabled && !locationInLoadedSource.source.isMappedSource()
             ? [{
                 additionalSourceOrigins: [localize('smartStepFeatureName', 'smartStep')],
                 sourcePresentationHint: 'deemphasize'
@@ -117,9 +96,9 @@ export class SmartStepLogic implements IComponent, IStackTracePresentationLogicP
 
     constructor(
         @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: IEventsConsumedBySmartStepLogic,
-        @inject(TYPES.BasePathTransformer) private readonly _pathTransformer: BasePathTransformer,
         @inject(TYPES.BaseSourceMapTransformer) private readonly _sourceMapTransformer: BaseSourceMapTransformer,
-        @inject(TYPES.ConnectedCDAConfiguration) private readonly _configuration: ConnectedCDAConfiguration
+        @inject(TYPES.ConnectedCDAConfiguration) private readonly _configuration: ConnectedCDAConfiguration,
+        @inject(TYPES.Stepping) private readonly _stepping: Stepping
     ) {
     }
 }

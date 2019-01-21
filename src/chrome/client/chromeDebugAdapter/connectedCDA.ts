@@ -207,7 +207,11 @@ export class ConnectedCDA implements IDebugAdapterState {
     }
 
     public async toggleSkipFileStatus(args: IToggleSkipFileStatusArgs): Promise<void> {
-        this._skipFilesLogic.toggleSkipFileStatus(args);
+        return this._skipFilesLogic.toggleSkipFileStatus(args);
+    }
+
+    public async toggleSmartStep(): Promise<void> {
+        return this._smartStepLogic.toggleSmartStep();
     }
 
     public launch(_args: ILaunchRequestArgs, _telemetryPropertyCollector?: ITelemetryPropertyCollector, _requestSeq?: number): never {

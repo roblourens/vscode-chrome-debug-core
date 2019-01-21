@@ -53,6 +53,18 @@ export class Abstained<T> extends VoteCommonLogic<T> {
     }
 }
 
+export class VoteOverride<T> extends VoteCommonLogic<T> {
+    public readonly relevance = VoteRelevance.OverrideOtherVotes;
+
+    constructor (private readonly _callback: () => Promise<T>) {
+        super();
+    }
+
+    public async execute(): Promise<T> {
+        return this._callback();
+    }
+}
+
 export class ExecuteDecisionBasedOnVotes<T> {
     private readonly _votesByRelevance: ValidatedMultiMap<VoteRelevance, IVote<T>>;
 

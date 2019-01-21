@@ -109,6 +109,10 @@ export abstract class BaseUnconnectedCDA implements IDebugAdapterState {
         return this.throwNotConnectedError();
     }
 
+    public toggleSmartStep(): Promise<void> {
+        return this.throwNotConnectedError();
+    }
+
     private throwNotConnectedError(): never {
         throw new Error("Can't execute this request when the debug adapter is not connected to the target");
     }

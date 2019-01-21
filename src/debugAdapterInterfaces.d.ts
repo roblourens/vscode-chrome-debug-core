@@ -195,6 +195,7 @@ export interface IConnectedDebugAdapter {
     setVariable(args: DebugProtocol.SetVariableArguments, telemetryPropertyCollector?: ITelemetryPropertyCollector, requestSeq?: number): PromiseOrNot<DebugProtocol.SetVariableResponse>;
 
     toggleSkipFileStatus(args: IToggleSkipFileStatusArgs): Promise<void>;
+    toggleSmartStep(): Promise<void>;
 }
 
 export type IDebugAdapter = IConnectedDebugAdapter & IUnconnectedDebugAdapter & IUninitializedDebugAdapter;

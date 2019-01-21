@@ -29,7 +29,7 @@ export abstract class NotifyStoppedCommonLogic extends VoteCommonLogic<void> {
 
     public async execute(): Promise<void> {
         this._publishGoingToPauseClient();
-        this._eventsToClientReporter.sendDebugeeIsStopped({ reason: this.reason, exception: this.exception });
+        this._eventsToClientReporter.sendDebuggeeIsStopped({ reason: this.reason, exception: this.exception });
     }
 }
 
@@ -89,7 +89,7 @@ export class TakeActionBasedOnInformation {
         private readonly _eventsToClientReporter: IEventsToClientReporter) {
         this._takeActionBasedOnVotes = new ExecuteDecisionBasedOnVotes(async () => {
             // If we don't have any information whatsoever, then we assume that we stopped due to a debugger statement
-            return this._eventsToClientReporter.sendDebugeeIsStopped({ reason: 'debugger_statement' });
+            return this._eventsToClientReporter.sendDebuggeeIsStopped({ reason: 'debugger_statement' });
         }, piecesOfInformation);
     }
 }

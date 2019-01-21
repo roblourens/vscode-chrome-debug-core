@@ -129,6 +129,10 @@ export class ChromeDebugAdapter implements IDebugAdapter {
     }
 
     public async toggleSkipFileStatus(args: IToggleSkipFileStatusArgs): Promise<void> {
-        this._state.toggleSkipFileStatus(args);
+        return this._state.toggleSkipFileStatus(args);
+    }
+
+    public async toggleSmartStep(): Promise<void> {
+        return this._state.toggleSmartStep();
     }
 }
