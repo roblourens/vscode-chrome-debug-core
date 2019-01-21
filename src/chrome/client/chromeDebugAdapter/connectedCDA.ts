@@ -26,7 +26,7 @@ import { Target } from '../../communication/targetChannels';
 import { IDebuggeeRunner } from '../../debugeeStartup/debugeeLauncher';
 import { StepProgressEventsEmitter } from '../../../executionTimingsReporter';
 import { TelemetryPropertyCollector, ITelemetryPropertyCollector } from '../../../telemetry';
-import { ICommunicator, utils } from '../../..';
+import { ICommunicator, utils, IToggleSkipFileStatusArgs } from '../../..';
 import { CallFramePresentation } from '../../internal/stackTraces/callFramePresentation';
 
 // TODO DIEGO: Remember to call here and only here         this._lineColTransformer.convertDebuggerLocationToClient(stackFrame); for all responses
@@ -203,6 +203,10 @@ export class ConnectedCDA implements IDebugAdapterState {
         }
 
         return this._internalToVsCode.toExceptionInfo(await this._pauseOnException.latestExceptionInfo());
+    }
+
+    public async toggleSkipFileStatus(args: IToggleSkipFileStatusArgs): Promise<void> {
+        this._skipFilesLogic.toggleSkipFileStatus(args);
     }
 
     public launch(_args: ILaunchRequestArgs, _telemetryPropertyCollector?: ITelemetryPropertyCollector, _requestSeq?: number): never {

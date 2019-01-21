@@ -196,7 +196,7 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration>, ISta
                 this._skipFileStatuses.set(s, isSkippedFile);
 
                 if ((isSkippedFile && !inLibRange) || (!isSkippedFile && inLibRange)) {
-                    const details = await this.sourceMapTransformer.allSourcePathDetails(mappedUrl.canonicalized);
+                    const details = await this.sourceMapTransformer.allSourcePathDetails(script.url);
                     const detail = details.find(d => parseResourceIdentifier(d.inferredPath).isEquivalentTo(s));
                     libPositions.push({
                         lineNumber: detail.startPosition.line,
