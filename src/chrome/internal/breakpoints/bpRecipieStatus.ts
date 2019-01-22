@@ -8,6 +8,7 @@ import { IBreakpoint } from './breakpoint';
 import { printArray } from '../../collections/printting';
 import { ISource } from '../sources/source';
 
+/** These interface and classes represent the status of a BP Recipie (Is it binded or not?) */
 export interface IBPRecipieStatus {
     readonly recipie: IBPRecipie<ISource>;
     readonly statusDescription: string;

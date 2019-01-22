@@ -27,7 +27,7 @@ export class BaseBPRecipies<TResource extends ILoadedSource | ISource> {
 }
 
 export class BPRecipiesInSource extends BaseBPRecipies<ISource> {
-    public tryResolving<R>(ifSuccesfulDo: (desiredBPsInLoadedSource: BPRecipiesInLoadedSource) => R, ifFaileDo: () => R): R {
+    public tryResolving<R>(ifSuccesfulDo: (bpsInLoadedSource: BPRecipiesInLoadedSource) => R, ifFaileDo: () => R): R {
         return this.source.tryResolving(
             loadedSource => {
                 const loadedSourceBPs = this.breakpoints.map(breakpoint => breakpoint.resolvedWithLoadedSource(loadedSource));

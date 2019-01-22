@@ -95,7 +95,7 @@ export class InternalToClient {
 
     public async toBPRecipieStatus(bpRecipieStatus: IBPRecipieStatus): Promise<DebugProtocol.Breakpoint> {
         const clientStatus = {
-            id: this.toBreakpointId(bpRecipieStatus.recipie.unmappedBPRecipie),
+            id: this.toBreakpointId(bpRecipieStatus.recipie),
             verified: bpRecipieStatus.isVerified(),
             message: bpRecipieStatus.statusDescription
         };

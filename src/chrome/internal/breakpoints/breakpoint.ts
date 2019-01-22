@@ -3,13 +3,15 @@
  *--------------------------------------------------------*/
 
 import { LocationInScript, LocationInLoadedSource } from '../locations/location';
-import { IBPRecipie } from './bpRecipie';
 import { IScript } from '../scripts/script';
 import { URLRegexp } from '../locations/subtypes';
 import { IResourceIdentifier } from '../sources/resourceIdentifier';
 import { CDTPScriptUrl } from '../sources/resourceIdentifierSubtypes';
-import { CDTPSupportedResources } from '../../cdtpDebuggee/cdtpPrimitives';
+import { CDTPSupportedResources, CDTPSupportedHitActions } from '../../cdtpDebuggee/cdtpPrimitives';
 import { ISource } from '../sources/source';
+import { IMappedBPRecipie } from './baseMappedBPRecipie';
+import { BPRecipieInSource } from './bpRecipieInSource';
+import { IBPRecipie } from './bpRecipie';
 
 export type BPPossibleResources = IScript | ISource | URLRegexp | IResourceIdentifier<CDTPScriptUrl>;
 export type ActualLocation<TResource> =
@@ -25,18 +27,27 @@ export interface IBreakpoint<TResource extends BPPossibleResources> {
     readonly actualLocation: ActualLocation<TResource>;
 }
 
-export abstract class BaseBreakpoint<TResource extends BPPossibleResources> implements IBreakpoint<TResource>{
+abstract class BaseBreakpoint<TResource extends BPPossibleResources> implements IBreakpoint<TResource> {
+    public abstract get recipie(): IBPRecipie<TResource>;
+    public abstract get actualLocation(): ActualLocation<TResource>;
+
     public toString(): string {
         return `${this.recipie} actual location is ${this.actualLocation}`;
     }
-
-    constructor(public readonly recipie: IBPRecipie<TResource>, public readonly actualLocation: ActualLocation<TResource>) { }
 }
 
 export class MappableBreakpoint<TResource extends CDTPSupportedResources> extends BaseBreakpoint<TResource> {
     public mappedToSource(): BreakpointInSource {
         return new BreakpointInSource(this.recipie.unmappedBPRecipie, this.actualLocation.mappedToSource());
     }
+
+    constructor(public readonly recipie: IMappedBPRecipie<TResource, CDTPSupportedHitActions>, public readonly actualLocation: ActualLocation<TResource>) {
+        super();
+    }
 }
 
-export class BreakpointInSource extends BaseBreakpoint<ISource> { }
+export class BreakpointInSource extends BaseBreakpoint<ISource> {
+    constructor(public readonly recipie: BPRecipieInSource, public readonly actualLocation: ActualLocation<ISource>) {
+        super();
+    }
+}

@@ -60,7 +60,7 @@ export class ReAddBPsWhenSourceIsLoaded implements IComponent {
                     const bpStatus = await this._breakpointsInLoadedSource.addBreakpointAtLoadedSource(bpRecepieResolved);
                     const mappedBreakpoints = bpStatus.map(breakpoint => breakpoint.mappedToSource());
                     this._eventsToClientReporter.sendBPStatusChanged({
-                        bpRecipieStatus: new BPRecipieIsBinded(bpRecipie.unmappedBPRecipie, mappedBreakpoints, 'TODO DIEGO'),
+                        bpRecipieStatus: new BPRecipieIsBinded(bpRecipie, mappedBreakpoints, 'TODO DIEGO'),
                         reason: 'changed'
                     });
                     remainingBPRecipies.delete(bpRecipie);

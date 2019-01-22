@@ -15,27 +15,29 @@ export class BPRecipieInSource<TBPActionWhenHit extends IBPActionWhenHit = IBPAc
             this.bpActionWhenHit.isEquivalentTo(right.bpActionWhenHit);
     }
 
-    public get unmappedBPRecipie(): BPRecipieInSource<TBPActionWhenHit> {
-        return this;
-    }
-
+    /**
+     * Hit breakpoints are implemented by setting an always break breakpoint, and then auto-resuming until the hit condition is true.
+     * We use this method to create the always break breakpoint for a hit count breakpoint
+     */
     public withAlwaysBreakAction(): BPRecipieInSource<AlwaysPause> {
         return new BPRecipieInSource<AlwaysPause>(this.location, new AlwaysPause());
     }
 
-    public tryResolvingSource<R>(succesfulAction: (breakpointInLoadedSource: BPRecipieInLoadedSource) => R, failedAction: (breakpointInUnbindedSource: BPRecipieInSource) => R): R {
+    public tryResolvingSource<R>(succesfulAction: (breakpointInLoadedSource: BPRecipieInLoadedSource<TBPActionWhenHit>) => R,
+        failedAction: (breakpointInUnbindedSource: BPRecipieInSource) => R): R {
+
         return this.location.tryResolvingSource(
-            locationInLoadedSource => succesfulAction(new BPRecipieInLoadedSource(this, locationInLoadedSource)),
+            locationInLoadedSource => succesfulAction(new BPRecipieInLoadedSource<TBPActionWhenHit>(this, locationInLoadedSource)),
             () => failedAction(this));
     }
 
-    public resolvedToLoadedSource(): BPRecipieInLoadedSource {
+    public resolvedToLoadedSource(): BPRecipieInLoadedSource<TBPActionWhenHit> {
         return this.tryResolvingSource(
             breakpointInLoadedSource => breakpointInLoadedSource,
             () => { throw new Error(`Failed to convert ${this} into a breakpoint in a loaded source`); });
     }
 
-    public resolvedWithLoadedSource(source: ILoadedSource<string>): BPRecipieInLoadedSource {
+    public resolvedWithLoadedSource(source: ILoadedSource<string>): BPRecipieInLoadedSource<TBPActionWhenHit> {
         return new BPRecipieInLoadedSource(this, this.location.resolvedWith(source));
     }
 }

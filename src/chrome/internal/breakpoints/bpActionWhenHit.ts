@@ -5,11 +5,11 @@
 import { IEquivalenceComparable } from '../../utils/equivalence';
 
 /**
- * These classes represents the different actions that a pausepoint can take when hit
- * Pausepoint: AlwaysPause
- * Conditional Pausepoint: ConditionalPause
+ * These classes represents the different actions that a breakpoint can take when hit
+ * Breakpoint: AlwaysPause
+ * Conditional Breakpoint: ConditionalPause
  * Logpoint: LogMessage
- * Hit Count Pausepoint: PauseOnHitCount
+ * Hit Count Breakpoint: PauseOnHitCount
  */
 export interface IBPActionWhenHit extends IEquivalenceComparable {
     isEquivalentTo(bpActionWhenHit: IBPActionWhenHit): boolean;
