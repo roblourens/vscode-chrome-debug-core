@@ -68,7 +68,7 @@ export class SmartStepLogic implements IComponent, IStackTracePresentationLogicP
             return false;
         }
 
-        if ((await this._sourceMapTransformer.allSources(frame.location.script.runtimeSource.identifier.canonicalized)).length) {
+        if (frame.location.script.mappedSources.length) {
             return true;
         }
 
