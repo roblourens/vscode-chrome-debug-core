@@ -11,13 +11,13 @@ export interface ISourcesMapper {
     getPositionInScript(positionInSource: IPositionInSource): IPositionInScript | null;
 }
 
-interface IPositionInSource {
+export interface IPositionInSource {
     readonly source: string;
     readonly line: LineNumber;
     readonly column?: ColumnNumber;
 }
 
-interface IPositionInScript {
+export interface IPositionInScript {
     readonly line: LineNumber;
     readonly column?: ColumnNumber;
 }
@@ -34,7 +34,7 @@ export class SourcesMapper implements ISourcesMapper {
     public getPositionInScript(positionInSource: IPositionInSource): IPositionInScript | null {
         const mappedPosition = this._sourceMap.generatedPositionFor(positionInSource.source,
             positionInSource.line, positionInSource.column || 0);
-        return mappedPosition && mappedPosition.line
+        return mappedPosition && typeof mappedPosition.line === 'number'
             ? { line: createLineNumber(mappedPosition.line), column: createColumnNumber(mappedPosition.column) }
             : null;
     }

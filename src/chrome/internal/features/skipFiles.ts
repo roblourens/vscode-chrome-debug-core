@@ -2,24 +2,24 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { Protocol as CDTP } from 'devtools-protocol';
+import { inject, injectable, LazyServiceIdentifer } from 'inversify';
 import { logger } from 'vscode-debugadapter/lib/logger';
-import { IScript } from '../scripts/script';
-import { StackTracesLogic, IStackTracePresentationLogicProvider } from '../stackTraces/stackTracesLogic';
-import { newResourceIdentifierMap, IResourceIdentifier, parseResourceIdentifier } from '../sources/resourceIdentifier';
-import { IComponent } from './feature';
-import { LocationInLoadedSource } from '../locations/location';
-import { ICallFramePresentationDetails, CallFramePresentation } from '../stackTraces/callFramePresentation';
 import * as nls from 'vscode-nls';
-import { injectable, inject, LazyServiceIdentifer } from 'inversify';
-import { TYPES } from '../../dependencyInjection.ts/types';
-import { ClientToInternal } from '../../client/clientToInternal';
-import { IScriptParsedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpOnScriptParsedEventProvider';
-import { IBlackboxPatternsConfigurer } from '../../cdtpDebuggee/features/cdtpBlackboxPatternsConfigurer';
 import { IToggleSkipFileStatusArgs } from '../../../debugAdapterInterfaces';
 import * as utils from '../../../utils';
-import { BaseSourceMapTransformer } from '../../../transformers/baseSourceMapTransformer';
+import { IScriptParsedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpOnScriptParsedEventProvider';
+import { IBlackboxPatternsConfigurer } from '../../cdtpDebuggee/features/cdtpBlackboxPatternsConfigurer';
 import { ConnectedCDAConfiguration } from '../../client/chromeDebugAdapter/cdaConfiguration';
+import { ClientToInternal } from '../../client/clientToInternal';
+import { TYPES } from '../../dependencyInjection.ts/types';
+import { LocationInLoadedSource } from '../locations/location';
+import { createColumnNumber, createLineNumber } from '../locations/subtypes';
+import { IScript } from '../scripts/script';
+import { IPositionInScript } from '../scripts/sourcesMapper';
+import { IResourceIdentifier, newResourceIdentifierMap } from '../sources/resourceIdentifier';
+import { CallFramePresentation, ICallFramePresentationDetails } from '../stackTraces/callFramePresentation';
+import { IStackTracePresentationLogicProvider, StackTracesLogic } from '../stackTraces/stackTracesLogic';
+import { IComponent } from './feature';
 const localize = nls.loadMessageBundle();
 
 export interface IEventsConsumedBySkipFilesLogic {
@@ -182,7 +182,7 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration>, ISta
     public async resolveSkipFiles(script: IScript, mappedUrl: IResourceIdentifier, sources: IResourceIdentifier[], toggling?: boolean): Promise<void> {
         if (sources && sources.length) {
             const parentIsSkipped = this.shouldSkipSource(script.runtimeSource.identifier);
-            const libPositions: CDTP.Debugger.ScriptPosition[] = [];
+            const libPositions: IPositionInScript[] = [];
 
             // Figure out skip/noskip transitions within script
             let inLibRange = parentIsSkipped;
@@ -196,12 +196,13 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration>, ISta
                 this._skipFileStatuses.set(s, isSkippedFile);
 
                 if ((isSkippedFile && !inLibRange) || (!isSkippedFile && inLibRange)) {
-                    const details = await this.sourceMapTransformer.allSourcePathDetails(script.url);
-                    const detail = details.find(d => parseResourceIdentifier(d.inferredPath).isEquivalentTo(s));
-                    libPositions.push({
-                        lineNumber: detail.startPosition.line,
-                        columnNumber: detail.startPosition.column
-                    });
+                    const sourcesMapper = script.sourcesMapper;
+                    const pos = sourcesMapper.getPositionInScript({ source: s.canonicalized, line: createLineNumber(0) });
+                    if (!pos) {
+                        throw new Error(`Source '${s.canonicalized}' start not found in script.`)
+                    }
+
+                    libPositions.push(pos);
                     inLibRange = !inLibRange;
                 }
             }
@@ -209,15 +210,15 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration>, ISta
             // If there's any change from the default, set proper blackboxed ranges
             if (libPositions.length || toggling) {
                 if (parentIsSkipped) {
-                    libPositions.splice(0, 0, { lineNumber: 0, columnNumber: 0 });
+                    libPositions.splice(0, 0, { line: createLineNumber(0), column: createColumnNumber(0) });
                 }
 
-                if (libPositions[0].lineNumber !== 0 || libPositions[0].columnNumber !== 0) {
+                if (libPositions[0].line !== 0 || libPositions[0].column !== 0) {
                     // The list of blackboxed ranges must start with 0,0 for some reason.
                     // https://github.com/Microsoft/vscode-chrome-debug/issues/667
                     libPositions[0] = {
-                        lineNumber: 0,
-                        columnNumber: 0
+                        line: createLineNumber(0),
+                        column: createColumnNumber(0)
                     };
                 }
 
@@ -231,7 +232,7 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration>, ISta
             const status = await this.getSkipStatus(mappedUrl);
             const skippedByPattern = this.matchesSkipFilesPatterns(mappedUrl);
             if (typeof status === 'boolean' && status !== skippedByPattern) {
-                const positions = status ? [{ lineNumber: 0, columnNumber: 0 }] : [];
+                const positions = status ? [{ line: createLineNumber(0), column: createColumnNumber(0) }] : [];
                 this._blackboxPatternsConfigurer.setBlackboxedRanges(script, positions).catch(() => this.warnNoSkipFiles());
             }
         }
@@ -285,7 +286,6 @@ export class SkipFilesLogic implements IComponent<ISkipFilesConfiguration>, ISta
     constructor(
         @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: IEventsConsumedBySkipFilesLogic,
         @inject(new LazyServiceIdentifer(() => TYPES.StackTracesLogic)) private readonly stackTracesLogic: StackTracesLogic,
-        @inject(TYPES.BaseSourceMapTransformer) private readonly sourceMapTransformer: BaseSourceMapTransformer,
         @inject(TYPES.ClientToInternal) private readonly _clientToInternal: ClientToInternal,
         @inject(TYPES.ConnectedCDAConfiguration) private readonly _configuration: ConnectedCDAConfiguration,
         @inject(TYPES.IBlackboxPatternsConfigurer) private readonly _blackboxPatternsConfigurer: IBlackboxPatternsConfigurer,
