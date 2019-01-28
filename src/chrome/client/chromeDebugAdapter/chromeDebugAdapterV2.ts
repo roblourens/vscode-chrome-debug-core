@@ -5,7 +5,7 @@
  import {
     IDebugAdapter, ITelemetryPropertyCollector, PromiseOrNot, ILaunchRequestArgs, IAttachRequestArgs, IThreadsResponseBody,
     ISetBreakpointsResponseBody, IStackTraceResponseBody, IScopesResponseBody, IVariablesResponseBody, ISourceResponseBody,
-    IEvaluateResponseBody, IExceptionInfoResponseBody, IGetLoadedSourcesResponseBody, IDebugAdapterState
+    IEvaluateResponseBody, IExceptionInfoResponseBody, IGetLoadedSourcesResponseBody, IDebugAdapterState, IToggleSkipFileStatusArgs
 } from '../../..';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { ChromeDebugSession, IChromeDebugSessionOpts } from '../../chromeDebugSession';
@@ -126,5 +126,9 @@ export class ChromeDebugAdapter implements IDebugAdapter {
 
     public async exceptionInfo(args: DebugProtocol.ExceptionInfoArguments): Promise<IExceptionInfoResponseBody> {
         return this._state.exceptionInfo(args);
+    }
+
+    public async toggleSkipFileStatus(args: IToggleSkipFileStatusArgs): Promise<void> {
+        this._state.toggleSkipFileStatus(args);
     }
 }

@@ -4,7 +4,7 @@
 
 import { ITelemetryPropertyCollector, ISetBreakpointsResponseBody, IStackTraceResponseBody, IScopesResponseBody, IVariablesResponseBody, ISourceResponseBody, IEvaluateResponseBody, IGetLoadedSourcesResponseBody } from '../../../debugAdapterInterfaces';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { ChromeDebugLogic, ILaunchRequestArgs, IAttachRequestArgs, IExceptionInfoResponseBody, IDebugAdapterState } from '../../..';
+import { ChromeDebugLogic, ILaunchRequestArgs, IAttachRequestArgs, IExceptionInfoResponseBody, IDebugAdapterState, IToggleSkipFileStatusArgs } from '../../..';
 import { PromiseOrNot } from '../../utils/promises';
 
 export abstract class BaseUnconnectedCDA implements IDebugAdapterState {
@@ -111,5 +111,9 @@ export abstract class BaseUnconnectedCDA implements IDebugAdapterState {
 
     private throwNotConnectedError(): never {
         throw new Error("Can't execute this request when the debug adapter is not connected to the target");
+    }
+
+    public async toggleSkipFileStatus(_args: IToggleSkipFileStatusArgs): Promise<void> {
+        return this.throwNotConnectedError();
     }
 }
