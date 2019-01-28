@@ -27,8 +27,13 @@
     },
     "include": [
         "src/**/*.ts",
+<<<<<<< HEAD
         "test/testDebug/**/*.ts",
         "test-DoNot-/**/*.ts",
+||||||| merged common ancestors
+        "test/**/*.ts",
+=======
+>>>>>>> origin/v2
         "node_modules/@types/**/*.ts"
     ]
 }

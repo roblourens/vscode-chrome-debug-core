@@ -242,7 +242,7 @@ export function stripTrailingSlash(aPath: string): string {
  * when passing on a failure from a Promise error handler.
  * @param msg - Should be either a string or an Error
  */
-export function errP(msg: string|Error): Promise<never> {
+export function errP(msg: string | Error): Promise<never> {
     const isErrorLike = (thing: any): thing is Error => !!thing.message;
 
     let e: Error;
@@ -663,14 +663,6 @@ export function fillErrorDetails(properties: IExecutionResultTelemetryProperties
 
 export function makeUnique<T>(elements: T[]): T[] {
     return Array.from(new Set(elements));
-}
-
-export function adaptToSinglIntoToMulti<T, R>(thisObject: object, toSingle: (single: T) => R): (multi: T[]) => R[] {
-    return (multi: T[]) => multi.map(single => toSingle.call(thisObject, single));
-}
-
-export function asyncAdaptToSinglIntoToMulti<T, R>(thisObject: object, toSingle: (single: T) => Promise<R>): (multi: T[]) => Promise<R[]> {
-    return (multi: T[]) => Promise.all(multi.map(single => toSingle.call(thisObject, single)));
 }
 
 export function defaultIfUndefined<T>(value: T | undefined, defaultValue: T): T {

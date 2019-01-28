@@ -9,7 +9,7 @@ import { ILoadedSource, isLoadedSource } from '../sources/loadedSource';
 import { logger } from 'vscode-debugadapter';
 import { ColumnNumber, LineNumber, URLRegexp, createURLRegexp } from './subtypes';
 import { CDTPScriptUrl } from '../sources/resourceIdentifierSubtypes';
-import { IResourceIdentifier, parseResourceIdentifier, IURL, isResourceIdentifier } from '../sources/resourceIdentifier';
+import { IResourceIdentifier, parseResourceIdentifier, IURL } from '../sources/resourceIdentifier';
 import { IEquivalenceComparable } from '../../utils/equivalence';
 
 export type integer = number;
@@ -69,7 +69,7 @@ export function createLocation<T extends ScriptOrSourceOrURLOrURLRegexp>(resourc
     }
 }
 
-abstract class LocationCommonLogic<T extends ScriptOrSourceOrURLOrURLRegexp> implements ILocation<T> {
+abstract class BaseLocation<T extends ScriptOrSourceOrURLOrURLRegexp> implements ILocation<T> {
     public isEquivalentTo(right: this): boolean {
         if (this.position.isEquivalentTo(right.position)) {
             if (typeof this.resource === 'string' || typeof right.resource === 'string') {
@@ -91,7 +91,7 @@ abstract class LocationCommonLogic<T extends ScriptOrSourceOrURLOrURLRegexp> imp
         public readonly position: Position) { }
 }
 
-export class LocationInSource extends LocationCommonLogic<ISource> implements ILocation<ISource> {
+export class LocationInSource extends BaseLocation<ISource> {
     public get identifier(): ISource {
         return this.resource;
     }
@@ -113,7 +113,7 @@ export class LocationInSource extends LocationCommonLogic<ISource> implements IL
     }
 }
 
-export class LocationInScript extends LocationCommonLogic<IScript> {
+export class LocationInScript extends BaseLocation<IScript> {
     public get script(): IScript {
         return this.resource;
     }
@@ -148,7 +148,7 @@ export class LocationInScript extends LocationCommonLogic<IScript> {
     }
 }
 
-export class LocationInLoadedSource extends LocationCommonLogic<ILoadedSource> {
+export class LocationInLoadedSource extends BaseLocation<ILoadedSource> {
     public get source(): ILoadedSource {
         return this.resource;
     }
@@ -171,13 +171,13 @@ export class LocationInLoadedSource extends LocationCommonLogic<ILoadedSource> {
 
 // The LocationInUrl is used with the URL that is associated with each Script in CDTP. This should be a URL, but it could also be a string that is not a valid URL
 // For that reason we use IResourceIdentifier<CDTPScriptUrl> for this type, instead of IURL<CDTPScriptUrl>
-export class LocationInUrl extends LocationCommonLogic<IResourceIdentifier<CDTPScriptUrl>> {
+export class LocationInUrl extends BaseLocation<IResourceIdentifier<CDTPScriptUrl>> {
     public get url(): IResourceIdentifier<CDTPScriptUrl> {
         return this.resource;
     }
 }
 
-export class LocationInUrlRegexp extends LocationCommonLogic<URLRegexp> {
+export class LocationInUrlRegexp extends BaseLocation<URLRegexp> {
     public get urlRegexp(): URLRegexp {
         return this.resource;
     }

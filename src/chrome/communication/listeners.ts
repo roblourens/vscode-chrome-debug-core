@@ -4,6 +4,9 @@
 
 type Callback<Args, Result> = (args: Args) => Result;
 
+/**
+ * This class is used to manage and call a set of listeners, such as the listeners to onScriptParsed
+ */
 export class Listeners<Args, Result> {
     private readonly _listeners = [] as Callback<Args, Result>[];
 
