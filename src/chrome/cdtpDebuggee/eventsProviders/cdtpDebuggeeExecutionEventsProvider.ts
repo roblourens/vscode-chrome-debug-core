@@ -5,7 +5,6 @@
 import { CDTPEventsEmitterDiagnosticsModule } from '../infrastructure/cdtpDiagnosticsModule';
 import { asyncMap } from '../../collections/async';
 import { CDTPStackTraceParser } from '../protocolParsers/cdtpStackTraceParser';
-import { adaptToSinglIntoToMulti } from '../../../utils';
 import { CDTPBreakpointIdsRegistry } from '../registries/cdtpBreakpointIdsRegistry';
 import { ScriptCallFrame, CodeFlowFrame } from '../../internal/stackTraces/callFrame';
 import { asyncUndefinedOnFailure } from '../../utils/failures';
@@ -46,8 +45,6 @@ export class CDTDebuggeeExecutionEventsProvider extends CDTPEventsEmitterDiagnos
     private readonly _cdtpLocationParser = new CDTPLocationParser(this._scriptsRegistry);
     private readonly _stackTraceParser = new CDTPStackTraceParser(this._scriptsRegistry);
 
-    private getBPsFromIDs = adaptToSinglIntoToMulti(this, this.getBPFromID);
-
     public readonly onPaused = this.addApiListener('paused', async (params: CDTP.Debugger.PausedEvent) => {
         if (params.callFrames.length === 0) {
             throw new Error(`Expected a pause event to have at least a single call frame: ${JSON.stringify(params)}`);
@@ -55,7 +52,7 @@ export class CDTDebuggeeExecutionEventsProvider extends CDTPEventsEmitterDiagnos
 
         const callFrames = await asyncMap(params.callFrames, (callFrame, index) => this.toCallFrame(index, callFrame));
 
-        return new PausedEvent(callFrames, params.reason, params.data, this.getBPsFromIDs(params.hitBreakpoints),
+        return new PausedEvent(callFrames, params.reason, params.data, await asyncMap(params.hitBreakpoints, hbp => this.getBPFromID(hbp)),
             params.asyncStackTrace && await this._stackTraceParser.toStackTraceCodeFlow(params.asyncStackTrace),
             params.asyncStackTraceId, params.asyncCallStackTraceId);
     });

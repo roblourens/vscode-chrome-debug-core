@@ -9,7 +9,7 @@ import { ILoadedSource, isLoadedSource } from '../sources/loadedSource';
 import { logger } from 'vscode-debugadapter';
 import { ColumnNumber, LineNumber, URLRegexp, createURLRegexp } from './subtypes';
 import { CDTPScriptUrl } from '../sources/resourceIdentifierSubtypes';
-import { IResourceIdentifier, parseResourceIdentifier, IURL } from '../sources/resourceIdentifier';
+import { IResourceIdentifier, parseResourceIdentifier, IURL, isResourceIdentifier } from '../sources/resourceIdentifier';
 import { IEquivalenceComparable } from '../../utils/equivalence';
 
 export type integer = number;

@@ -22,8 +22,7 @@ import { stackTraceWithoutLogpointFrame } from './internalSourceBreakpoint';
 
 import * as errors from '../errors';
 import * as utils from '../utils';
-import { promiseDefer } from '../utils';
-import { telemetry, BatchTelemetryReporter, IExecutionResultTelemetryProperties } from '../telemetry';
+import { telemetry, BatchTelemetryReporter } from '../telemetry';
 import { StepProgressEventsEmitter } from '../executionTimingsReporter';
 
 import { LineColTransformer } from '../transformers/lineNumberTransformer';

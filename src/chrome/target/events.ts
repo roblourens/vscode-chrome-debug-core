@@ -1,6 +1,5 @@
+import { Protocol as CDTP } from 'devtools-protocol';
 import { IScript } from '../internal/scripts/script';
-
-import { Crdp } from '../..';
 
 export type integer = number;
 
@@ -14,7 +13,7 @@ export interface ScriptParsedEvent {
     readonly startColumn: integer;
     readonly endLine: integer;
     readonly endColumn: integer;
-    readonly executionContextId: Crdp.Runtime.ExecutionContextId;
+    readonly executionContextId: CDTP.Runtime.ExecutionContextId;
     readonly hash: string;
     readonly executionContextAuxData?: any;
     readonly isLiveEdit?: boolean;

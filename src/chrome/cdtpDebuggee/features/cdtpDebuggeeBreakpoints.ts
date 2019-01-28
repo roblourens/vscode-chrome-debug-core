@@ -15,7 +15,7 @@ import { CDTPLocationParser } from '../protocolParsers/cdtpLocationParser';
 import { CDTPEventsEmitterDiagnosticsModule } from '../infrastructure/cdtpDiagnosticsModule';
 import { CDTPDomainsEnabler } from '../infrastructure/cdtpDomainsEnabler';
 import { Position } from '../../internal/locations/location';
-import { singleOne } from '../../collections/utilities';
+import { singleElementOfArray } from '../../collections/utilities';
 import { CDTPSupportedResources, CDTPSupportedHitActions, CDTPBreakpoint } from '../cdtpPrimitives';
 import { Listeners } from '../../communication/listeners';
 import { IScript } from '../../internal/scripts/script';
@@ -74,7 +74,7 @@ export class CDTPDebuggeeBreakpoints extends CDTPEventsEmitterDiagnosticsModule<
             return { breakpointId: response.breakpointId, locations: [response.actualLocation] };
         });
 
-        return singleOne(breakpoints);
+        return singleElementOfArray(breakpoints);
     }
 
     public async setBreakpointByUrl(bpRecipie: BPRecipieInUrl): Promise<MappableBreakpoint<IURL<CDTPScriptUrl>>[]> {

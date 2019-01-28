@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
- import * as errors from '../../../errors';
+import * as errors from '../../../errors';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { ChromeDebugLogic } from '../../chromeDebugAdapter';
 import { ClientToInternal } from '../clientToInternal';
@@ -28,6 +28,7 @@ import { StepProgressEventsEmitter } from '../../../executionTimingsReporter';
 import { TelemetryPropertyCollector, ITelemetryPropertyCollector } from '../../../telemetry';
 import { ICommunicator, utils, IToggleSkipFileStatusArgs } from '../../..';
 import { CallFramePresentation } from '../../internal/stackTraces/callFramePresentation';
+import { asyncMap } from '../../collections/async';
 
 // TODO DIEGO: Remember to call here and only here         this._lineColTransformer.convertDebuggerLocationToClient(stackFrame); for all responses
 @injectable()
@@ -86,7 +87,7 @@ export class ConnectedCDA implements IDebugAdapterState {
         if (args.breakpoints) {
             const desiredBPRecipies = this._clientToInternal.toBPRecipies(args);
             const bpRecipiesStatus = await this._breakpointsLogic.updateBreakpointsForFile(desiredBPRecipies, telemetryPropertyCollector);
-            return { breakpoints: await this._internalToVsCode.toBPRecipiesStatus(bpRecipiesStatus) };
+            return { breakpoints: await asyncMap(bpRecipiesStatus, bprs => this._internalToVsCode.toBPRecipieStatus(bprs)) };
         } else {
             throw new Error(`Expected the set breakpoints arguments to have a list of breakpoints yet it was ${args.breakpoints}`);
         }
@@ -186,7 +187,7 @@ export class ConnectedCDA implements IDebugAdapterState {
     }
 
     public async loadedSources(): Promise<IGetLoadedSourcesResponseBody> {
-        return { sources: await this._internalToVsCode.toSourceTrees(await this._sourcesLogic.getLoadedSourcesTrees()) };
+        return { sources: await asyncMap(await this._sourcesLogic.getLoadedSourcesTrees(), st => this._internalToVsCode.toSourceTree(st)) };
     }
 
     public setFunctionBreakpoints(_args: DebugProtocol.SetFunctionBreakpointsArguments, _telemetryPropertyCollector?: ITelemetryPropertyCollector, _requestSeq?: number): PromiseOrNot<DebugProtocol.SetFunctionBreakpointsResponse> {

@@ -5,7 +5,6 @@
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { utils, LineColTransformer, IExceptionInfoResponseBody } from '../..';
 import * as pathModule from 'path';
-import { asyncAdaptToSinglIntoToMulti } from '../../utils';
 import { ILoadedSource, ILoadedSourceTreeNode } from '../internal/sources/loadedSource';
 import { LocationInLoadedSource } from '../internal/locations/location';
 import { RemoveProperty } from '../../typeUtils';
@@ -30,9 +29,6 @@ interface IClientLocationInSource {
 
 @injectable()
 export class InternalToClient {
-    public readonly toSourceTrees = asyncAdaptToSinglIntoToMulti(this, this.toSourceTree);
-    public readonly toBPRecipiesStatus = asyncAdaptToSinglIntoToMulti(this, this.toBPRecipieStatus);
-
     public toStackFrames(rows: IStackTracePresentationRow[]): Promise<DebugProtocol.StackFrame[]> {
         return asyncMap(rows, row => this.toStackFrame(row));
     }
