@@ -6,7 +6,6 @@ import { inject, injectable } from 'inversify';
 import { logger } from 'vscode-debugadapter';
 import * as nls from 'vscode-nls';
 import { ConnectedCDAConfiguration, utils } from '../../..';
-import { BaseSourceMapTransformer } from '../../../transformers/baseSourceMapTransformer';
 import { PausedEvent } from '../../cdtpDebuggee/eventsProviders/cdtpDebuggeeExecutionEventsProvider';
 import { Abstained, IVote, VoteOverride } from '../../communication/collaborativeDecision';
 import { TYPES } from '../../dependencyInjection.ts/types';
@@ -63,8 +62,7 @@ export class SmartStepLogic implements IComponent, IStackTracePresentationLogicP
         if (paused.reason !== 'other') return false;
 
         const frame = paused.callFrames[0];
-        const mapping = await this._sourceMapTransformer.mapToAuthored(frame.location.script.url, frame.codeFlow.location.position.lineNumber, frame.codeFlow.location.position.columnNumber);
-        if (mapping) {
+        if (frame.location.mappedToSource().resource.isMappedSource()) {
             return false;
         }
 
@@ -96,7 +94,6 @@ export class SmartStepLogic implements IComponent, IStackTracePresentationLogicP
 
     constructor(
         @inject(TYPES.EventsConsumedByConnectedCDA) private readonly _dependencies: IEventsConsumedBySmartStepLogic,
-        @inject(TYPES.BaseSourceMapTransformer) private readonly _sourceMapTransformer: BaseSourceMapTransformer,
         @inject(TYPES.ConnectedCDAConfiguration) private readonly _configuration: ConnectedCDAConfiguration,
         @inject(TYPES.Stepping) private readonly _stepping: Stepping
     ) {
